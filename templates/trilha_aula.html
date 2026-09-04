@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ lesson.eyebrow }} | Trilha da IA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='trilha_aula.css') }}">
+  </head>
+  <body class="lesson-page">
+    <header class="topbar">
+      <a class="brand" href="{{ url_for('pagina_aluno') }}">RobooTeam · Trilha da IA</a>
+      <a class="back-link" href="{{ url_for('pagina_aluno') }}#trilha">Voltar para o painel</a>
+    </header>
+
+    <main class="lesson-shell" data-lesson-id="{{ lesson_id }}" data-quiz="{{ lesson.quiz|tojson|forceescape }}" data-complete-url="{{ url_for('concluir_etapa_trilha', lesson_id=lesson_id) }}" data-return-url="{{ url_for('pagina_aluno') }}#trilha">
+      <a class="lesson-back" href="{{ url_for('pagina_aluno') }}#trilha">Voltar para a linha do tempo</a>
+      <header class="lesson-header">
+        <p class="eyebrow">{{ lesson.eyebrow }}</p>
+        <h1>{{ lesson.title }}</h1>
+        <p class="lesson-intro">{{ lesson.intro }}</p>
+      </header>
+
+      <section class="reading-area" aria-labelledby="reading-title">
+        <div class="reading-label" id="reading-title">Leitura especializada</div>
+        {% for section in lesson.sections %}
+          <article class="reading-block">
+            <span class="reading-number">0{{ loop.index }}</span>
+            <div>
+              <h2>{{ section.title }}</h2>
+              <p>{{ section.text }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+
+      <section class="quiz-panel" aria-labelledby="quiz-title">
+        <p class="eyebrow">Confira seu entendimento</p>
+        <div class="quiz-progress" id="quiz-progress">0 de {{ lesson.quiz|length }} perguntas corretas</div>
+        {% for question in lesson.quiz %}
+          <article class="quiz-question" data-question="{{ loop.index0 }}">
+            <h2 id="quiz-title-{{ loop.index }}">{{ loop.index }}. {{ question.question }}</h2>
+            <div class="quiz-options" aria-labelledby="quiz-title-{{ loop.index }}">
+              {% for option in question.options %}
+                <button class="quiz-option" data-option="{{ loop.index0 }}">{{ option }}</button>
+              {% endfor %}
+            </div>
+            <p class="quiz-feedback" role="status"></p>
+          </article>
+        {% endfor %}
+        <button class="finish-button" id="finish-button" disabled>Concluir etapa</button>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='trilha_aula.js', v='2') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RobooTeam: formação em robótica, programação e colaboração com projetos alinhados à BNCC e práticas STEM.">
+    <meta name="theme-color" content="#000080">
+    <title>RobooTeam</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</head>
+<body>
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+    <header class="site-header" id="inicio">
+        <div class="container header-inner">
+            <a class="brand" href="#inicio" aria-label="RobooTeam — página inicial">
+                <span class="brand-image" aria-hidden="true"></span>
+            </a>
+
+            <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <nav class="main-navigation" id="main-navigation" aria-label="Navegação principal">
+                <a href="#educadores">Educadores</a>
+                <a href="#alunos">Alunos</a>
+            </nav>
+
+            <div class="header-actions">
+                <a class="button button-small button-outline-accent" href="{{ url_for('pagina_login') }}#cadastro">Cadastre-se</a>
+                <a class="button button-small button-accent" href="{{ url_for('pagina_login') }}#entrar">Login</a>
+            </div>
+        </div>
+    </header>
+
+    <main id="conteudo">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="stars stars-one" aria-hidden="true"></div>
+            <div class="stars stars-two" aria-hidden="true"></div>
+            <div class="container hero-grid">
+                <div class="hero-copy reveal">
+                    <p class="eyebrow">ROBÓTICA COLABORATIVA <span></span> BNCC + STEM</p>
+                    <h1 id="hero-title">Formando Engenheiros do Futuro com <span>Robótica e Colaboração</span></h1>
+                    <p class="hero-lead">Potencialize o potencial do seu aluno com nossa plataforma educacional que une robótica, programação e trabalho em equipe real.</p>
+
+                    <ul class="benefit-list" aria-label="Benefícios do RobooTeam">
+                        <li><span class="rbt-mark" aria-hidden="true">RBT</span> N sei oq colocar 1</li>
+                        <li><span class="rbt-mark" aria-hidden="true">RBT</span> N sei oq colocar 2</li>
+                        <li><span class="rbt-mark" aria-hidden="true">RBT</span>  N sei oq colocar 3</li>
+                    </ul>
+
+                    
+                </div>
+
+                <div class="hero-visual reveal" aria-label="Robô RobooTeam realizando uma missão em solo marciano">
+                    <div class="orbit orbit-one" aria-hidden="true"></div>
+                    <div class="orbit orbit-two" aria-hidden="true"></div>
+
+                    <div class="floating-card floating-card-top" aria-hidden="true">
+                        <span class="status-light"></span>
+                        <div><small>RobooTeam</small><strong>Apresentando: <br> Zion</strong></div>
+                    </div>
+
+                    <div class="wire-icon wire-icon-robot" aria-hidden="true">
+                        <svg viewBox="0 0 96 96" fill="none">
+                            <rect x="23" y="18" width="50" height="40" rx="12"/>
+                            <path d="M48 18V9M43 6h10M23 35h-8v17h8M73 35h8v17h-8M34 72V58h28v14M29 87V72h18v15M49 87V72h18v15"/>
+                            <circle cx="38" cy="37" r="4"/><circle cx="58" cy="37" r="4"/><path d="M41 48h14"/>
+                        </svg>
+                    </div>
+
+                    <div class="wire-icon wire-icon-rocket" aria-hidden="true">
+                        <svg viewBox="0 0 96 96" fill="none">
+                            <path d="M58 13c15 3 24 11 27 27L55 70 27 42 58 13Z"/>
+                            <circle cx="61" cy="37" r="8"/>
+                            <path d="m32 47-15 4 12 12M50 65l-4 15-12-12M28 68l-12 12M36 74 24 86"/>
+                        </svg>
+                    </div>
+
+                    <img src="{{ url_for('static', filename='img/4.png') }}" alt="Robô móvel com braço articulado coletando uma amostra em um percurso de missão" width="1536" height="1024">
+
+                    
+                </div>
+            </div>
+
+            <div class="hero-trail" aria-hidden="true">
+                <span>OBSERVAR</span><i></i><span>PROGRAMAR</span><i></i><span>TESTAR</span><i></i><span>COLABORAR</span>
+            </div>
+        </section>
+
+        <section class="platform-section section" id="cursos" aria-labelledby="platform-title">
+            <div class="section-glow" aria-hidden="true"></div>
+            <div class="container platform-grid">
+                <div class="simulator-column reveal" id="simulador">
+                    <div class="simulator-window" data-view="mission">
+                        <div class="simulator-toolbar">
+                            <div class="window-controls" aria-hidden="true"><span></span><span></span><span></span></div>
+                            <div class="simulator-brand"><img src="{{ url_for('static', filename='img/1.png') }}" alt="" width="1080" height="1350"><span>ROBOOT LAB</span></div>
+                            <div class="connection"><span></span> Sala 8A conectada</div>
+                        </div>
+
+                        <div class="simulator-workspace">
+                            <div class="code-panel">
+                                <div class="panel-heading"><span>PROGRAMA</span><strong>missao_04.rbt</strong></div>
+                                <div class="code-canvas" aria-label="Exemplo de programação em blocos">
+                                    <div class="code-block code-event">ao iniciar missão</div>
+                                    <div class="code-block code-loop">repita até <b>amostra</b></div>
+                                    <div class="code-block code-move">avançar <b>45 cm</b></div>
+                                    <div class="code-block code-sensor">se distância &lt; <b>12 cm</b></div>
+                                    <div class="code-block code-turn">girar à direita <b>90°</b></div>
+                                    <div class="code-block code-action">coletar amostra</div>
+                                </div>
+                                <button class="run-button" type="button" aria-label="Executar programa"><span></span> EXECUTAR</button>
+                            </div>
+
+                            <div class="mission-panel">
+                                <div class="mission-hud">
+                                    <span><small>MISSÃO</small><strong id="mission-name">M04 · COLETA</strong></span>
+                                    <span><small>TEMPO</small><strong>08:42</strong></span>
+                                </div>
+                                <div class="mission-arena">
+                                    <svg class="arena-svg" viewBox="0 0 600 440" role="img" aria-labelledby="arena-title arena-description">
+                                        <title id="arena-title">Arena de missão Roboo Lab em matriz cinco por cinco</title>
+                                        <desc id="arena-description">Um robô parte da célula zero zero e segue uma trajetória neon até uma amostra mineral na célula quatro quatro.</desc>
+                                        <defs>
+                                            <linearGradient id="arenaFloor" x1="0" y1="0" x2="1" y2="1">
+                                                <stop offset="0" stop-color="#111b48"/>
+                                                <stop offset="0.55" stop-color="#101439"/>
+                                                <stop offset="1" stop-color="#1f0d43"/>
+                                            </linearGradient>
+                                            <linearGradient id="arenaPath" x1="0" y1="1" x2="1" y2="0">
+                                                <stop offset="0" stop-color="#3b82f6"/>
+                                                <stop offset="0.52" stop-color="#6495ed"/>
+                                                <stop offset="1" stop-color="#7c3aed"/>
+                                            </linearGradient>
+                                            <radialGradient id="mineralCore">
+                                                <stop offset="0" stop-color="#ffffff"/>
+                                                <stop offset="0.35" stop-color="#93c5fd"/>
+                                                <stop offset="1" stop-color="#7c3aed"/>
+                                            </radialGradient>
+                                            <filter id="arenaGlow" x="-60%" y="-60%" width="220%" height="220%">
+                                                <feGaussianBlur stdDeviation="5" result="blur"/>
+                                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                            </filter>
+                                        </defs>
+
+                                        <path class="arena-floor" d="M110 86H520L490 376H80Z" fill="url(#arenaFloor)"/>
+                                        <path class="sensor-cone" d="M115 337 245 242 156 224Z"/>
+
+                                        <g class="arena-grid-lines">
+                                            <path d="M110 86 80 376M192 86 162 376M274 86 244 376M356 86 326 376M438 86 408 376M520 86 490 376"/>
+                                            <path d="M110 86H520M104 144H514M98 202H508M92 260H502M86 318H496M80 376H490"/>
+                                        </g>
+
+                                        <g class="arena-coordinates" aria-hidden="true">
+                                            <text x="86" y="402">0</text><text x="168" y="402">1</text><text x="250" y="402">2</text><text x="332" y="402">3</text><text x="414" y="402">4</text>
+                                            <text x="53" y="350">0</text><text x="59" y="292">1</text><text x="65" y="234">2</text><text x="71" y="176">3</text><text x="77" y="118">4</text>
+                                        </g>
+
+                                        <path class="arena-path-shadow" d="M120 347 114 289 196 289 190 231 354 231 348 173 430 173 424 115 478 115"/>
+                                        <path class="arena-path" pathLength="100" d="M120 347 114 289 196 289 190 231 354 231 348 173 430 173 424 115 478 115"/>
+
+                                        <g class="team-nodes" aria-hidden="true">
+                                            <circle cx="196" cy="289" r="7"/><circle cx="354" cy="231" r="7"/><circle cx="430" cy="173" r="7"/>
+                                        </g>
+
+                                        <g class="arena-robot" transform="translate(120 347)" aria-hidden="true">
+                                            <circle class="robot-pulse" r="35"/>
+                                            <rect x="-24" y="-17" width="48" height="34" rx="9"/>
+                                            <rect x="-18" y="-12" width="36" height="20" rx="6"/>
+                                            <circle cx="-9" cy="-3" r="3"/><circle cx="9" cy="-3" r="3"/>
+                                            <path d="M-8 7H8M0-17v-9M-4-28h8"/>
+                                            <circle class="robot-wheel" cx="-25" cy="-10" r="7"/><circle class="robot-wheel" cx="25" cy="-10" r="7"/>
+                                            <circle class="robot-wheel" cx="-25" cy="12" r="7"/><circle class="robot-wheel" cx="25" cy="12" r="7"/>
+                                        </g>
+
+                                        <g class="arena-target" transform="translate(478 115)" aria-hidden="true">
+                                            <circle class="target-ring" r="37"/>
+                                            <circle class="target-ring target-ring-two" r="27"/>
+                                            <path class="mineral-shape" d="m0-22 17 12-6 23-23 3-10-19Z" fill="url(#mineralCore)"/>
+                                            <path d="m0-22 1 21 16-9M1-1l10 14M1-1l-13 17M1-1l-23-2"/>
+                                        </g>
+
+                                        <g class="arena-labels" aria-hidden="true">
+                                            <g transform="translate(92 407)"><rect width="88" height="24" rx="12"/><text x="44" y="16">INÍCIO [0,0]</text></g>
+                                            <g transform="translate(430 56)"><rect width="108" height="24" rx="12"/><text x="54" y="16">AMOSTRA [4,4]</text></g>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <div class="mission-status"><span></span><strong id="mission-status">AMOSTRA IDENTIFICADA</strong></div>
+                                <div class="team-load"><span id="team-load-bar"></span></div>
+                            </div>
+                        </div>
+
+                        <div class="simulator-footer">
+                            <span>Equipe Ômega</span>
+                            <span>Progresso da missão <strong id="mission-progress">72%</strong></span>
+                        </div>
+                    </div>
+
+                   
+                </div>
+
+                <div class="platform-copy reveal" id="alunos">
+                    <p class="eyebrow eyebrow-dark">APRENDER FAZENDO</p>
+                    <h2 id="platform-title">Sua Missão, Sua Equipe, <span>Seu Código!</span></h2>
+                    <p>O simulador de missão integrado traz os kits de robótica à vida em ambientes 3D hiper-realistas. Os alunos colaboram para resolver missões e programar seus robôs de qualquer lugar.</p>
+
+                    <div class="feature-points">
+                        <div>
+                            <span>01</span>
+                            <p><strong>Programação visual e textual</strong>Do primeiro bloco à lógica avançada, no ritmo de cada equipe.</p>
+                        </div>
+                        <div>
+                            <span>02</span>
+                            <p><strong>Telemetria em tempo real</strong>Cada tentativa vira dado para observar, ajustar e evoluir.</p>
+                        </div>
+                    </div>
+
+                    
+                </div>
+            </div>
+        </section>
+
+        <section class="journey-section" id="jornada" aria-labelledby="journey-title">
+            <div class="journey-sticky">
+                <div class="journey-orbit journey-orbit-one" aria-hidden="true"></div>
+                <div class="journey-orbit journey-orbit-two" aria-hidden="true"></div>
+                <div class="container journey-layout">
+                    <div class="journey-copy reveal">
+                        <p class="eyebrow">JORNADA DE APRENDIZADO</p>
+                        <h2 id="journey-title">Lançamento para o <span>Futuro</span></h2>
+                        <p class="journey-intro">Cada etapa transforma curiosidade em domínio técnico — da primeira hipótese a uma missão executada em equipe.</p>
+
+                        <ol class="journey-steps">
+                            <li class="journey-step active" data-journey-step="0">
+                                <span>01</span>
+                                <div><h3>Descoberta &amp; Lógica</h3><p>O aluno observa o desafio, formula hipóteses e organiza uma sequência de decisões.</p></div>
+                            </li>
+                            <li class="journey-step" data-journey-step="1">
+                                <span>02</span>
+                                <div><h3>Construção &amp; Código</h3><p>A equipe monta, programa, testa sensores e aprende a corrigir rotas com dados reais.</p></div>
+                            </li>
+                            <li class="journey-step" data-journey-step="2">
+                                <span>03</span>
+                                <div><h3>Decolagem &amp; Resultados</h3><p>O projeto ganha autonomia e os alunos apresentam soluções com clareza e confiança.</p></div>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="flight-stage" aria-hidden="true">
+                        <div class="flight-route"></div>
+                        <div class="altitude altitude-one"><span></span><small>HIPÓTESE</small></div>
+                        <div class="altitude altitude-two"><span></span><small>PROTÓTIPO</small></div>
+                        <div class="altitude altitude-three"><span></span><small>MISSÃO</small></div>
+
+                        <div class="launch-pad">
+                            <span></span><i></i><span></span>
+                        </div>
+
+                        <div class="scroll-rocket">
+                            <div class="rocket-trail">
+                                <i></i><i></i><i></i><i></i><i></i><i></i>
+                            </div>
+                            <svg viewBox="0 0 160 250" fill="none">
+                                <defs>
+                                    <linearGradient id="rocketBody" x1="30" y1="20" x2="130" y2="190">
+                                        <stop stop-color="#ffffff"/><stop offset="0.55" stop-color="#dbeafe"/><stop offset="1" stop-color="#a1b6d5"/>
+                                    </linearGradient>
+                                    <linearGradient id="rocketAccent" x1="0" y1="0" x2="1" y2="1">
+                                        <stop stop-color="#6495ed"/><stop offset="1" stop-color="#401070"/>
+                                    </linearGradient>
+                                    <linearGradient id="rocketFlame" x1="0" y1="0" x2="0" y2="1">
+                                        <stop stop-color="#ffffff"/><stop offset="0.28" stop-color="#6495ed"/><stop offset="0.68" stop-color="#7c3aed"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+                                    </linearGradient>
+                                    <filter id="rocketGlow" x="-80%" y="-40%" width="260%" height="220%">
+                                        <feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                    </filter>
+                                </defs>
+                                <path class="rocket-flame" d="M80 186c-19 24-18 45 0 61 18-16 19-37 0-61Z" fill="url(#rocketFlame)" filter="url(#rocketGlow)"/>
+                                <path d="M47 151 20 191l42-12M113 151l27 40-42-12" fill="#401070" stroke="#8db6ff" stroke-width="4" stroke-linejoin="round"/>
+                                <path d="M80 12C48 43 40 88 47 151l15 28h36l15-28c7-63-1-108-33-139Z" fill="url(#rocketBody)" stroke="#ffffff" stroke-width="4"/>
+                                <path d="M50 69h60c4 22 5 47 3 74H47c-2-27-1-52 3-74Z" fill="url(#rocketAccent)" opacity="0.92"/>
+                                <circle cx="80" cy="70" r="20" fill="#0b123e" stroke="#6495ed" stroke-width="6"/>
+                                <circle cx="74" cy="64" r="6" fill="#dbeafe" opacity="0.8"/>
+                                <rect x="61" y="112" width="38" height="24" rx="7" fill="#000080" stroke="#a1b6d5" stroke-width="2"/>
+                                <text x="80" y="128" fill="#ffffff" text-anchor="middle" font-family="Montserrat, sans-serif" font-size="12" font-weight="800">RBT</text>
+                                <path d="M62 179h36l-7 17H69Z" fill="#050505" stroke="#6495ed" stroke-width="3"/>
+                            </svg>
+                        </div>
+
+                        <div class="flight-particles"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                        <p class="scroll-hint">ROLE PARA LANÇAR</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="impact-section section" id="educadores" aria-labelledby="impact-title">
+            <div class="container">
+                <div class="section-heading reveal">
+                    <p class="eyebrow eyebrow-dark">RESULTADOS QUE AVANÇAM</p>
+                    <h2 id="impact-title">Impacto Real na <span>Educação e na Carreira</span></h2>
+                    <p>As habilidades desenvolvidas no RobooTeam vão muito além da sala de aula, preparando os alunos para carreiras STEM e os desafios do mundo real.</p>
+                </div>
+
+                <div class="impact-chart reveal" aria-label="Gráfico crescente de impacto educacional">
+                    <div class="chart-stage">
+                        <svg class="growth-area" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-hidden="true">
+                            <defs>
+                                <linearGradient id="growthGradient" x1="0" y1="1" x2="1" y2="0">
+                                    <stop offset="0" stop-color="#000080" stop-opacity="0.2"/>
+                                    <stop offset="0.55" stop-color="#401070" stop-opacity="0.45"/>
+                                    <stop offset="1" stop-color="#6495ed" stop-opacity="0.75"/>
+                                </linearGradient>
+                                <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0" stop-color="#000080"/>
+                                    <stop offset="1" stop-color="#6495ed"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M80 292 C340 258 548 231 720 176 C908 118 1032 78 1120 42 L1120 330 L80 330 Z" fill="url(#growthGradient)"/>
+                            <path d="M80 292 C340 258 548 231 720 176 C908 118 1032 78 1120 42" fill="none" stroke="url(#lineGradient)" stroke-width="6" stroke-linecap="round"/>
+                            <path d="M80 330H1120" stroke="#a1b6d5" stroke-width="2" stroke-dasharray="8 10"/>
+                        </svg>
+
+                        <div class="chart-marker marker-one">
+                            <div class="marker-icon marker-rbt">RBT</div>
+                            <span class="marker-dot"></span>
+                            <i></i>
+                            <small>IDEIAS</small>
+                        </div>
+                        <div class="chart-marker marker-two">
+                            <div class="marker-icon marker-robot"><img src="{{ url_for('static', filename='img/1.png') }}" alt="" width="210" height="210"></div>
+                            <span class="marker-dot"></span>
+                            <i></i>
+                            <small>PROJETO EM EQUIPE</small>
+                        </div>
+                        <div class="chart-marker marker-three">
+                            <div class="marker-icon marker-rocket">
+                                <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                                    <path d="M39 8c10 2 15 7 17 17L36 45 18 27 39 8Z"/><circle cx="41" cy="24" r="5"/><path d="m21 31-10 3 8 8M33 42l-3 10-8-8M18 45l-8 8"/>
+                                </svg>
+                            </div>
+                            <span class="marker-dot"></span>
+                            <i></i>
+                            <small>FUTURO EM MOVIMENTO</small>
+                        </div>
+                    </div>
+
+                    
+                </div>
+            </div>
+        </section>
+
+        <section class="final-cta" id="contato" aria-labelledby="cta-title">
+            <div class="container final-cta-inner reveal">
+                <div>
+                    <p class="eyebrow">PRÓXIMA MISSÃO</p>
+                    <h2 id="cta-title">Leve uma equipe RobooTeam para a sua escola.</h2>
+                    <p>Converse com nossos especialistas e receba uma demonstração guiada do laboratório, da grade e do simulador.</p>
+                </div>
+                <div class="final-cta-actions">
+                    <a class="button button-white" href="mailto:contato@robooteam.edu.br">Agendar Demonstração</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer" id="footer">
+        <div class="footer-stars" aria-hidden="true"></div>
+        <div class="container footer-grid">
+            <div class="footer-brand-column">
+                <a class="brand brand-footer" href="#inicio" aria-label="RobooTeam — voltar ao início">
+                    <span class="brand-image" aria-hidden="true"></span>
+                </a>
+                <p>Feito por: Ana Beatriz, Felipe Barros, Receba Diniz e Vinícius Mariozi</p>
+
+
+
+            </div>
+
+            <div class="footer-links">
+                <div>
+                    <h2>Recursos</h2>
+                    <a href="#cursos">Grade de Cursos</a>
+                    <a href="#simulador">Simulador 3D</a>
+                    <a href="#educadores">Kit de Ferramentas</a>
+                    <a href="#educadores">Materiais BNCC</a>
+                    <a href="#contato">Central de Suporte</a>
+                </div>
+                <div>
+                    <h2>Equipe</h2>
+                    <a href="#alunos">Para Alunos</a>
+                    <a href="#educadores">Para Educadores</a>
+                    <a href="#cursos">Desafios em Equipe</a>
+                    <a href="#contato">Formação Docente</a>
+                    <a href="#contato">Comunidade RBT</a>
+                </div>
+                <div>
+                    <h2>Empresa</h2>
+                    <a href="#inicio">Nossa História</a>
+                    <a href="#educadores">Impacto</a>
+                    <a href="#contato">Fale Conosco</a>
+                    <a href="#contato">Trabalhe Conosco</a>
+                    <a href="#contato">Imprensa</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="container footer-bottom">
+            <p>© <span id="current-year">2026</span> RobooTeam. Todos os direitos reservados.</p>
+            <div>
+                <a href="#footer">Política de Privacidade</a>
+                <a href="#footer">Termos de Serviço</a>
+                <a href="#footer">Política de Cookies</a>
+                <a href="#footer">Acessibilidade</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

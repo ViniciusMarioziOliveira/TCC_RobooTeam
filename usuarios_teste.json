@@ -1,0 +1,49 @@
+[
+  {
+    "id": 1001,
+    "nome": "Ana Souza",
+    "email": "aluno1@robooteam.test",
+    "senha": "scrypt:32768:8:1$XZoy4zNIPgEJ3k1k$5cc85e033866986827ee6f56d4ca1001a52206fe7cd06807064e3f7d3764fa96e756f378b99abea89a4dcd4ce3676260e81b7b9b6927cd70ad37943e3f21a29d",
+    "perfil": "ALUNO",
+    "turma": "Turma de Marina Alves",
+    "etapas_concluidas": [
+      1
+    ],
+    "pontuacoes": {
+      "1": 4
+    },
+    "progresso_atualizado_em": "2026-09-04T16:32:23.677910+00:00",
+    "professor_id": 2001,
+    "sala_entrada_em": "2026-09-04T16:54:40.800967+00:00"
+  },
+  {
+    "id": 1002,
+    "nome": "Lucas Lima",
+    "email": "aluno2@robooteam.test",
+    "senha": "scrypt:32768:8:1$SpVZYs9ObrJv7nkz$d4d0fb8dd3b58371f374c5bad35838f1f4c54793000ff8716fa3bea3bed7cdc631df8ffbf0a0f047f79cbd6035819bc45f11779c68fd4f35a9a3426054890622",
+    "perfil": "ALUNO",
+    "turma": "Turma IA 2026",
+    "etapas_concluidas": [],
+    "pontuacoes": {},
+    "progresso_atualizado_em": null
+  },
+  {
+    "id": 2001,
+    "nome": "Marina Alves",
+    "email": "professor1@robooteam.test",
+    "senha": "scrypt:32768:8:1$aFdm6FHUIdymAAHI$9b6d68343cfad367640178b1d395b6a252fa7ff576a06554d54c1539cadafaea3bea801450abea9de79b5ce31c0aebe5a31b7dfb5ffc71bc69562984a627edb6",
+    "perfil": "PROFESSOR",
+    "disciplina": "Inteligência Artificial e Robótica",
+    "codigo_sala": "RBT-8212",
+    "codigo_validade": "2026-09-05T16:45:42.539052+00:00",
+    "turma_nome": "Turma de Marina Alves"
+  },
+  {
+    "id": 2002,
+    "nome": "Carlos Mendes",
+    "email": "professor2@robooteam.test",
+    "senha": "scrypt:32768:8:1$uNX6jw6323ykLeQL$47f61759095e8120a5fba8df16531a78b57611be7e84ea17b13b0724a958f29fec6298b57a93d2a46c51b3871eda8146282b35acb196fdfa6da7a2c764fa80d8",
+    "perfil": "PROFESSOR",
+    "disciplina": "Inteligência Artificial e Robótica"
+  }
+]

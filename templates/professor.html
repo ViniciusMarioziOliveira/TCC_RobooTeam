@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robo Explorer - Painel do Professor</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            navy: '#0B132B',
+                            dark: '#1C2541',
+                            blue: '#3A506B',
+                            cyan: '#00B4D8',
+                            lightCyan: '#90E0EF',
+                            accent: '#6C5CE7',
+                            bg: '#F4F7FE'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='professor.js', v='2') }}" defer></script>
+    <style>
+        /* Custom scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F4F7FE;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+        .robot-brand-badge {
+            align-items: center;
+            background: linear-gradient(145deg, #eef1ff, #dffbff);
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 20px rgba(0, 180, 216, 0.18);
+            display: flex;
+            flex: 0 0 auto;
+            height: 48px;
+            justify-content: center;
+            overflow: hidden;
+            width: 48px;
+        }
+        .robot-brand-badge img {
+            filter: drop-shadow(0 4px 5px rgba(4, 18, 60, 0.3));
+            height: 62px;
+            object-fit: contain;
+            transform: translateY(8px);
+            width: 50px;
+        }
+        .professor-header-robot {
+            filter: drop-shadow(0 8px 8px rgba(20, 40, 120, 0.18));
+            height: 64px;
+            object-fit: contain;
+            width: 58px;
+        }
+        .dashboard-state-robot {
+            filter: drop-shadow(0 10px 10px rgba(20, 40, 120, 0.14));
+            height: 92px;
+            object-fit: contain;
+            width: 84px;
+        }
+        @media (max-width: 767px) {
+            .professor-header-robot { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-brand-bg font-sans antialiased text-slate-800 flex h-screen overflow-hidden" data-dashboard-url="{{ url_for('obter_resumo_professor') }}" data-code-url="{{ url_for('gerar_codigo_sala') }}" data-logout-url="{{ url_for('logout') }}" data-login-url="{{ url_for('pagina_login') }}" data-empty-robot-url="{{ url_for('static', filename='img/2.png') }}" data-error-robot-url="{{ url_for('static', filename='img/6.png') }}">
+
+    <!-- ==========================================
+         1. SIDEBAR FIXA
+    =========================================== -->
+    <aside class="w-64 lg:w-72 bg-brand-navy text-white flex flex-col justify-between flex-shrink-0 z-30 shadow-xl transition-all duration-300">
+        <div class="flex flex-col h-full">
+            
+            <!-- Logo & Badge -->
+            <div class="p-6 border-b border-slate-800/80 flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="robot-brand-badge">
+                        <img src="{{ url_for('static', filename='img/3.png') }}" alt="" aria-hidden="true">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg tracking-wider text-white flex items-center gap-1.5">
+                            ROBO<span class="text-brand-cyan">EXPLORER</span>
+                        </h1>
+                        <p class="text-[10px] font-semibold tracking-widest text-brand-lightCyan/70 uppercase">Plataforma Educacional</p>
+                    </div>
+                </div>
+                <div class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-brand-dark rounded-full text-xs text-brand-lightCyan border border-slate-700/50 w-max">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                    <span class="font-medium tracking-wide">PAINEL DO PROFESSOR</span>
+                </div>
+            </div>
+
+            <!-- 2. PERFIL DO PROFESSOR (Placeholder visual) -->
+            <div class="p-4 mx-4 my-4 bg-brand-dark/60 rounded-2xl border border-slate-700/50 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-slate-800 border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-400 shrink-0">
+                    <i data-lucide="user" class="w-6 h-6"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-sm font-semibold text-slate-200 truncate" id="professor-sidebar-name">{{ usuario.nome }}</p>
+                    <p class="text-xs text-brand-cyan font-medium">Professor</p>
+                    <p class="text-[11px] text-slate-400 truncate" id="professor-discipline">{{ usuario.disciplina or 'Inteligência Artificial e Robótica' }}</p>
+                </div>
+            </div>
+
+            <!-- 3. MENU LATERAL -->
+            <nav class="flex-1 overflow-y-auto px-4 py-2 space-y-6 text-sm">
+                
+                <!-- Categoria: Visão Geral -->
+                <div>
+                    <span class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase">Visão Geral</span>
+                    <div class="mt-2 space-y-1">
+                        <a href="#dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-cyan text-brand-navy font-semibold shadow-md shadow-brand-cyan/10 transition-all">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="#turmas" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            <span>Turmas</span>
+                        </a>
+                        <a href="#alunos" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="user-check" class="w-5 h-5"></i>
+                            <span>Alunos</span>
+                        </a>
+                        <a href="#desempenho" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                            <span>Desempenho</span>
+                        </a>
+                        <a href="#atividades" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="book-open" class="w-5 h-5"></i>
+                            <span>Atividades</span>
+                        </a>
+                        <a href="#desempenho" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="target" class="w-5 h-5"></i>
+                            <span>Missões</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Categoria: Ferramentas -->
+                <div>
+                    <span class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase">Ferramentas</span>
+                    <div class="mt-2 space-y-1">
+                        <a href="#turmas" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="key-round" class="w-5 h-5"></i>
+                            <span>Código de Sala</span>
+                        </a>
+                        <a href="#atividades" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="library" class="w-5 h-5"></i>
+                            <span>Biblioteca</span>
+                        </a>
+                        <a href="#desempenho" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Categoria: Configurações -->
+                <div>
+                    <span class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase">Ajustes</span>
+                    <div class="mt-2 space-y-1">
+                        <a href="#dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                            <i data-lucide="settings" class="w-5 h-5"></i>
+                            <span>Configurações</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Botão Sair -->
+            <div class="p-4 border-t border-slate-800/80">
+                <button id="professor-logout" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 transition-all font-medium text-sm">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Sair da conta</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ==========================================
+         ÁREA PRINCIPAL (DASHBOARD)
+    =========================================== -->
+    <main class="flex-1 overflow-y-auto flex flex-col min-w-0">
+        
+        <!-- 4. CABEÇALHO PRINCIPAL -->
+        <header class="bg-white border-b border-slate-200/80 px-8 py-5 sticky top-0 z-20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    Olá, <span class="text-brand-cyan" id="professor-greeting-name">{{ usuario.nome.split()[0] }}</span>! 👋
+                </h2>
+                <p class="text-slate-500 text-sm mt-0.5">Aqui está um resumo das suas turmas e alunos.</p>
+            </div>
+
+            <!-- Ações Rápidas / Notificações Visuais -->
+            <div class="flex items-center gap-3">
+                <img class="professor-header-robot" src="{{ url_for('static', filename='img/4.png') }}" alt="Mascote RobooTeam apontando para o painel">
+                <button class="p-2.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 relative">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-brand-cyan rounded-full"></span>
+                </button>
+                <button class="p-2.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                </button>
+                <div class="h-8 w-px bg-slate-200 mx-1"></div>
+                <div class="flex items-center gap-2 border border-slate-200 rounded-xl p-1.5 pr-3 hover:bg-slate-50 cursor-pointer transition-all">
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-700">Professor</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTEÚDO PRINCIPAL (CONTAINER GRID) -->
+        <div class="p-8 space-y-8 max-w-[1600px] w-full mx-auto" id="dashboard">
+
+            <!-- 5. CARDS DE RESUMO (INDICADORES) -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                
+                <!-- Card 1: Total de Alunos -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-bold uppercase tracking-wider">Total de Alunos</span>
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-xl font-bold text-slate-800 font-mono" id="metric-total-students">0</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Turmas Ativas -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-bold uppercase tracking-wider">Turmas Ativas</span>
+                        <div class="p-2 bg-indigo-50 text-brand-accent rounded-xl">
+                            <i data-lucide="school" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-xl font-bold text-slate-800 font-mono" id="metric-active-classes">0</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Alunos Ativos -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-bold uppercase tracking-wider">Alunos Ativos</span>
+                        <div class="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                            <i data-lucide="user-check" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-xl font-bold text-slate-800 font-mono" id="metric-active-students">0</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Atividades -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-bold uppercase tracking-wider">Atividades</span>
+                        <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                            <i data-lucide="file-code" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-xl font-bold text-slate-800 font-mono" id="metric-activities">0</span>
+                    </div>
+                </div>
+
+                <!-- Card 5: Média Geral -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-bold uppercase tracking-wider">Média Geral</span>
+                        <div class="p-2 bg-cyan-50 text-brand-cyan rounded-xl">
+                            <i data-lucide="award" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-xl font-bold text-slate-800 font-mono" id="metric-average">0%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEÇÃO GRID CENTRAL: GRÁFICO + ALUNOS ATIVOS -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" id="desempenho">
+                
+                <!-- 6. DESEMPENHO DAS TURMAS (GRÁFICO PLACEHOLDER) -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Desempenho Geral das Turmas</h3>
+                            <p class="text-xs text-slate-500">Visualização comparativa das métricas de aprendizado</p>
+                        </div>
+                        <!-- Filtro Visual -->
+                        <div class="relative">
+                            <button class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 flex items-center gap-2 hover:bg-slate-100 transition-all">
+                                <span>Conclusão da trilha</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Área reservada para o gráfico -->
+                    <div class="w-full min-h-72 border border-slate-200 rounded-xl bg-slate-50/50 p-6 relative overflow-hidden" id="performance-chart">
+                        <!-- Linhas guias genéricas simulando eixos -->
+                        <div class="absolute inset-0 p-6 flex flex-col justify-between opacity-30 pointer-events-none">
+                            <div class="border-b border-slate-300 w-full"></div>
+                            <div class="border-b border-slate-300 w-full"></div>
+                            <div class="border-b border-slate-300 w-full"></div>
+                            <div class="border-b border-slate-300 w-full"></div>
+                        </div>
+                        
+                        <div class="relative z-10 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center gap-2 max-w-xs mx-auto">
+                            <img class="dashboard-state-robot" src="{{ url_for('static', filename='img/5.png') }}" alt="Mascote RobooTeam aguardando os dados">
+                            <p class="text-xs font-semibold text-slate-600">Carregando desempenho...</p>
+                            <span class="text-[11px] text-slate-400">Aguarde os dados dos alunos.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. ALUNOS ATIVOS -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-slate-800">Alunos Ativos</h3>
+                            <button type="button" data-scroll-target="#alunos" class="text-xs font-semibold text-brand-cyan hover:underline flex items-center gap-1">
+                                Ver todos
+                                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <!-- Lista de Alunos (Placeholders) -->
+                        <div class="space-y-3" id="active-students-list">
+                            <!-- Placeholder Linha 1 -->
+                            <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400">
+                                        <i data-lucide="user" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-700">[Nome do aluno]</p>
+                                        <p class="text-[10px] text-slate-400">[Turma]</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800">
+                                        [Status]
+                                    </span>
+                                    <p class="text-[10px] text-slate-400 mt-1">[Progresso]</p>
+                                </div>
+                            </div>
+
+                            <!-- Placeholder Linha 2 -->
+                            <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400">
+                                        <i data-lucide="user" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-700">[Nome do aluno]</p>
+                                        <p class="text-[10px] text-slate-400">[Turma]</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800">
+                                        [Status]
+                                    </span>
+                                    <p class="text-[10px] text-slate-400 mt-1">[Progresso]</p>
+                                </div>
+                            </div>
+
+                            <!-- Placeholder Linha 3 -->
+                            <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400">
+                                        <i data-lucide="user" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-700">[Nome do aluno]</p>
+                                        <p class="text-[10px] text-slate-400">[Turma]</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200 text-slate-700">
+                                        [Status]
+                                    </span>
+                                    <p class="text-[10px] text-slate-400 mt-1">[Progresso]</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO GRID: CÓDIGO DE SALA + TURMAS -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- 9. CÓDIGO DE SALA -->
+                <div class="bg-gradient-to-br from-brand-navy to-brand-dark text-white p-6 rounded-2xl shadow-lg border border-slate-800 flex flex-col justify-between" id="turmas">
+                    <div>
+                        <div class="flex items-center gap-2.5 text-brand-cyan mb-2">
+                            <i data-lucide="key-round" class="w-5 h-5"></i>
+                            <h3 class="font-bold text-lg text-white">Código de Sala</h3>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Crie um código para que seus alunos entrem na sua turma.
+                        </p>
+
+                        <!-- Área de exibição do Código -->
+                        <div class="my-6 p-4 bg-slate-900/80 rounded-xl border border-slate-700/80 flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase tracking-widest block font-medium">Código Atual</span>
+                                <span class="text-xl font-bold font-mono text-brand-cyan tracking-wider" id="room-code">Nenhum</span>
+                            </div>
+                            <button type="button" id="copy-room-code" title="Copiar código" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <p class="text-[11px] text-slate-400 mb-6 flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+                            Validade: <span class="text-slate-300 font-medium" id="room-code-expiration">gere um código</span>
+                        </p>
+                    </div>
+
+                    <button type="button" id="generate-room-code" class="w-full py-3 bg-brand-cyan hover:bg-cyan-400 text-brand-navy font-bold text-sm rounded-xl transition-all shadow-md shadow-brand-cyan/20 flex items-center justify-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Gerar novo código</span>
+                    </button>
+                </div>
+
+                <!-- 10. MINHAS TURMAS -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-slate-800">Minhas Turmas</h3>
+                            <button type="button" data-scroll-target="#alunos" class="text-xs font-semibold text-brand-cyan hover:underline flex items-center gap-1">
+                                Ver turma
+                                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <!-- Grid de Turmas Placeholders -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="classes-list">
+                            
+                            <!-- Card Turma Placeholder 1 -->
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-brand-cyan/50 transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 bg-white rounded-lg border border-slate-200 text-brand-blue">
+                                        <i data-lucide="folder-git2" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-slate-700">[Nome da turma]</h4>
+                                        <p class="text-xs text-slate-500">[Quantidade de alunos]</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">[Status]</span>
+                                    <button class="text-xs text-brand-cyan hover:underline font-semibold flex items-center gap-1">
+                                        Acessar <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Card Turma Placeholder 2 -->
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-brand-cyan/50 transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 bg-white rounded-lg border border-slate-200 text-brand-blue">
+                                        <i data-lucide="folder-git2" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-slate-700">[Nome da turma]</h4>
+                                        <p class="text-xs text-slate-500">[Quantidade de alunos]</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">[Status]</span>
+                                    <button class="text-xs text-brand-cyan hover:underline font-semibold flex items-center gap-1">
+                                        Acessar <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. ATIVIDADES RECENTES -->
+            <section class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm" id="atividades">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Atividades Recentes</h3>
+                        <p class="text-xs text-slate-500">Acompanhamento detalhado das submissões dos estudantes</p>
+                    </div>
+                    <button type="button" data-scroll-target="#alunos" class="text-xs font-semibold text-brand-cyan hover:underline flex items-center gap-1">
+                        Ver alunos
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <!-- Tabela de Atividades Placeholders -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold tracking-wider">
+                            <tr>
+                                <th class="p-3.5 rounded-l-xl">Atividade</th>
+                                <th class="p-3.5">Turma</th>
+                                <th class="p-3.5">Status</th>
+                                <th class="p-3.5">Progresso</th>
+                                <th class="p-3.5 rounded-r-xl">Data</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-mono" id="recent-activities-list">
+                            <!-- Linha Placeholder 1 -->
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="p-3.5 font-sans font-semibold text-slate-700">[Nome da atividade]</td>
+                                <td class="p-3.5 font-sans">[Turma]</td>
+                                <td class="p-3.5 font-sans">
+                                    <span class="px-2 py-1 rounded-md text-[10px] font-medium bg-amber-100 text-amber-800">[Status]</span>
+                                </td>
+                                <td class="p-3.5">[Progresso]</td>
+                                <td class="p-3.5 font-sans text-slate-400">[Data]</td>
+                            </tr>
+                            <!-- Linha Placeholder 2 -->
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="p-3.5 font-sans font-semibold text-slate-700">[Nome da atividade]</td>
+                                <td class="p-3.5 font-sans">[Turma]</td>
+                                <td class="p-3.5 font-sans">
+                                    <span class="px-2 py-1 rounded-md text-[10px] font-medium bg-emerald-100 text-emerald-800">[Status]</span>
+                                </td>
+                                <td class="p-3.5">[Progresso]</td>
+                                <td class="p-3.5 font-sans text-slate-400">[Data]</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 11. BUSCA DE ALUNOS & FILTROS & 12. ACESSO INDIVIDUAL -->
+            <section class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6" id="alunos">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Buscar e Gerenciar Alunos</h3>
+                    <p class="text-xs text-slate-500">Localize estudantes específicos e filtre por parâmetros de sala</p>
+                </div>
+
+                <!-- Formulário de Filtros / Busca -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="lg:col-span-2 relative">
+                        <input type="search" id="student-search" placeholder="Digite o nome ou e-mail do aluno..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                    </div>
+
+                    <!-- Filtro 1 -->
+                    <div>
+                        <select id="class-filter" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 appearance-none">
+                            <option value="">Todas as turmas</option>
+                        </select>
+                    </div>
+
+                    <!-- Filtro 2 -->
+                    <div>
+                        <select id="status-filter" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 appearance-none">
+                            <option value="">Todos os status</option>
+                            <option value="Não iniciado">Não iniciado</option>
+                            <option value="Em andamento">Em andamento</option>
+                            <option value="Concluído">Concluído</option>
+                        </select>
+                    </div>
+
+                    <!-- Botão Buscar -->
+                    <div>
+                        <button type="button" id="student-search-button" class="w-full py-2.5 bg-brand-navy text-white rounded-xl text-xs font-semibold hover:bg-brand-dark transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                            <span>Buscar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela/Resultado da Busca de Alunos com opção de Acesso Individual -->
+                <div class="border border-slate-200 rounded-xl overflow-hidden mt-4">
+                    <div class="bg-slate-50 p-3 border-b border-slate-200 text-xs font-bold text-slate-500 flex justify-between">
+                        <span>Resultados da Consulta</span>
+                        <span>Ações</span>
+                    </div>
+                    <div id="student-search-results"><div class="p-4 bg-white flex items-center justify-between border-b border-slate-100 text-xs">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-400">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-slate-700 block">[Nome do aluno]</span>
+                                <span class="text-[10px] text-slate-400">[Turma]</span>
+                            </div>
+                        </div>
+
+                        <!-- 12. ACESSO INDIVIDUAL DO ALUNO -->
+                        <button class="px-3 py-1.5 bg-brand-cyan/10 text-brand-navy hover:bg-brand-cyan/20 border border-brand-cyan/20 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5">
+                            <span>Visualizar aluno</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div></div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Inicialização dos Ícones Lucide -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

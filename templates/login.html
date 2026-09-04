@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Entre ou crie sua conta na plataforma educacional RobooTeam.">
+    <meta name="theme-color" content="#060421">
+    <title>Login</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='script.js', v='3') }}" defer></script>
+</head>
+<body class="auth-page">
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+    <header class="site-header auth-header" id="inicio">
+        <div class="container header-inner">
+            <a class="brand" href="{{ url_for('pagina_inicial') }}" aria-label="RobooTeam — página inicial">
+                <span class="brand-image" aria-hidden="true"></span>
+            </a>
+            <a class="button button-small button-outline-accent auth-back-link" href="{{ url_for('pagina_inicial') }}">
+                <span aria-hidden="true">←</span> Voltar ao início
+            </a>
+        </div>
+    </header>
+
+    <main id="conteudo">
+        <section class="auth-section" aria-labelledby="auth-title">
+            <div class="stars stars-one" aria-hidden="true"></div>
+            <div class="stars stars-two" aria-hidden="true"></div>
+            <div class="auth-orbit auth-orbit-one" aria-hidden="true"></div>
+            <div class="auth-orbit auth-orbit-two" aria-hidden="true"></div>
+
+            <div class="container auth-container">
+                <div class="auth-card auth-card--shape-shift" data-auth-mode="login" data-auth-transition="trapezoid" data-login-url="{{ url_for('login') }}" data-register-url="{{ url_for('cadastrar_usuario_json') }}" data-student-url="{{ url_for('pagina_aluno') }}" data-teacher-url="{{ url_for('pagina_professor') }}">
+                    <div class="auth-card-heading">
+                        <span class="auth-kicker">ÁREA DE ACESSO</span>
+                        <h1 id="auth-title">Bem-vindo à <span>RobooTeam</span></h1>
+                        <p>Acesse sua equipe ou comece uma nova missão.</p>
+                    </div>
+
+                    <div class="auth-tabs" role="tablist" aria-label="Escolha entre entrar ou criar uma conta">
+                        <span class="auth-tab-indicator" aria-hidden="true"></span>
+                        <button class="auth-tab active" id="login-tab" type="button" role="tab" aria-selected="true" aria-controls="login-panel" data-auth-target="login">Entrar</button>
+                        <button class="auth-tab" id="register-tab" type="button" role="tab" aria-selected="false" aria-controls="register-panel" data-auth-target="register" tabindex="-1">Criar Conta</button>
+                    </div>
+
+                    <div class="auth-form-stage">
+                        <div class="auth-panel active" id="login-panel" role="tabpanel" aria-labelledby="login-tab" data-auth-panel="login">
+                            <form class="auth-form" id="login-form" novalidate>
+                                <div class="auth-field">
+                                    <label for="login-email">E-mail</label>
+                                    <input id="login-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required>
+                                    <span class="field-hint">Use o e-mail de aluno ou educador.</span>
+                                </div>
+
+                                <div class="auth-field">
+                                    <label for="login-password">Senha</label>
+                                    <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required minlength="8">
+                                </div>
+
+                                <div class="auth-form-options">
+                                    <label class="auth-check" for="remember-me">
+                                        <input id="remember-me" name="remember" type="checkbox">
+                                        <span>Lembrar-me</span>
+                                    </label>
+                                    <button class="auth-text-button" type="button" data-auth-notice="A recuperação de senha estará disponível em breve.">Esqueceu a senha?</button>
+                                </div>
+
+                                <button class="button button-purple auth-submit" type="submit">Acessar Plataforma</button>
+                                <div class="auth-feedback" aria-live="polite" aria-atomic="true"></div>
+                            </form>
+
+                        </div>
+
+                        <div class="auth-panel" id="register-panel" role="tabpanel" aria-labelledby="register-tab" data-auth-panel="register" hidden>
+                            <form class="auth-form" id="register-form" novalidate>
+                                <div class="auth-field">
+                                    <label for="register-name">Nome completo</label>
+                                    <input id="register-name" name="name" type="text" autocomplete="name" placeholder="Como devemos chamar você?" required minlength="3">
+                                </div>
+
+                                <div class="auth-field">
+                                    <label for="register-email">E-mail</label>
+                                    <input id="register-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required>
+                                </div>
+
+                                <fieldset class="auth-profile">
+                                    <legend>Perfil de usuário</legend>
+                                    <div class="auth-profile-options">
+                                        <label>
+                                            <input type="radio" name="profile" value="educador" required>
+                                            <span>Educador/Professor</span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="profile" value="aluno" required>
+                                            <span>Aluno</span>
+                                        </label>
+                                    </div>
+                                </fieldset>
+
+                                <div class="auth-password-grid">
+                                    <div class="auth-field">
+                                        <label for="register-password">Senha</label>
+                                        <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo de 8 caracteres" required minlength="8">
+                                    </div>
+                                    <div class="auth-field">
+                                        <label for="register-password-confirm">Confirmar senha</label>
+                                        <input id="register-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" placeholder="Repita a senha" required minlength="8">
+                                    </div>
+                                </div>
+
+                                <label class="auth-check auth-terms" for="accept-terms">
+                                    <input id="accept-terms" name="terms" type="checkbox" required>
+                                    <span>Li e aceito os <a href="#auth-footer">Termos de Serviço</a> e a <a href="#auth-footer">Política de Privacidade</a>.</span>
+                                </label>
+
+                                <button class="button button-purple auth-submit" type="submit">Finalizar Cadastro</button>
+                                <div class="auth-feedback" aria-live="polite" aria-atomic="true"></div>
+                            </form>
+
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer auth-footer" id="auth-footer">
+        <div class="footer-stars" aria-hidden="true"></div>
+        <div class="container footer-bottom">
+            <p>© <span id="current-year">2026</span> RobooTeam. Todos os direitos reservados.</p>
+            <div>
+                <a href="#auth-footer">Política de Privacidade</a>
+                <a href="#auth-footer">Termos de Serviço</a>
+                <a href="{{ url_for('pagina_inicial') }}#contato">Suporte</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
