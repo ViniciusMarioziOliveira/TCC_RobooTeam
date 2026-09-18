@@ -1,11 +1,8 @@
-from functools import wraps
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import secrets
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
-import firebase_admin
-from firebase_admin import credentials, firestore
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
@@ -23,22 +20,6 @@ from jogo_conteudo import (
     TAMANHO_MAPA,
 )
 
-try:
-    from auth import token_obrigatorio, gerar_token
-    auth_import_error = None
-except ModuleNotFoundError as error:
-    auth_import_error = str(error)
-
-    def token_obrigatorio(view):
-        @wraps(view)
-        def auth_indisponivel(*args, **kwargs):
-            return jsonify({"error": "Configuração de autenticação indisponível"}), 503
-
-        return auth_indisponivel
-
-    def gerar_token(_dados):
-        raise RuntimeError("Configuração de autenticação indisponível")
-
 # ============================================
 # CONFIGURAÇÕES
 # ============================================
@@ -51,26 +32,6 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 usuarios_json_path = Path(app.root_path) / "usuarios_teste.json"
 token_serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="robooteam-login")
-
-db = None
-firebase_error = None
-
-try:
-    if os.getenv("VERCEL"):
-        cred = credentials.Certificate(
-            json.loads(os.getenv("FIREBASE_CREDENTIALS"))
-        )
-    elif os.path.exists("firebase.json"):
-        cred = credentials.Certificate("firebase.json")
-    else:
-        raise FileNotFoundError("O arquivo firebase.json não foi encontrado")
-
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred)
-
-    db = firestore.client()
-except (FileNotFoundError, ValueError, json.JSONDecodeError) as error:
-    firebase_error = str(error)
 
 
 def carregar_usuarios_json():
@@ -362,26 +323,6 @@ def pagina_etapa_trilha(lesson_id):
     )
 
 
-@app.before_request
-def verificar_configuracao_da_api():
-    rotas_da_api = {
-        "cadastrar_aluno",
-        "cadastrar_professor",
-        "cadastrar_admin",
-        "listar_usuarios",
-        "buscar_usuario",
-        "alterar_usuario",
-        "alterar_senha",
-        "recuperar_senha",
-        "excluir_usuario",
-    }
-
-    if request.endpoint in rotas_da_api and db is None:
-        return jsonify({
-            "error": "Banco de dados indisponível",
-            "detail": firebase_error,
-        }), 503
-
 # ============================================
 # LOGIN
 # ============================================
@@ -405,33 +346,10 @@ def login():
         None,
     )
 
-    if usuario:
-        if not check_password_hash(usuario["senha"], senha):
-            return jsonify({"error": "E-mail ou senha incorretos"}), 401
-        token = gerar_token_json(usuario)
-    elif db is not None:
-        usuarios = db.collection("usuarios")\
-            .where("email", "==", email)\
-            .limit(1)\
-            .get()
-
-        if not usuarios:
-            return jsonify({"error": "E-mail ou senha incorretos"}), 401
-
-        usuario = usuarios[0].to_dict()
-
-        if not check_password_hash(usuario["senha"], senha):
-            return jsonify({"error": "E-mail ou senha incorretos"}), 401
-
-        if auth_import_error is not None:
-            return jsonify({"error": "Autenticação indisponível"}), 503
-
-        token = gerar_token({
-            "id": usuario["id"],
-            "perfil": usuario["perfil"]
-        })
-    else:
+    if not usuario or not check_password_hash(usuario["senha"], senha):
         return jsonify({"error": "E-mail ou senha incorretos"}), 401
+
+    token = gerar_token_json(usuario)
 
     response = jsonify({
         "message": "Login realizado",
@@ -1172,280 +1090,6 @@ def restaurar_atividades_trilha():
         return jsonify({"error": "Não foi possível restaurar a trilha"}), 500
 
     return resposta_das_atividades(professor["id"], "Trilha original do RobooTeam restaurada.")
-
-
-# ============================================
-# CADASTRAR ALUNO
-# ============================================
-
-@app.route("/alunos", methods=["POST"])
-@token_obrigatorio
-def cadastrar_aluno():
-
-    dados = request.get_json()
-
-    if not dados:
-        return jsonify({"error": "Dados obrigatórios"}), 400
-
-    try:
-
-        contador_ref = db.collection("contador").document("usuarios")
-        contador_doc = contador_ref.get()
-
-        novo_id = contador_doc.to_dict()["ultimo_id"] + 1
-
-        contador_ref.update({
-            "ultimo_id": novo_id
-        })
-
-        db.collection("usuarios").add({
-            "id": novo_id,
-            "nome": dados["nome"],
-            "email": dados["email"],
-            "senha": generate_password_hash(dados["senha"]),
-            "perfil": "ALUNO",
-            "turma_id": dados["turma_id"]
-        })
-
-        return jsonify({
-            "message": "Aluno cadastrado"
-        }), 201
-
-    except:
-        return jsonify({
-            "error": "Erro ao cadastrar aluno"
-        }), 400
-
-
-# ============================================
-# CADASTRAR PROFESSOR
-# ============================================
-
-@app.route("/professores", methods=["POST"])
-@token_obrigatorio
-def cadastrar_professor():
-
-    dados = request.get_json()
-
-    try:
-
-        contador_ref = db.collection("contador").document("usuarios")
-        contador_doc = contador_ref.get()
-
-        novo_id = contador_doc.to_dict()["ultimo_id"] + 1
-
-        contador_ref.update({
-            "ultimo_id": novo_id
-        })
-
-        db.collection("usuarios").add({
-            "id": novo_id,
-            "nome": dados["nome"],
-            "email": dados["email"],
-            "senha": generate_password_hash(dados["senha"]),
-            "perfil": "PROFESSOR"
-        })
-
-        return jsonify({
-            "message": "Professor cadastrado"
-        }), 201
-
-    except:
-        return jsonify({
-            "error": "Erro ao cadastrar professor"
-        }), 400
-
-
-# ============================================
-# CADASTRAR ADM
-# ============================================
-
-@app.route("/admins", methods=["POST"])
-@token_obrigatorio
-def cadastrar_admin():
-
-    dados = request.get_json()
-
-    try:
-
-        contador_ref = db.collection("contador").document("usuarios")
-        contador_doc = contador_ref.get()
-
-        novo_id = contador_doc.to_dict()["ultimo_id"] + 1
-
-        contador_ref.update({
-            "ultimo_id": novo_id
-        })
-
-        db.collection("usuarios").add({
-            "id": novo_id,
-            "nome": dados["nome"],
-            "email": dados["email"],
-            "senha": generate_password_hash(dados["senha"]),
-            "perfil": "ADMIN"
-        })
-
-        return jsonify({
-            "message": "Administrador cadastrado"
-        }), 201
-
-    except:
-        return jsonify({
-            "error": "Erro ao cadastrar administrador"
-        }), 400
-
-
-# ============================================
-# LISTAR USUÁRIOS
-# ============================================
-
-@app.route("/usuarios", methods=["GET"])
-@token_obrigatorio
-def listar_usuarios():
-
-    usuarios = []
-
-    lista = db.collection("usuarios").stream()
-
-    for item in lista:
-        usuarios.append(item.to_dict())
-
-    return jsonify(usuarios), 200
-
-
-# ============================================
-# BUSCAR USUÁRIO POR ID
-# ============================================
-
-@app.route("/usuarios/<int:id>", methods=["GET"])
-@token_obrigatorio
-def buscar_usuario(id):
-
-    lista = db.collection("usuarios")\
-        .where("id", "==", id)\
-        .limit(1)\
-        .get()
-
-    if not lista:
-        return jsonify({
-            "error": "Usuário não encontrado"
-        }), 404
-
-    return jsonify(lista[0].to_dict()), 200
-
-
-# ============================================
-# ALTERAR USUÁRIO
-# ============================================
-
-@app.route("/usuarios/<int:id>", methods=["PUT"])
-@token_obrigatorio
-def alterar_usuario(id):
-
-    dados = request.get_json()
-
-    docs = db.collection("usuarios")\
-        .where("id", "==", id)\
-        .limit(1)\
-        .get()
-
-    if not docs:
-        return jsonify({
-            "error": "Usuário não encontrado"
-        }), 404
-
-    doc_ref = db.collection("usuarios").document(docs[0].id)
-
-    doc_ref.update({
-        "nome": dados["nome"],
-        "email": dados["email"]
-    })
-
-    return jsonify({
-        "message": "Usuário atualizado"
-    }), 200
-
-
-# ============================================
-# ALTERAR SENHA
-# ============================================
-
-@app.route("/usuarios/<int:id>/senha", methods=["PATCH"])
-@token_obrigatorio
-def alterar_senha(id):
-
-    dados = request.get_json()
-
-    docs = db.collection("usuarios")\
-        .where("id", "==", id)\
-        .limit(1)\
-        .get()
-
-    if not docs:
-        return jsonify({
-            "error": "Usuário não encontrado"
-        }), 404
-
-    doc_ref = db.collection("usuarios").document(docs[0].id)
-
-    doc_ref.update({
-        "senha": generate_password_hash(dados["senha"])
-    })
-
-    return jsonify({
-        "message": "Senha alterada"
-    }), 200
-
-
-# ============================================
-# RECUPERAÇÃO DE SENHA
-# ============================================
-
-@app.route("/recuperar-senha", methods=["POST"])
-def recuperar_senha():
-
-    dados = request.get_json()
-
-    email = dados.get("email")
-
-    usuario = db.collection("usuarios")\
-        .where("email", "==", email)\
-        .limit(1)\
-        .get()
-
-    if not usuario:
-        return jsonify({
-            "error": "Email não encontrado"
-        }), 404
-
-    return jsonify({
-        "message": "Solicitação de recuperação registrada"
-    }), 200
-
-
-# ============================================
-# EXCLUIR USUÁRIO
-# ============================================
-
-@app.route("/usuarios/<int:id>", methods=["DELETE"])
-@token_obrigatorio
-def excluir_usuario(id):
-
-    docs = db.collection("usuarios")\
-        .where("id", "==", id)\
-        .limit(1)\
-        .get()
-
-    if not docs:
-        return jsonify({
-            "error": "Usuário não encontrado"
-        }), 404
-
-    db.collection("usuarios").document(docs[0].id).delete()
-
-    return jsonify({
-        "message": "Usuário removido"
-    }), 200
 
 
 if __name__ == "__main__":
