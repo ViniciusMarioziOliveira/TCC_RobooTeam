@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import secrets
+import tempfile
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -27,10 +28,33 @@ from jogo_conteudo import (
 load_dotenv()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "robooteam-chave-local-de-testes")
+app.config["SECRET_KEY"] = (
+    os.getenv("SECRET_KEY")
+    or os.getenv("FLASK_SECRET_KEY")
+    or "robooteam-chave-local-de-testes"
+)
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-usuarios_json_path = Path(app.root_path) / "usuarios_teste.json"
+diretorio_projeto = Path(app.root_path)
+diretorio_dados = diretorio_projeto
+
+if os.getenv("VERCEL"):
+    # Vercel Functions permitem escrita somente no diretório temporário.
+    # Os dados ficam disponíveis enquanto a instância estiver ativa, mas não
+    # substituem um banco de dados persistente.
+    diretorio_dados = Path(tempfile.gettempdir()) / "robooteam"
+    diretorio_dados.mkdir(parents=True, exist_ok=True)
+
+usuarios_json_path = diretorio_dados / "usuarios_teste.json"
+usuarios_iniciais_path = diretorio_projeto / "usuarios_teste.json"
+
+if (
+    os.getenv("VERCEL")
+    and not usuarios_json_path.exists()
+    and usuarios_iniciais_path.exists()
+):
+    usuarios_json_path.write_bytes(usuarios_iniciais_path.read_bytes())
+
 token_serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="robooteam-login")
 
 
@@ -365,7 +389,7 @@ def login():
         max_age=60 * 60 * 24 * 30 if lembrar else None,
         httponly=True,
         samesite="Lax",
-        secure=False,
+        secure=bool(os.getenv("VERCEL")),
     )
     return response, 200
 

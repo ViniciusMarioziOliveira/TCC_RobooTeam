@@ -28,7 +28,7 @@ A demonstração da página inicial é uma interface ilustrativa; não represent
 - Templates Jinja2, HTML, CSS e JavaScript na interface.
 - Arquivos JSON para os dados locais de usuários, progresso e trilhas personalizadas.
 - Werkzeug para hashes de senhas e ItsDangerous para os tokens de acesso locais.
-- Firebase Admin e Firestore na integração opcional com banco de dados remoto.
+- Arquivos JSON para demonstração sem banco de dados externo.
 
 ## Como executar localmente
 
@@ -43,10 +43,10 @@ A demonstração da página inicial é uma interface ilustrativa; não represent
 2. Instale as dependências usadas pelo código:
 
    ```powershell
-   .\.venv\Scripts\python.exe -m pip install Flask firebase-admin python-dotenv itsdangerous Werkzeug
+   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
 
-   O projeto ainda não possui um arquivo de dependências com versões fixadas.
+   As dependências e versões usadas na hospedagem estão em `requirements.txt`.
 
 3. Defina uma chave local para assinar as sessões no arquivo `.env`. Se ele já existir, adicione ou atualize apenas esta variável:
 
@@ -91,10 +91,10 @@ RobooTeam/
 
 O arquivo `trilha_atividades.json` é gerado ao salvar trilhas personalizadas. O arquivo `.env` contém configurações locais.
 
-## Firebase e autenticação
+## Hospedagem na Vercel
 
-O fluxo local de cadastro, login e atividades utiliza arquivos JSON e pode ser usado sem credenciais do Firebase. O pacote `firebase-admin` continua sendo necessário porque é importado pela aplicação.
+O projeto possui `vercel.json`, `requirements.txt` e `.python-version`. Ao importar o repositório na Vercel, mantenha o diretório raiz como a pasta do projeto e não configure comandos personalizados de build ou de saída.
 
-A integração remota procura `firebase.json` na pasta do projeto. Quando a variável `VERCEL` está definida, o código lê as credenciais JSON de `FIREBASE_CREDENTIALS`.
+Cadastre uma variável de ambiente chamada `SECRET_KEY` nas configurações do projeto. Gere um valor longo e aleatório e use o mesmo valor nos ambientes de produção e preview nos quais as sessões devam continuar válidas.
 
-O módulo `auth.py`, referenciado por parte das rotas de autenticação remota, não está incluído nesta versão. Por isso, configurar apenas o Firebase não completa esse fluxo. Para experimentar a página e as áreas de aluno e professor, utilize o cadastro local.
+Na Vercel, os arquivos JSON são copiados para `/tmp`, o único diretório gravável das Functions. Isso permite demonstrar cadastros e progresso sem erros de escrita, mas os dados são temporários e podem desaparecer quando uma instância for reiniciada ou substituída. Para persistência real, conecte posteriormente um banco de dados.

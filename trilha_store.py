@@ -19,7 +19,9 @@ Formato do arquivo::
 
 import copy
 import json
+import os
 import re
+import tempfile
 import threading
 from pathlib import Path
 
@@ -30,7 +32,14 @@ from trilha_conteudo import (
     TIPOS_MINIJOGO,
 )
 
-ARQUIVO_TRILHA = Path(__file__).resolve().parent / "trilha_atividades.json"
+DIRETORIO_PROJETO = Path(__file__).resolve().parent
+DIRETORIO_DADOS = DIRETORIO_PROJETO
+
+if os.getenv("VERCEL"):
+    DIRETORIO_DADOS = Path(tempfile.gettempdir()) / "robooteam"
+    DIRETORIO_DADOS.mkdir(parents=True, exist_ok=True)
+
+ARQUIVO_TRILHA = DIRETORIO_DADOS / "trilha_atividades.json"
 
 _LOCK = threading.Lock()
 
