@@ -12,7 +12,8 @@ import os
 import json
 from dotenv import load_dotenv
 
-from trilha_conteudo import LESSONS, TIMELINE
+import trilha_store
+from trilha_conteudo import CORES_DISPONIVEIS, ROTULOS_MINIJOGO, TIPOS_MINIJOGO
 from jogo_conteudo import (
     COMANDOS_PERMITIDOS,
     DESLOCAMENTOS,
@@ -129,9 +130,31 @@ def obter_usuario_autenticado(perfil=None):
     return usuario, None
 
 
-def primeira_etapa_pendente(etapas_concluidas):
-    concluidas = set(etapas_concluidas)
-    return next((item["id"] for item in TIMELINE if item["id"] not in concluidas), None)
+def trilha_do_aluno(usuario):
+    """Atividades que este aluno enxerga (a do professor da sala, ou a padrao)."""
+    return trilha_store.trilha_para_aluno(usuario)
+
+
+def aula_da_atividade(atividade):
+    """Recorte da atividade usado pela pagina da aula."""
+    return {
+        "eyebrow": atividade.get("eyebrow") or atividade["period"],
+        "title": atividade.get("lesson_title") or atividade["title"],
+        "intro": atividade.get("intro") or atividade["description"],
+        "sections": atividade.get("sections", []),
+        "quiz": atividade.get("quiz", []),
+        "minigame": atividade.get("minigame") or {"type": "nenhum"},
+    }
+
+
+def resumo_do_minijogo(atividade):
+    minijogo = atividade.get("minigame") or {}
+    tipo = minijogo.get("type", "nenhum")
+    return {
+        "type": tipo,
+        "label": ROTULOS_MINIJOGO.get(tipo, "Atividade pratica"),
+        "title": minijogo.get("title", ""),
+    }
 
 
 def fases_jogo_concluidas(usuario):
@@ -316,19 +339,26 @@ def pagina_etapa_trilha(lesson_id):
     if erro:
         return redirect(url_for("pagina_login", next=request.path))
 
-    if lesson_id not in LESSONS:
+    atividades = trilha_do_aluno(usuario)
+    atividade = trilha_store.buscar_atividade(atividades, lesson_id)
+    if not atividade:
         return "Etapa não encontrada", 404
 
-    concluidas = usuario.get("etapas_concluidas", [])
-    etapa_pendente = primeira_etapa_pendente(concluidas)
+    concluidas = trilha_store.normalizar_concluidas(atividades, usuario.get("etapas_concluidas", []))
+    etapa_pendente = trilha_store.primeira_pendente(atividades, concluidas)
     if lesson_id not in concluidas and lesson_id != etapa_pendente:
         return redirect(url_for("pagina_aluno", _anchor="trilha"))
 
+    posicao = trilha_store.ids_das_atividades(atividades).index(lesson_id)
+
     return render_template(
         "trilha_aula.html",
-        lesson=LESSONS[lesson_id],
+        lesson=aula_da_atividade(atividade),
         lesson_id=lesson_id,
         usuario=usuario,
+        posicao=posicao + 1,
+        total_etapas=len(atividades),
+        ja_concluida=lesson_id in concluidas,
     )
 
 
@@ -483,12 +513,13 @@ def obter_trilha_aluno():
     if erro:
         return erro
 
-    concluidas = sorted(set(usuario.get("etapas_concluidas", [])))
-    etapa_atual = primeira_etapa_pendente(concluidas)
+    atividades = trilha_do_aluno(usuario)
+    concluidas = trilha_store.normalizar_concluidas(atividades, usuario.get("etapas_concluidas", []))
+    etapa_atual = trilha_store.primeira_pendente(atividades, concluidas)
     itens = []
 
-    for item in TIMELINE:
-        item_id = item["id"]
+    for posicao, item in enumerate(atividades, start=1):
+        item_id = int(item["id"])
         if item_id in concluidas:
             estado = "concluida"
         elif item_id == etapa_atual:
@@ -498,15 +529,17 @@ def obter_trilha_aluno():
 
         itens.append({
             "id": item_id,
+            "posicao": posicao,
             "period": item["period"],
             "title": item["title"],
             "description": item["description"],
             "color": item.get("color", "blue"),
             "estado": estado,
+            "minijogo": resumo_do_minijogo(item),
             "url": url_for("pagina_etapa_trilha", lesson_id=item_id),
         })
 
-    total = len(TIMELINE)
+    total = len(atividades)
     quantidade_concluida = len(concluidas)
     percentual = round((quantidade_concluida / total) * 100) if total else 0
     pontos = quantidade_concluida * 100
@@ -556,13 +589,21 @@ def concluir_etapa_trilha(lesson_id):
     if erro:
         return erro
 
-    lesson = LESSONS.get(lesson_id)
-    if not lesson:
+    atividades = trilha_do_aluno(usuario)
+    atividade = trilha_store.buscar_atividade(atividades, lesson_id)
+    if not atividade:
         return jsonify({"error": "Etapa não encontrada"}), 404
 
     dados = request.get_json(silent=True) or {}
     respostas = dados.get("respostas")
-    respostas_corretas = [questao["answer"] for questao in lesson["quiz"]]
+    respostas_corretas = [questao["answer"] for questao in atividade.get("quiz", [])]
+
+    tipo_minijogo = (atividade.get("minigame") or {}).get("type", "nenhum")
+    if tipo_minijogo != "nenhum" and not bool(dados.get("minijogo_concluido")):
+        return jsonify({
+            "error": "Conclua também a atividade prática desta etapa antes de finalizar",
+            "minijogo": tipo_minijogo,
+        }), 400
 
     if not isinstance(respostas, list) or len(respostas) != len(respostas_corretas):
         return jsonify({"error": "Responda todas as perguntas antes de concluir"}), 400
@@ -585,8 +626,8 @@ def concluir_etapa_trilha(lesson_id):
 
     usuarios = carregar_usuarios_json()
     usuario_salvo = next(item for item in usuarios if int(item["id"]) == int(usuario["id"]))
-    concluidas = sorted(set(usuario_salvo.get("etapas_concluidas", [])))
-    etapa_atual = primeira_etapa_pendente(concluidas)
+    concluidas = trilha_store.normalizar_concluidas(atividades, usuario_salvo.get("etapas_concluidas", []))
+    etapa_atual = trilha_store.primeira_pendente(atividades, concluidas)
 
     if lesson_id not in concluidas and lesson_id != etapa_atual:
         return jsonify({"error": "Conclua a etapa anterior primeiro"}), 409
@@ -604,10 +645,15 @@ def concluir_etapa_trilha(lesson_id):
     except OSError:
         return jsonify({"error": "Não foi possível salvar o progresso"}), 500
 
+    proxima_id = trilha_store.primeira_pendente(atividades, concluidas)
+    proxima = trilha_store.buscar_atividade(atividades, proxima_id) if proxima_id else None
+
     return jsonify({
         "message": "Etapa concluída",
         "completed": concluidas,
-        "next": primeira_etapa_pendente(concluidas),
+        "next": proxima_id,
+        "next_title": proxima["title"] if proxima else None,
+        "total": len(atividades),
     })
 
 
@@ -876,14 +922,15 @@ def obter_resumo_professor():
         if usuario.get("perfil") == "ALUNO"
         and str(usuario.get("professor_id")) == str(professor["id"])
     ]
-    total_etapas = len(TIMELINE)
+    atividades = trilha_store.trilha_do_professor(professor["id"])
+    total_etapas = len(atividades)
     alunos_formatados = []
 
     for aluno in alunos:
-        concluidas = sorted(set(aluno.get("etapas_concluidas", [])))
+        concluidas = trilha_store.normalizar_concluidas(atividades, aluno.get("etapas_concluidas", []))
         percentual = round((len(concluidas) / total_etapas) * 100) if total_etapas else 0
-        proxima_id = primeira_etapa_pendente(concluidas)
-        proxima = next((item["title"] for item in TIMELINE if item["id"] == proxima_id), "Trilha concluída")
+        proxima_id = trilha_store.primeira_pendente(atividades, concluidas)
+        proxima = next((item["title"] for item in atividades if int(item["id"]) == proxima_id), "Trilha concluída")
         alunos_formatados.append({
             "id": aluno["id"],
             "nome": aluno["nome"],
@@ -901,11 +948,12 @@ def obter_resumo_professor():
     iniciaram = sum(aluno["percentual"] > 0 for aluno in alunos_formatados)
     etapas_resumo = [
         {
-            "id": item["id"],
+            "id": int(item["id"]),
             "titulo": item["title"],
-            "conclusoes": sum(item["id"] in aluno.get("etapas_concluidas", []) for aluno in alunos),
+            "minijogo": resumo_do_minijogo(item),
+            "conclusoes": sum(int(item["id"]) in aluno.get("etapas_concluidas", []) for aluno in alunos),
         }
-        for item in TIMELINE
+        for item in atividades
     ]
 
     return jsonify({
@@ -931,6 +979,7 @@ def obter_resumo_professor():
         }],
         "codigo_sala": professor.get("codigo_sala"),
         "codigo_validade": professor.get("codigo_validade"),
+        "trilha_personalizada": trilha_store.usa_trilha_personalizada(professor["id"]),
     })
 
 
@@ -958,6 +1007,171 @@ def gerar_codigo_sala():
         "validade": validade.isoformat(),
         "turma": professor_salvo["turma_nome"],
     }), 201
+
+
+# ============================================
+# ATIVIDADES DA TRILHA (CRUD DO PROFESSOR)
+# ============================================
+
+def contar_conclusoes_por_etapa(professor_id):
+    """Quantos alunos da sala ja concluiram cada etapa."""
+    contagem = {}
+    for usuario in carregar_usuarios_json():
+        if usuario.get("perfil") != "ALUNO":
+            continue
+        if str(usuario.get("professor_id")) != str(professor_id):
+            continue
+        for etapa in usuario.get("etapas_concluidas", []):
+            try:
+                etapa = int(etapa)
+            except (TypeError, ValueError):
+                continue
+            contagem[etapa] = contagem.get(etapa, 0) + 1
+    return contagem
+
+
+def resposta_das_atividades(professor_id, mensagem=None, status=200):
+    atividades = trilha_store.trilha_do_professor(professor_id)
+    conclusoes = contar_conclusoes_por_etapa(professor_id)
+
+    itens = []
+    for posicao, atividade in enumerate(atividades, start=1):
+        item = dict(atividade)
+        item["posicao"] = posicao
+        item["minijogo_label"] = ROTULOS_MINIJOGO.get(
+            (atividade.get("minigame") or {}).get("type", "nenhum"),
+            "Atividade prática",
+        )
+        item["total_perguntas"] = len(atividade.get("quiz", []))
+        item["total_secoes"] = len(atividade.get("sections", []))
+        item["conclusoes"] = conclusoes.get(int(atividade["id"]), 0)
+        itens.append(item)
+
+    corpo = {
+        "atividades": itens,
+        "total": len(itens),
+        "personalizada": trilha_store.usa_trilha_personalizada(professor_id),
+        "opcoes": {
+            "cores": list(CORES_DISPONIVEIS),
+            "minijogos": [
+                {"valor": tipo, "rotulo": ROTULOS_MINIJOGO[tipo]}
+                for tipo in TIPOS_MINIJOGO
+            ],
+        },
+    }
+    if mensagem:
+        corpo["message"] = mensagem
+
+    return jsonify(corpo), status
+
+
+@app.get("/api/professor/atividades")
+def listar_atividades_trilha():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+    return resposta_das_atividades(professor["id"])
+
+
+@app.post("/api/professor/atividades")
+def criar_atividade_trilha():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    dados = request.get_json(silent=True) or {}
+    posicao = dados.get("posicao")
+
+    try:
+        atividade = trilha_store.criar_atividade(
+            professor["id"],
+            dados,
+            posicao if isinstance(posicao, int) else None,
+        )
+    except trilha_store.ErroDeValidacao as problema:
+        return jsonify({"error": str(problema)}), 400
+    except OSError:
+        return jsonify({"error": "Não foi possível salvar a atividade"}), 500
+
+    return resposta_das_atividades(
+        professor["id"],
+        f"Atividade \"{atividade['title']}\" criada com sucesso!",
+        201,
+    )
+
+
+@app.put("/api/professor/atividades/<int:atividade_id>")
+def atualizar_atividade_trilha(atividade_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    try:
+        atividade = trilha_store.atualizar_atividade(
+            professor["id"],
+            atividade_id,
+            request.get_json(silent=True) or {},
+        )
+    except trilha_store.ErroDeValidacao as problema:
+        return jsonify({"error": str(problema)}), 400
+    except OSError:
+        return jsonify({"error": "Não foi possível salvar a atividade"}), 500
+
+    return resposta_das_atividades(
+        professor["id"],
+        f"Atividade \"{atividade['title']}\" atualizada!",
+    )
+
+
+@app.delete("/api/professor/atividades/<int:atividade_id>")
+def remover_atividade_trilha(atividade_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    try:
+        atividade = trilha_store.remover_atividade(professor["id"], atividade_id)
+    except trilha_store.ErroDeValidacao as problema:
+        return jsonify({"error": str(problema)}), 400
+    except OSError:
+        return jsonify({"error": "Não foi possível remover a atividade"}), 500
+
+    return resposta_das_atividades(
+        professor["id"],
+        f"Atividade \"{atividade['title']}\" removida da trilha.",
+    )
+
+
+@app.post("/api/professor/atividades/reordenar")
+def reordenar_atividades_trilha():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    dados = request.get_json(silent=True) or {}
+
+    try:
+        trilha_store.reordenar_atividades(professor["id"], dados.get("ids"))
+    except trilha_store.ErroDeValidacao as problema:
+        return jsonify({"error": str(problema)}), 400
+    except OSError:
+        return jsonify({"error": "Não foi possível salvar a nova ordem"}), 500
+
+    return resposta_das_atividades(professor["id"], "Nova ordem da trilha salva!")
+
+
+@app.post("/api/professor/atividades/restaurar")
+def restaurar_atividades_trilha():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    try:
+        trilha_store.restaurar_padrao(professor["id"])
+    except OSError:
+        return jsonify({"error": "Não foi possível restaurar a trilha"}), 500
+
+    return resposta_das_atividades(professor["id"], "Trilha original do RobooTeam restaurada.")
 
 
 # ============================================

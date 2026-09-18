@@ -79,7 +79,18 @@ const revealItems = document.querySelectorAll('.reveal');
 const journeySection = document.querySelector('.journey-section');
 const flightStage = document.querySelector('.flight-stage');
 const journeySteps = document.querySelectorAll('.journey-step');
+const altitudeMarks = document.querySelectorAll('.altitude[data-altitude]');
+const flightAltitude = document.querySelector('#flight-altitude');
+const scrollHint = document.querySelector('#scroll-hint');
 let journeyFrame;
+
+const HINT_MESSAGES = [
+    { until: 0.04, text: 'ROLE PARA LANÇAR' },
+    { until: 0.35, text: 'IGNIÇÃO' },
+    { until: 0.68, text: 'SUBINDO' },
+    { until: 0.97, text: 'APROXIMANDO DA ÓRBITA' },
+    { until: 1.01, text: 'EM ÓRBITA' },
+];
 
 function updateJourney() {
     journeyFrame = null;
@@ -89,14 +100,29 @@ function updateJourney() {
     const scrollRange = Math.max(journeySection.offsetHeight - window.innerHeight, 1);
     const rawProgress = Math.min(Math.max(-sectionRect.top / scrollRange, 0), 1);
     const progress = prefersReducedMotion ? 0.55 : rawProgress;
-    const travelX = Math.min(flightStage.clientWidth * 0.28, 145);
+
+    // O foguete sobe quase reto e só depois arqueia para a direita, como num
+    // lançamento real: o eixo Y avança quase linear e o X acelera no fim.
+    const curvaX = Math.pow(progress, 1.7);
+    const curvaY = Math.pow(progress, 0.94);
+    const travelX = Math.min(flightStage.clientWidth * 0.3, 160);
     const travelY = Math.max(flightStage.clientHeight - 300, 210);
 
-    journeySection.style.setProperty('--rocket-x-offset', `${progress * travelX}px`);
-    journeySection.style.setProperty('--rocket-y-offset', `${progress * -travelY}px`);
-    journeySection.style.setProperty('--rocket-tilt', `${-9 + progress * 9}deg`);
-    journeySection.style.setProperty('--rocket-trail', `${90 + progress * 210}px`);
+    journeySection.style.setProperty('--rocket-x-offset', `${curvaX * travelX}px`);
+    journeySection.style.setProperty('--rocket-y-offset', `${curvaY * -travelY}px`);
+    journeySection.style.setProperty('--rocket-tilt', `${-3 + curvaX * 27}deg`);
+    journeySection.style.setProperty('--rocket-trail', `${70 + progress * 240}px`);
     journeySection.style.setProperty('--rocket-progress', progress.toFixed(3));
+
+    journeySection.classList.toggle('launched', progress > 0.04);
+    journeySection.classList.toggle('landed', progress > 0.97);
+
+    altitudeMarks.forEach((mark) => {
+        mark.classList.toggle('reached', progress >= Number(mark.dataset.altitude));
+    });
+
+    if (flightAltitude) flightAltitude.textContent = `${Math.round(progress * 100)}%`;
+    if (scrollHint) scrollHint.textContent = HINT_MESSAGES.find((item) => progress < item.until).text;
 
     const activeStep = Math.min(2, Math.floor(progress * 3));
     journeySteps.forEach((step, index) => step.classList.toggle('active', index === activeStep));
@@ -116,13 +142,24 @@ if (journeySection) {
 }
 
 if (prefersReducedMotion || !('IntersectionObserver' in window)) {
-    revealItems.forEach((item) => item.classList.add('visible'));
+    revealItems.forEach((item) => item.classList.add('visible', 'reveal-done'));
 } else {
     const revealObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach((entry) => {
             if (!entry.isIntersecting) return;
+
+            // data-reveal-delay escalona a entrada dos itens de uma mesma fileira.
+            const atraso = Number(entry.target.dataset.revealDelay) || 0;
+            if (atraso) entry.target.style.transitionDelay = `${atraso}ms`;
             entry.target.classList.add('visible');
             observer.unobserve(entry.target);
+
+            // Terminada a entrada, devolve o elemento às transições próprias
+            // (hover, por exemplo) sem herdar o atraso do escalonamento.
+            window.setTimeout(() => {
+                entry.target.style.transitionDelay = '';
+                entry.target.classList.add('reveal-done');
+            }, atraso + 760);
         });
     }, { threshold: 0.14 });
 

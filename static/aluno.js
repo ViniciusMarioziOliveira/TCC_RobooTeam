@@ -28,11 +28,26 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+const ICONES_MINIJOGO = {
+  memory: "🃏",
+  maze: "🤖",
+  word_search: "🔤",
+  snake: "🐍",
+  drag_drop: "🧩",
+  nenhum: "📖",
+};
+
+function minigameBadge(minijogo) {
+  if (!minijogo || !minijogo.type) return "";
+  const icone = ICONES_MINIJOGO[minijogo.type] || "🎮";
+  return `<span class="ai-game-badge ${escapeHtml(minijogo.type)}"><span aria-hidden="true">${icone}</span>${escapeHtml(minijogo.label)}</span>`;
+}
+
 function renderTimeline(items) {
   timelineElement.innerHTML = items.map((item, index) => {
     const isLocked = item.estado === "bloqueada";
     const label = item.estado === "concluida" ? "Revisar etapa" : item.estado === "atual" ? "Iniciar etapa" : "Bloqueada";
-    const marker = item.estado === "concluida" ? "✓" : item.id;
+    const marker = item.estado === "concluida" ? "✓" : (item.posicao ?? index + 1);
 
     return `
       <article class="ai-timeline-card ${item.estado}" style="animation-delay:${index * 70}ms">
@@ -41,6 +56,7 @@ function renderTimeline(items) {
           <div class="ai-timeline-period">${escapeHtml(item.period)}</div>
           <h3 class="ai-timeline-title">${escapeHtml(item.title)}</h3>
           <p class="ai-timeline-description">${escapeHtml(item.description)}</p>
+          ${minigameBadge(item.minijogo)}
         </div>
         <button class="ai-step-button" type="button" data-lesson-url="${escapeHtml(item.url)}" ${isLocked ? "disabled" : ""}>${label}</button>
       </article>

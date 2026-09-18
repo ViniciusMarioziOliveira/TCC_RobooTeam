@@ -27,7 +27,8 @@
             }
         }
     </script>
-    <script src="{{ url_for('static', filename='professor.js', v='2') }}" defer></script>
+    <script src="{{ url_for('static', filename='professor.js', v='3') }}" defer></script>
+    <script src="{{ url_for('static', filename='professor_atividades.js', v='1') }}" defer></script>
     <style>
         /* Custom scrollbar for clean UI */
         ::-webkit-scrollbar {
@@ -78,9 +79,149 @@
         @media (max-width: 767px) {
             .professor-header-robot { display: none; }
         }
+
+        /* ---- GERENCIADOR DE ATIVIDADES DA TRILHA ---- */
+        .trail-manager-robot {
+            filter: drop-shadow(0 8px 8px rgba(20, 40, 120, 0.16));
+            flex-shrink: 0;
+            height: 62px;
+            object-fit: contain;
+            width: 54px;
+        }
+        .modal-robot {
+            filter: drop-shadow(0 6px 6px rgba(20, 40, 120, 0.18));
+            flex-shrink: 0;
+            height: 46px;
+            object-fit: contain;
+            width: 40px;
+        }
+        .form-label {
+            color: #475569;
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .form-input {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            color: #334155;
+            font-family: inherit;
+            font-size: 12px;
+            padding: 0.6rem 0.75rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            width: 100%;
+        }
+        .form-input:focus {
+            background: #fff;
+            border-color: #00B4D8;
+            box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.14);
+            outline: none;
+        }
+        .repeater-add {
+            align-items: center;
+            background: #ecfeff;
+            border: 1px solid #a5f3fc;
+            border-radius: 0.6rem;
+            color: #0e7490;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 700;
+            gap: 5px;
+            padding: 0.4rem 0.7rem;
+            transition: background 0.15s ease;
+        }
+        .repeater-add:hover { background: #cffafe; }
+        .repeater-remove {
+            align-items: center;
+            background: none;
+            border: none;
+            border-radius: 0.4rem;
+            color: #dc2626;
+            display: inline-flex;
+            font-size: 11px;
+            font-weight: 700;
+            gap: 4px;
+            padding: 0.25rem 0.45rem;
+            transition: background 0.15s ease;
+        }
+        .repeater-remove:hover { background: #fee2e2; }
+        .repeater-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.9rem;
+            padding: 0.9rem 1rem;
+        }
+        .repeater-card-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.6rem;
+        }
+        .repeater-card-title {
+            color: #0f172a;
+            font-size: 11.5px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .option-row { align-items: center; display: flex; gap: 0.5rem; }
+        .option-row input[type="radio"] { accent-color: #00B4D8; flex-shrink: 0; height: 15px; width: 15px; }
+        .activity-card {
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            display: flex;
+            gap: 1rem;
+            padding: 0.9rem 1.1rem;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .activity-card:hover { border-color: #a5f3fc; box-shadow: 0 6px 18px rgba(0, 180, 216, 0.1); }
+        .activity-order {
+            align-items: center;
+            background: #0B132B;
+            border-radius: 0.7rem;
+            color: #90E0EF;
+            display: flex;
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 800;
+            height: 38px;
+            justify-content: center;
+            width: 38px;
+        }
+        .activity-chip {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 9px;
+            white-space: nowrap;
+        }
+        .icon-button {
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.6rem;
+            color: #64748b;
+            display: inline-flex;
+            justify-content: center;
+            padding: 0.45rem;
+            transition: all 0.15s ease;
+        }
+        .icon-button:hover:not(:disabled) { background: #ecfeff; border-color: #67e8f9; color: #0e7490; }
+        .icon-button:disabled { cursor: not-allowed; opacity: 0.35; }
+        .icon-button.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+        #activity-modal.aberto { display: flex; }
     </style>
 </head>
-<body class="bg-brand-bg font-sans antialiased text-slate-800 flex h-screen overflow-hidden" data-dashboard-url="{{ url_for('obter_resumo_professor') }}" data-code-url="{{ url_for('gerar_codigo_sala') }}" data-logout-url="{{ url_for('logout') }}" data-login-url="{{ url_for('pagina_login') }}" data-empty-robot-url="{{ url_for('static', filename='img/2.png') }}" data-error-robot-url="{{ url_for('static', filename='img/6.png') }}">
+<body class="bg-brand-bg font-sans antialiased text-slate-800 flex h-screen overflow-hidden" data-dashboard-url="{{ url_for('obter_resumo_professor') }}" data-code-url="{{ url_for('gerar_codigo_sala') }}" data-logout-url="{{ url_for('logout') }}" data-login-url="{{ url_for('pagina_login') }}" data-empty-robot-url="{{ url_for('static', filename='img/2.png') }}" data-error-robot-url="{{ url_for('static', filename='img/6.png') }}" data-activities-url="{{ url_for('listar_atividades_trilha') }}" data-activities-reorder-url="{{ url_for('reordenar_atividades_trilha') }}" data-activities-restore-url="{{ url_for('restaurar_atividades_trilha') }}">
 
     <!-- ==========================================
          1. SIDEBAR FIXA
@@ -146,9 +287,9 @@
                             <i data-lucide="book-open" class="w-5 h-5"></i>
                             <span>Atividades</span>
                         </a>
-                        <a href="#desempenho" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                        <a href="#atividades-trilha" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
                             <i data-lucide="target" class="w-5 h-5"></i>
-                            <span>Missões</span>
+                            <span>Editar trilha</span>
                         </a>
                     </div>
                 </div>
@@ -161,9 +302,9 @@
                             <i data-lucide="key-round" class="w-5 h-5"></i>
                             <span>Código de Sala</span>
                         </a>
-                        <a href="#atividades" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
+                        <a href="#atividades-trilha" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
                             <i data-lucide="library" class="w-5 h-5"></i>
-                            <span>Biblioteca</span>
+                            <span>Biblioteca de etapas</span>
                         </a>
                         <a href="#desempenho" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
                             <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
@@ -556,6 +697,43 @@
                 </div>
             </section>
 
+            <!-- ==========================================
+                 GERENCIADOR DAS ATIVIDADES DA TRILHA
+            =========================================== -->
+            <section class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5" id="atividades-trilha">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <img class="trail-manager-robot" src="{{ url_for('static', filename='img/4.png') }}" alt="" aria-hidden="true">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                Atividades da trilha
+                                <span id="trail-origin-badge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600">Trilha padrão</span>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1 max-w-xl">
+                                Crie, edite, reordene ou remova as etapas que os seus alunos veem na trilha.
+                                Cada etapa tem leitura, quiz e um minijogo.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" id="new-activity-button"
+                            class="px-4 py-2.5 bg-brand-cyan hover:bg-cyan-400 text-brand-navy font-bold text-xs rounded-xl transition-all shadow-md shadow-brand-cyan/20 flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Nova atividade
+                        </button>
+                        <button type="button" id="restore-trail-button"
+                            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs rounded-xl transition-all flex items-center gap-2">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Restaurar original
+                        </button>
+                    </div>
+                </div>
+
+                <p id="trail-feedback" class="hidden text-xs font-semibold rounded-xl px-4 py-3" role="status"></p>
+
+                <div id="activities-list" class="space-y-3">
+                    <p class="text-xs text-slate-400 py-8 text-center">Carregando atividades...</p>
+                </div>
+            </section>
+
             <!-- 11. BUSCA DE ALUNOS & FILTROS & 12. ACESSO INDIVIDUAL -->
             <section class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6" id="alunos">
                 <div>
@@ -624,6 +802,178 @@
 
         </div>
     </main>
+
+    <!-- ==========================================
+         MODAL: EDITOR DE ATIVIDADE DA TRILHA
+    =========================================== -->
+    <div id="activity-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-brand-navy/60 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-4xl max-h-[92vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+
+            <header class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <div class="flex items-center gap-3 min-w-0">
+                    <img class="modal-robot" src="{{ url_for('static', filename='img/3.png') }}" alt="" aria-hidden="true">
+                    <div class="min-w-0">
+                        <h3 class="text-base font-bold text-slate-800" id="activity-modal-title">Nova atividade</h3>
+                        <p class="text-[11px] text-slate-500">Monte a leitura, o quiz e o minijogo desta etapa.</p>
+                    </div>
+                </div>
+                <button type="button" id="close-activity-modal"
+                    class="p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all" aria-label="Fechar">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </header>
+
+            <form id="activity-form" class="flex-1 overflow-y-auto px-6 py-5 space-y-7 text-xs">
+
+                <!-- DADOS DA ETAPA -->
+                <fieldset class="space-y-3">
+                    <legend class="text-[11px] font-bold tracking-wider text-brand-cyan uppercase mb-2">1 · Card da trilha</legend>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <label class="md:col-span-2 block">
+                            <span class="form-label">Título da etapa</span>
+                            <input name="title" type="text" maxlength="120" required class="form-input" placeholder="Ex.: Robôs que aprendem sozinhos">
+                        </label>
+                        <label class="block">
+                            <span class="form-label">Período</span>
+                            <input name="period" type="text" maxlength="60" required class="form-input" placeholder="Ex.: 2000 a 2019">
+                        </label>
+                    </div>
+                    <label class="block">
+                        <span class="form-label">Descrição curta (aparece no card)</span>
+                        <textarea name="description" rows="2" maxlength="320" required class="form-input" placeholder="Um resumo de uma ou duas linhas para o aluno."></textarea>
+                    </label>
+                    <label class="block max-w-xs">
+                        <span class="form-label">Cor do card</span>
+                        <select name="color" class="form-input" id="activity-color"></select>
+                    </label>
+                </fieldset>
+
+                <!-- DADOS DA AULA -->
+                <fieldset class="space-y-3 pt-5 border-t border-slate-100">
+                    <legend class="text-[11px] font-bold tracking-wider text-brand-cyan uppercase mb-2">2 · Página da aula</legend>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label class="block">
+                            <span class="form-label">Chamada (topo da aula)</span>
+                            <input name="eyebrow" type="text" maxlength="120" class="form-input" placeholder="Opcional — usa o período se ficar vazio">
+                        </label>
+                        <label class="block">
+                            <span class="form-label">Título da aula</span>
+                            <input name="lesson_title" type="text" maxlength="160" class="form-input" placeholder="Opcional — usa o título da etapa">
+                        </label>
+                    </div>
+                    <label class="block">
+                        <span class="form-label">Introdução da aula</span>
+                        <textarea name="intro" rows="2" maxlength="600" class="form-input" placeholder="Opcional — usa a descrição curta se ficar vazio"></textarea>
+                    </label>
+                </fieldset>
+
+                <!-- BLOCOS DE LEITURA -->
+                <fieldset class="space-y-3 pt-5 border-t border-slate-100">
+                    <div class="flex items-center justify-between gap-3">
+                        <legend class="text-[11px] font-bold tracking-wider text-brand-cyan uppercase">3 · Blocos de leitura</legend>
+                        <button type="button" id="add-section-button" class="repeater-add">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar bloco
+                        </button>
+                    </div>
+                    <div id="sections-container" class="space-y-3"></div>
+                </fieldset>
+
+                <!-- QUIZ -->
+                <fieldset class="space-y-3 pt-5 border-t border-slate-100">
+                    <div class="flex items-center justify-between gap-3">
+                        <legend class="text-[11px] font-bold tracking-wider text-brand-cyan uppercase">4 · Perguntas do quiz</legend>
+                        <button type="button" id="add-question-button" class="repeater-add">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar pergunta
+                        </button>
+                    </div>
+                    <div id="questions-container" class="space-y-4"></div>
+                </fieldset>
+
+                <!-- MINIJOGO -->
+                <fieldset class="space-y-3 pt-5 border-t border-slate-100">
+                    <legend class="text-[11px] font-bold tracking-wider text-brand-cyan uppercase mb-2">5 · Minijogo da etapa</legend>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <label class="block">
+                            <span class="form-label">Tipo de minijogo</span>
+                            <select name="minigame_type" id="minigame-type" class="form-input"></select>
+                        </label>
+                        <label class="block md:col-span-2" data-minigame-field="title">
+                            <span class="form-label">Título do minijogo</span>
+                            <input name="minigame_title" type="text" maxlength="120" class="form-input">
+                        </label>
+                    </div>
+                    <label class="block" data-minigame-field="instruction">
+                        <span class="form-label">Instrução para o aluno</span>
+                        <input name="minigame_instruction" type="text" maxlength="320" class="form-input">
+                    </label>
+
+                    <div data-minigame-config="snake" class="hidden">
+                        <label class="block max-w-xs">
+                            <span class="form-label">Bolinhas para vencer (5 a 60)</span>
+                            <input name="target_score" type="number" min="5" max="60" class="form-input">
+                        </label>
+                    </div>
+
+                    <div data-minigame-config="maze" class="hidden">
+                        <label class="block max-w-xs">
+                            <span class="form-label">Quantidade de fases (1 a 3)</span>
+                            <input name="total_levels" type="number" min="1" max="3" class="form-input">
+                        </label>
+                    </div>
+
+                    <div data-minigame-config="memory" class="hidden space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-[11px] text-slate-500">Cada par vira duas cartas: o termo e o seu significado. De 3 a 8 pares.</p>
+                            <button type="button" class="repeater-add" data-add-pair="memory">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar par
+                            </button>
+                        </div>
+                        <div id="memory-pairs-container" class="space-y-2"></div>
+                    </div>
+
+                    <div data-minigame-config="drag_drop" class="hidden space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-[11px] text-slate-500">O aluno arrasta o bloco até a explicação certa. De 3 a 8 pares.</p>
+                            <button type="button" class="repeater-add" data-add-pair="drag_drop">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar par
+                            </button>
+                        </div>
+                        <div id="dragdrop-pairs-container" class="space-y-2"></div>
+                    </div>
+
+                    <div data-minigame-config="word_search" class="hidden space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-[11px] text-slate-500">De 3 a 8 palavras por grupo, com 3 a 10 letras, sem acentos. A grade é montada sozinha.</p>
+                            <button type="button" class="repeater-add" data-add-variation="1">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar grupo
+                            </button>
+                        </div>
+                        <div id="wordsearch-container" class="space-y-2"></div>
+                    </div>
+
+                    <div data-minigame-config="nenhum" class="hidden">
+                        <p class="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                            Esta etapa terá apenas leitura e quiz. O aluno conclui ao acertar todas as perguntas.
+                        </p>
+                    </div>
+                </fieldset>
+            </form>
+
+            <footer class="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+                <p id="activity-form-error" class="text-[11px] font-semibold text-red-600 min-h-4"></p>
+                <div class="flex gap-2 shrink-0">
+                    <button type="button" id="cancel-activity-button"
+                        class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold text-xs rounded-xl hover:bg-slate-100 transition-all">
+                        Cancelar
+                    </button>
+                    <button type="submit" form="activity-form" id="save-activity-button"
+                        class="px-5 py-2.5 bg-brand-cyan hover:bg-cyan-400 text-brand-navy font-bold text-xs rounded-xl transition-all shadow-md shadow-brand-cyan/20 flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Salvar atividade
+                    </button>
+                </div>
+            </footer>
+        </div>
+    </div>
 
     <!-- Inicialização dos Ícones Lucide -->
     <script>

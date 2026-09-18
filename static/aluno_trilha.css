@@ -220,3 +220,30 @@
   .ai-timeline::before { left: 26px; }
   .ai-character img { height: 160px; width: 160px; }
 }
+
+/* SELO DO MINIJOGO NA LINHA DO TEMPO */
+.ai-game-badge {
+  align-items: center;
+  background: #eef4ff;
+  border: 1px solid #d5e2ff;
+  border-radius: 999px;
+  color: #2f5de0;
+  display: inline-flex;
+  font-size: 10.5px;
+  font-weight: 800;
+  gap: 5px;
+  letter-spacing: 0.03em;
+  margin-top: 8px;
+  padding: 4px 11px;
+  text-transform: uppercase;
+}
+
+.ai-game-badge span { font-size: 12px; }
+.ai-game-badge.snake { background: #e3fbee; border-color: #b6f0d2; color: #158552; }
+.ai-game-badge.maze { background: #f2ecff; border-color: #ddd0ff; color: #6b3fd1; }
+.ai-game-badge.word_search { background: #fff6d9; border-color: #ffe6a3; color: #8a5a06; }
+.ai-game-badge.memory { background: #ffe9ef; border-color: #ffd0dd; color: #97124a; }
+.ai-game-badge.drag_drop { background: #ddfaf5; border-color: #b5f2e9; color: #0b6a63; }
+.ai-game-badge.nenhum { background: #f4f6fb; border-color: #e0e5ef; color: #667085; }
+
+.ai-timeline-card.concluida .ai-game-badge { opacity: 0.72; }

@@ -1215,7 +1215,7 @@ h2 {
     --rocket-trail: 90px;
     --rocket-progress: 0;
     position: relative;
-    min-height: 1480px;
+    min-height: 1900px;
     color: var(--white);
     background: #070522;
     isolation: isolate;
@@ -1341,6 +1341,18 @@ h2 {
     transform-origin: bottom;
 }
 
+.flight-route i {
+    position: absolute;
+    bottom: 0;
+    left: -2px;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(141, 182, 255, 0.15), var(--accent));
+    box-shadow: 0 0 16px rgba(100, 149, 237, 0.75);
+    transform: scaleY(var(--rocket-progress));
+    transform-origin: bottom;
+}
+
 .flight-route::before {
     position: absolute;
     top: -8px;
@@ -1375,9 +1387,57 @@ h2 {
     box-shadow: 0 0 13px rgba(100, 149, 237, 0.65);
 }
 
+.altitude {
+    transition: color 420ms ease, transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.altitude span {
+    transition: background 420ms ease, box-shadow 420ms ease, transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.altitude.reached {
+    color: var(--white);
+    transform: translateX(-6px);
+}
+
+.altitude.reached span {
+    background: var(--accent);
+    box-shadow: 0 0 20px rgba(100, 149, 237, 0.95), 0 0 0 5px rgba(100, 149, 237, 0.16);
+    transform: scale(1.25);
+}
+
 .altitude-one { right: 9%; bottom: 25%; }
 .altitude-two { right: 19%; bottom: 52%; }
 .altitude-three { right: 30%; top: 12%; }
+
+.flight-readout {
+    position: absolute;
+    z-index: 2;
+    top: 18px;
+    left: 20px;
+    padding: 9px 15px;
+    background: rgba(8, 11, 39, 0.6);
+    border: 1px solid rgba(141, 182, 255, 0.24);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+}
+
+.flight-readout small {
+    display: block;
+    color: rgba(255, 255, 255, 0.45);
+    font-family: var(--title-font);
+    font-size: 0.46rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+
+.flight-readout strong {
+    color: #8db6ff;
+    font-family: var(--title-font);
+    font-size: 1.02rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+}
 
 .launch-pad {
     position: absolute;
@@ -1410,6 +1470,34 @@ h2 {
     background: var(--purple);
     border-radius: 50%;
     box-shadow: 0 0 22px var(--accent);
+    opacity: calc(1 - var(--rocket-progress) * 0.75);
+    animation: padStandby 1.6s ease-in-out infinite;
+}
+
+.journey-section.launched .launch-pad i { animation: none; }
+
+@keyframes padStandby {
+    0%, 100% { box-shadow: 0 0 18px var(--accent); }
+    50% { box-shadow: 0 0 34px var(--accent), 0 0 52px rgba(100, 149, 237, 0.45); }
+}
+
+.launch-smoke {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    width: 132px;
+    height: 46px;
+    background: radial-gradient(ellipse at center, rgba(219, 234, 254, 0.5), rgba(141, 182, 255, 0.16) 55%, transparent 72%);
+    border-radius: 50%;
+    filter: blur(7px);
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5);
+    transition: opacity 500ms ease, transform 900ms ease;
+}
+
+.journey-section.launched .launch-smoke {
+    opacity: calc(0.9 - var(--rocket-progress) * 0.9);
+    transform: translateX(-50%) scale(calc(0.6 + var(--rocket-progress) * 1.5));
 }
 
 .scroll-rocket {
@@ -1479,6 +1567,13 @@ h2 {
     to { opacity: 0; transform: translateY(38px) scale(1.35); }
 }
 
+.flight-particles {
+    position: absolute;
+    inset: 0;
+    transform: translateY(calc(var(--rocket-progress) * 78px));
+    transition: transform 120ms linear;
+}
+
 .flight-particles i {
     position: absolute;
     width: 3px;
@@ -1508,6 +1603,47 @@ h2 {
     font-size: 0.5rem;
     font-weight: 800;
     letter-spacing: 0.16em;
+    opacity: calc(1 - var(--rocket-progress) * 1.6);
+    transition: opacity 300ms ease;
+}
+
+.mission-complete {
+    position: absolute;
+    z-index: 4;
+    right: 22px;
+    bottom: 42px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 9px 16px;
+    color: #071b12;
+    background: linear-gradient(120deg, #8df5c4, #34d399);
+    border-radius: 99px;
+    box-shadow: 0 14px 30px rgba(52, 211, 153, 0.32);
+    font-family: var(--title-font);
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    opacity: 0;
+    transform: translateY(14px) scale(0.86);
+    transition: opacity 420ms ease, transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mission-complete span {
+    display: grid;
+    width: 17px;
+    height: 17px;
+    place-items: center;
+    color: #34d399;
+    background: #071b12;
+    border-radius: 50%;
+    font-size: 0.6rem;
+}
+
+.journey-section.landed .mission-complete {
+    opacity: 1;
+    transform: none;
 }
 
 .journey-orbit {
@@ -1519,18 +1655,21 @@ h2 {
 .journey-orbit-one { right: -240px; width: 650px; height: 650px; }
 .journey-orbit-two { left: -170px; bottom: -170px; width: 430px; height: 430px; }
 
-/* Impact */
-.impact-section { overflow: hidden; background: var(--white); }
+/* Trail showcase (educadores) */
+.trail-showcase {
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--white) 0%, var(--mist) 62%, var(--white) 100%);
+}
 
-.impact-section::before, .impact-section::after {
+.trail-showcase::before, .trail-showcase::after {
     position: absolute;
     border: 1px solid rgba(100, 149, 237, 0.14);
     border-radius: 50%;
     content: "";
 }
 
-.impact-section::before { top: -180px; left: -190px; width: 430px; height: 430px; }
-.impact-section::after { right: -250px; bottom: -260px; width: 540px; height: 540px; }
+.trail-showcase::before { top: -180px; left: -190px; width: 430px; height: 430px; }
+.trail-showcase::after { right: -250px; bottom: -260px; width: 540px; height: 540px; }
 
 .section-heading {
     position: relative;
@@ -1551,134 +1690,225 @@ h2 {
     font-size: 1rem;
 }
 
-.impact-chart { position: relative; }
-.chart-stage { position: relative; height: 390px; margin: 0 0 25px; }
-
-.growth-area {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-}
-
-.chart-marker {
-    position: absolute;
-    z-index: 3;
-    display: flex;
-    width: 125px;
-    align-items: center;
-    flex-direction: column;
-}
-
-.marker-one { bottom: 38px; left: 1.7%; }
-.marker-two { bottom: 152px; left: calc(60% - 62px); }
-.marker-three { top: -3px; right: 0.2%; }
-
-.marker-icon {
-    display: grid;
-    width: 72px;
-    height: 72px;
-    place-items: center;
-    color: var(--white);
-    background: linear-gradient(145deg, var(--navy), var(--accent));
-    border: 4px solid var(--white);
-    border-radius: 20px;
-    box-shadow: 0 15px 30px rgba(0, 0, 128, 0.22);
-    transform: rotate(45deg);
-}
-
-.marker-icon > * { transform: rotate(-45deg); }
-
-.marker-rbt {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--title-font);
-    font-size: 0.73rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-}
-
-.marker-rbt::before { content: "["; }
-.marker-rbt::after { content: "]"; }
-.marker-robot img {
-    width: 56px;
-    height: 56px;
-    object-fit: cover;
-    object-position: center;
-    border-radius: 12px;
-    filter: drop-shadow(0 4px 7px rgba(28, 220, 255, 0.35));
-}
-
-.marker-rocket svg {
-    width: 44px;
-    height: 44px;
-    stroke: var(--white);
-    stroke-width: 3;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-
-.marker-dot {
-    width: 15px;
-    height: 15px;
-    margin-top: 18px;
-    background: var(--white);
-    border: 4px solid var(--navy);
-    border-radius: 50%;
-    box-shadow: 0 0 0 5px rgba(100, 149, 237, 0.18);
-}
-
-.chart-marker i { width: 1px; height: 32px; border-left: 2px dashed rgba(0, 0, 128, 0.34); }
-
-.chart-marker small {
-    color: var(--navy);
-    font-family: var(--title-font);
-    font-size: 0.54rem;
-    font-style: normal;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-align: center;
-}
-
-.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-
-.stat-card {
+.trail-cards {
     position: relative;
-    overflow: hidden;
-    padding: 28px;
-    background: var(--white);
-    border: 1px solid rgba(0, 0, 128, 0.1);
-    border-radius: 20px;
-    box-shadow: 0 16px 42px rgba(0, 0, 128, 0.07);
+    z-index: 2;
+    display: grid;
+    margin: 0 0 40px;
+    padding: 0;
+    gap: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    list-style: none;
 }
 
-.stat-card::before {
+.trail-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 26px 24px 22px;
+    background: var(--white);
+    border: 1px solid rgba(0, 0, 128, 0.09);
+    border-radius: var(--radius-md);
+    box-shadow: 0 16px 42px rgba(0, 0, 128, 0.07);
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease, border-color 320ms ease;
+}
+
+.trail-card::before {
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
+    left: 26px;
+    width: 46px;
     height: 4px;
+    background: linear-gradient(90deg, var(--navy));
+    border-radius: 0 0 4px 4px;
+    content: "";
+    transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Depois da entrada, o card volta a usar a própria transição de hover
+   em vez da transição longa herdada de .reveal. */
+.trail-card.reveal-done {
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease, border-color 320ms ease;
+}
+
+.trail-card:hover {
+    border-color: rgba(100, 149, 237, 0.5);
+    box-shadow: 0 26px 58px rgba(0, 0, 128, 0.14);
+    transform: translateY(-8px);
+}
+
+.trail-card:hover::before { width: calc(100% - 52px); }
+
+.trail-card-badge {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 16px;
+    place-items: center;
+    background: linear-gradient(145deg, rgba(100, 149, 237, 0.16), rgba(64, 16, 112, 0.12));
+    border: 1px solid rgba(100, 149, 237, 0.3);
+    border-radius: 18px;
+    font-size: 1.6rem;
+    line-height: 1;
+    transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.trail-card:hover .trail-card-badge { transform: rotate(-8deg) scale(1.08); }
+
+.trail-card h3 {
+    margin: 0 0 8px;
+    color: var(--navy);
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.trail-card p {
+    margin: 0 0 18px;
+    color: #596082;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+/* Traço decorativo que se desenha quando o card entra na tela. */
+.trail-card-accent {
+    overflow: hidden;
+    height: 4px;
+    margin-top: auto;
+    background: rgba(0, 0, 128, 0.07);
+    border-radius: 99px;
+}
+
+.trail-card-accent i {
+    display: block;
+    width: 0;
+    height: 100%;
     background: linear-gradient(90deg, var(--navy), var(--accent));
+    border-radius: inherit;
+    transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1) 260ms;
+}
+
+.trail-card.visible .trail-card-accent i { width: 100%; }
+
+.trail-card small {
+    margin-top: 9px;
+    color: var(--accent);
+    font-family: var(--title-font);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* Painel do professor */
+.teacher-panel {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    overflow: hidden;
+    align-items: center;
+    padding: 42px 46px;
+    gap: 40px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr) 170px;
+    color: var(--white);
+    background: linear-gradient(112deg, var(--navy) 0%, #1b1060 55%, var(--purple) 100%);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 30px 70px rgba(0, 0, 128, 0.22);
+}
+
+.teacher-panel::before {
+    position: absolute;
+    inset: 0;
+    opacity: 0.14;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1.5px);
+    background-size: 42px 42px;
     content: "";
 }
 
-.stat-number {
-    display: block;
-    margin-bottom: 6px;
+.teacher-panel-copy { position: relative; z-index: 2; }
+.teacher-panel-copy .eyebrow { color: #8db6ff; }
+
+.teacher-panel-copy h3 {
+    margin: 0 0 18px;
+    color: var(--white);
+    font-size: clamp(1.25rem, 2.2vw, 1.7rem);
+    line-height: 1.22;
+}
+
+.teacher-checklist {
+    display: grid;
+    margin: 0 0 26px;
+    padding: 0;
+    gap: 10px;
+    list-style: none;
+}
+
+.teacher-checklist li {
+    position: relative;
+    padding-left: 32px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.teacher-checklist li::before {
+    position: absolute;
+    top: 1px;
+    left: 0;
+    display: grid;
+    width: 21px;
+    height: 21px;
+    place-items: center;
     color: var(--navy);
-    font-family: var(--title-font);
-    font-size: clamp(2.7rem, 5vw, 4.6rem);
+    background: #8db6ff;
+    border-radius: 7px;
+    content: "✓";
+    font-size: 0.7rem;
     font-weight: 900;
-    letter-spacing: -0.07em;
+}
+
+.teacher-panel-stats {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: 14px;
+}
+
+.teacher-stat {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(141, 182, 255, 0.22);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+}
+
+.teacher-stat strong {
+    display: block;
+    color: #8db6ff;
+    font-family: var(--title-font);
+    font-size: clamp(1.6rem, 3vw, 2.3rem);
+    font-weight: 900;
+    letter-spacing: -0.05em;
     line-height: 1;
 }
 
-.stat-card:nth-child(2) .stat-number { color: var(--purple); }
-.stat-card:nth-child(3) .stat-number { color: var(--accent); }
-.stat-card h3 { margin-bottom: 10px; color: var(--ink); font-size: 1rem; }
-.stat-card p { margin: 0; color: #596082; font-size: 0.86rem; line-height: 1.55; }
+.teacher-stat small {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+}
+
+.teacher-panel-robot {
+    position: relative;
+    z-index: 2;
+    width: 170px;
+    height: auto;
+    filter: drop-shadow(0 20px 26px rgba(5, 5, 35, 0.45));
+}
+
+@keyframes teacherRobotFloat {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-12px) rotate(2deg); }
+}
 
 /* Final CTA */
 .final-cta {
@@ -1943,10 +2173,9 @@ h2 {
     .platform-grid { grid-template-columns: 1fr; }
     .simulator-column { order: 2; }
     .platform-copy { max-width: 680px; }
-    .chart-stage { height: 340px; }
-    .marker-two { bottom: 125px; }
-    .stat-grid { gap: 14px; }
-    .stat-card { padding: 24px 20px; }
+    .trail-cards { grid-template-columns: repeat(2, 1fr); }
+    .teacher-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); padding: 36px 34px; gap: 30px; }
+    .teacher-panel-robot { display: none; }
     .final-cta-inner { grid-template-columns: 1fr; gap: 35px; }
     .final-cta-actions { align-items: flex-start; }
     .journey-layout { grid-template-columns: minmax(260px, 0.95fr) minmax(330px, 1.05fr); gap: 32px; }
@@ -1993,21 +2222,11 @@ h2 {
     .journey-copy { max-width: 620px; }
     .flight-stage { width: 100%; height: 620px; min-height: 0; }
     .scroll-rocket { width: 130px; }
-    .chart-stage { height: 285px; margin-bottom: 15px; }
-    .marker-icon { width: 52px; height: 52px; border-radius: 14px; }
-    .marker-robot img { width: 40px; height: 40px; border-radius: 9px; }
-    .marker-rocket svg { width: 34px; height: 34px; }
-    .chart-marker { width: 90px; }
-    .marker-one { left: 0; bottom: 20px; }
-    .marker-two { left: calc(60% - 45px); bottom: 93px; }
-    .marker-three { right: -2%; top: 4px; }
-    .marker-dot { width: 12px; height: 12px; margin-top: 11px; border-width: 3px; }
-    .chart-marker i { height: 22px; }
-    .chart-marker small { font-size: 0.42rem; }
-    .stat-grid { grid-template-columns: 1fr; }
-    .stat-card { display: grid; align-items: center; grid-template-columns: 105px 1fr; column-gap: 18px; }
-    .stat-number { grid-row: span 2; margin: 0; }
-    .stat-card h3 { margin: 0 0 6px; }
+    .trail-cards { grid-template-columns: 1fr; gap: 14px; }
+    .trail-card { padding: 22px 20px 20px; }
+    .teacher-panel { grid-template-columns: 1fr; padding: 30px 24px; gap: 26px; text-align: left; }
+    .teacher-panel-stats { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .teacher-stat { padding: 12px 14px; }
     .footer-links { grid-template-columns: 1fr; }
     .footer-links > div { padding: 23px; }
     .footer-bottom { padding: 28px 0; align-items: flex-start; flex-direction: column; }
@@ -2023,11 +2242,7 @@ h2 {
     .floating-card-bottom { bottom: 1%; }
     .wire-icon-robot { top: 31%; }
     .wire-icon-rocket { bottom: 31%; }
-    .chart-stage { height: 245px; }
-    .marker-one { bottom: 9px; }
-    .marker-two { bottom: 73px; }
-    .stat-card { display: block; }
-    .stat-number { margin-bottom: 8px; }
+    .teacher-panel-stats { grid-template-columns: 1fr; }
     .brand-footer .brand-image { width: 190px; }
     .journey-step { padding: 14px; grid-template-columns: 42px 1fr; }
     .flight-stage { height: 520px; border-radius: 28px; }

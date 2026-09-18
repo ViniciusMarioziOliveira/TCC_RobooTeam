@@ -7,14 +7,25 @@
     "perfil": "ALUNO",
     "turma": "Turma de Marina Alves",
     "etapas_concluidas": [
-      1
+      1,
+      2,
+      3
     ],
     "pontuacoes": {
-      "1": 4
+      "1": 4,
+      "2": 4,
+      "3": 4
     },
-    "progresso_atualizado_em": "2026-09-04T16:32:23.677910+00:00",
+    "progresso_atualizado_em": "2026-09-18T16:54:31.897185+00:00",
     "professor_id": 2001,
-    "sala_entrada_em": "2026-09-04T16:54:40.800967+00:00"
+    "sala_entrada_em": "2026-09-18T16:56:09.499082+00:00",
+    "pontuacoes_jogo": {
+      "1": 100
+    },
+    "fases_jogo_concluidas": [
+      1
+    ],
+    "jogo_atualizado_em": "2026-09-18T16:55:13.342994+00:00"
   },
   {
     "id": 1002,
@@ -23,9 +34,15 @@
     "senha": "scrypt:32768:8:1$SpVZYs9ObrJv7nkz$d4d0fb8dd3b58371f374c5bad35838f1f4c54793000ff8716fa3bea3bed7cdc631df8ffbf0a0f047f79cbd6035819bc45f11779c68fd4f35a9a3426054890622",
     "perfil": "ALUNO",
     "turma": "Turma IA 2026",
-    "etapas_concluidas": [],
-    "pontuacoes": {},
-    "progresso_atualizado_em": null
+    "etapas_concluidas": [
+      1,
+      2
+    ],
+    "pontuacoes": {
+      "1": 4,
+      "2": 4
+    },
+    "progresso_atualizado_em": "2026-09-17T18:26:02.311316+00:00"
   },
   {
     "id": 2001,
@@ -34,8 +51,8 @@
     "senha": "scrypt:32768:8:1$aFdm6FHUIdymAAHI$9b6d68343cfad367640178b1d395b6a252fa7ff576a06554d54c1539cadafaea3bea801450abea9de79b5ce31c0aebe5a31b7dfb5ffc71bc69562984a627edb6",
     "perfil": "PROFESSOR",
     "disciplina": "Inteligência Artificial e Robótica",
-    "codigo_sala": "RBT-8212",
-    "codigo_validade": "2026-09-05T16:45:42.539052+00:00",
+    "codigo_sala": "RBT-27A9",
+    "codigo_validade": "2026-09-19T16:55:51.831955+00:00",
     "turma_nome": "Turma de Marina Alves"
   },
   {

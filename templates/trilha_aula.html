@@ -1,58 +1,292 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ lesson.eyebrow }} | Trilha da IA</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='trilha_aula.css') }}">
-  </head>
-  <body class="lesson-page">
-    <header class="topbar">
-      <a class="brand" href="{{ url_for('pagina_aluno') }}">RobooTeam · Trilha da IA</a>
-      <a class="back-link" href="{{ url_for('pagina_aluno') }}#trilha">Voltar para o painel</a>
-    </header>
 
-    <main class="lesson-shell" data-lesson-id="{{ lesson_id }}" data-quiz="{{ lesson.quiz|tojson|forceescape }}" data-complete-url="{{ url_for('concluir_etapa_trilha', lesson_id=lesson_id) }}" data-return-url="{{ url_for('pagina_aluno') }}#trilha">
-      <a class="lesson-back" href="{{ url_for('pagina_aluno') }}#trilha">Voltar para a linha do tempo</a>
-      <header class="lesson-header">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ lesson.eyebrow }} | Trilha da IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='trilha_aula.css', v='4') }}">
+</head>
+
+<body class="lesson-page">
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('pagina_aluno') }}">
+      <img class="brand-mascot" src="{{ url_for('static', filename='img/5.png') }}" alt="" aria-hidden="true">
+      RobooTeam · Trilha da IA
+    </a>
+    <span class="topbar-step">Etapa {{ posicao }} de {{ total_etapas }}</span>
+    <a class="back-link" href="{{ url_for('pagina_aluno') }}#trilha">Voltar para o painel</a>
+  </header>
+
+  <main class="lesson-shell"
+    data-lesson-id="{{ lesson_id }}"
+    data-quiz="{{ lesson.quiz|tojson|forceescape }}"
+    data-minigame="{{ lesson.minigame|tojson|forceescape }}"
+    data-complete-url="{{ url_for('concluir_etapa_trilha', lesson_id=lesson_id) }}"
+    data-return-url="{{ url_for('pagina_aluno') }}#trilha"
+    data-login-url="{{ url_for('pagina_login') }}"
+    data-ja-concluida="{{ 'true' if ja_concluida else 'false' }}"
+    data-mascot-base="{{ url_for('static', filename='img/') }}">
+
+    <a class="lesson-back" href="{{ url_for('pagina_aluno') }}#trilha">&larr; Voltar para a linha do tempo</a>
+
+    <!-- CABEÇALHO DA AULA COM MASCOTE -->
+    <header class="lesson-header">
+      <div class="lesson-header-text">
         <p class="eyebrow">{{ lesson.eyebrow }}</p>
         <h1>{{ lesson.title }}</h1>
         <p class="lesson-intro">{{ lesson.intro }}</p>
-      </header>
+        <div class="lesson-steps" aria-label="Etapas desta missão">
+          <span class="lesson-step-chip" data-step-chip="leitura">1 · Ler</span>
+          <span class="lesson-step-chip" data-step-chip="quiz">2 · Quiz</span>
+          {% if lesson.minigame.type != 'nenhum' %}
+          <span class="lesson-step-chip" data-step-chip="jogo">3 · Jogar</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="lesson-header-mascot">
+        <div class="mascot-glow" aria-hidden="true"></div>
+        <img src="{{ url_for('static', filename='img/1.png') }}" alt="Mascote RobooTeam dando as boas-vindas à etapa">
+      </div>
+    </header>
 
-      <section class="reading-area" aria-labelledby="reading-title">
-        <div class="reading-label" id="reading-title">Leitura especializada</div>
-        {% for section in lesson.sections %}
-          <article class="reading-block">
-            <span class="reading-number">0{{ loop.index }}</span>
-            <div>
-              <h2>{{ section.title }}</h2>
-              <p>{{ section.text }}</p>
-            </div>
-          </article>
-        {% endfor %}
-      </section>
+    <!-- LEITURA / CONTEÚDO TEÓRICO -->
+    <section class="reading-area" id="secao-leitura" aria-labelledby="reading-title">
+      <div class="reading-label" id="reading-title">
+        <span class="reading-label-badge">1</span> Hora de ler e descobrir
+      </div>
+      {% for section in lesson.sections %}
+      <article class="reading-block">
+        <span class="reading-number">{{ '%02d'|format(loop.index) }}</span>
+        <div>
+          <h2>{{ section.title }}</h2>
+          <p>{{ section.text }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
 
-      <section class="quiz-panel" aria-labelledby="quiz-title">
-        <p class="eyebrow">Confira seu entendimento</p>
-        <div class="quiz-progress" id="quiz-progress">0 de {{ lesson.quiz|length }} perguntas corretas</div>
-        {% for question in lesson.quiz %}
-          <article class="quiz-question" data-question="{{ loop.index0 }}">
-            <h2 id="quiz-title-{{ loop.index }}">{{ loop.index }}. {{ question.question }}</h2>
-            <div class="quiz-options" aria-labelledby="quiz-title-{{ loop.index }}">
-              {% for option in question.options %}
-                <button class="quiz-option" data-option="{{ loop.index0 }}">{{ option }}</button>
-              {% endfor %}
-            </div>
-            <p class="quiz-feedback" role="status"></p>
-          </article>
-        {% endfor %}
-        <button class="finish-button" id="finish-button" disabled>Concluir etapa</button>
-      </section>
-    </main>
-    <script src="{{ url_for('static', filename='trilha_aula.js', v='2') }}"></script>
-  </body>
+    <!-- DESAFIO 1: QUIZ -->
+    <section class="quiz-panel" id="secao-quiz" aria-labelledby="quiz-heading">
+      <p class="eyebrow">Desafio 1 · Quiz de fixação</p>
+      <h2 id="quiz-heading" class="section-subheading">Vamos testar o que você aprendeu?</h2>
+      <div class="quiz-progress" id="quiz-progress">0 de {{ lesson.quiz|length }} questões corretas</div>
+
+      {% for question in lesson.quiz %}
+      <article class="quiz-question" data-question="{{ loop.index0 }}">
+        <h3 id="quiz-title-{{ loop.index }}" class="question-text">{{ loop.index }}. {{ question.question }}</h3>
+        <div class="quiz-options" aria-labelledby="quiz-title-{{ loop.index }}">
+          {% for option in question.options %}
+          <button class="quiz-option" type="button" data-option="{{ loop.index0 }}">{{ option }}</button>
+          {% endfor %}
+        </div>
+        <div class="quiz-feedback-box" role="status">
+          <p class="quiz-feedback-status"></p>
+          <p class="quiz-justification"></p>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+
+    <!-- DESAFIO 2: MINIJOGO -->
+    {% if lesson.minigame.type == 'snake' %}
+    <section class="minigame-panel snake-panel" id="secao-jogo" aria-labelledby="minigame-heading">
+      <div class="minigame-header">
+        <p class="eyebrow">Desafio 2 · Minijogo da cobrinha</p>
+        <h2 id="minigame-heading" class="section-subheading">{{ lesson.minigame.title }}</h2>
+        <p class="minigame-instruction">{{ lesson.minigame.instruction }}</p>
+      </div>
+
+      <div class="game-hud snake-hud">
+        <div class="hud-item">
+          <span class="hud-label">Bolinhas</span>
+          <span class="hud-value" id="snake-score-display">0 / {{ lesson.minigame.target_score or 20 }}</span>
+        </div>
+        <div class="hud-item status-box">
+          <span id="snake-status-text">Use as setas ou WASD e colete as bolinhas!</span>
+        </div>
+        <button class="game-button reset-btn" id="snake-restart-btn" type="button">Reiniciar jogo</button>
+      </div>
+
+      <div class="game-canvas-container">
+        <canvas id="snake-canvas" width="600" height="400"></canvas>
+      </div>
+
+      <div class="touch-controls" aria-label="Controles virtuais direcionais">
+        <div class="dpad-row">
+          <button class="dpad-btn" id="btn-up" type="button" aria-label="Cima">&uarr;</button>
+        </div>
+        <div class="dpad-row dpad-middle">
+          <button class="dpad-btn" id="btn-left" type="button" aria-label="Esquerda">&larr;</button>
+          <button class="dpad-btn" id="btn-down" type="button" aria-label="Baixo">&darr;</button>
+          <button class="dpad-btn" id="btn-right" type="button" aria-label="Direita">&rarr;</button>
+        </div>
+      </div>
+
+      <div class="minigame-feedback" id="minigame-feedback" role="status"></div>
+    </section>
+
+    {% elif lesson.minigame.type == 'maze' %}
+    <section class="minigame-panel maze-panel" id="secao-jogo" aria-labelledby="minigame-heading">
+      <div class="minigame-header">
+        <p class="eyebrow">Desafio 2 · Labirinto dos robôs</p>
+        <h2 id="minigame-heading" class="section-subheading">{{ lesson.minigame.title }}</h2>
+        <p class="minigame-instruction">{{ lesson.minigame.instruction }}</p>
+      </div>
+
+      <div class="game-hud maze-hud">
+        <div class="hud-item">
+          <span class="hud-label">Fase</span>
+          <span class="hud-value" id="maze-level-display">1 / {{ lesson.minigame.total_levels or 3 }}</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Circuitos</span>
+          <span class="hud-value" id="maze-chips-display">0 / 1</span>
+        </div>
+        <div class="hud-item status-box">
+          <span id="maze-status-text">Guie o robô com as setas ou WASD até a saída verde!</span>
+        </div>
+        <button class="game-button reset-btn" id="maze-restart-btn" type="button">Reiniciar fase</button>
+      </div>
+
+      <div class="game-canvas-container">
+        <canvas id="maze-canvas" width="560" height="380"></canvas>
+      </div>
+
+      <div class="touch-controls" aria-label="Controles virtuais direcionais">
+        <div class="dpad-row">
+          <button class="dpad-btn" id="maze-btn-up" type="button" aria-label="Cima">&uarr;</button>
+        </div>
+        <div class="dpad-row dpad-middle">
+          <button class="dpad-btn" id="maze-btn-left" type="button" aria-label="Esquerda">&larr;</button>
+          <button class="dpad-btn" id="maze-btn-down" type="button" aria-label="Baixo">&darr;</button>
+          <button class="dpad-btn" id="maze-btn-right" type="button" aria-label="Direita">&rarr;</button>
+        </div>
+      </div>
+
+      <div class="minigame-feedback" id="minigame-feedback" role="status"></div>
+    </section>
+
+    {% elif lesson.minigame.type == 'memory' %}
+    <section class="minigame-panel memory-panel" id="secao-jogo" aria-labelledby="minigame-heading">
+      <div class="minigame-header">
+        <p class="eyebrow">Desafio 2 · Jogo da memória</p>
+        <h2 id="minigame-heading" class="section-subheading">{{ lesson.minigame.title }}</h2>
+        <p class="minigame-instruction">{{ lesson.minigame.instruction }}</p>
+      </div>
+
+      <div class="game-hud">
+        <div class="hud-item">
+          <span class="hud-label">Pontos</span>
+          <span class="hud-value" id="memory-score">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Pares</span>
+          <span class="hud-value" id="memory-pairs">0 / {{ lesson.minigame.pairs|length }}</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Meta</span>
+          <span class="hud-value">{{ lesson.minigame.target_points }} pts</span>
+        </div>
+        <button class="game-button reset-btn" id="reset-memory-btn" type="button">Reiniciar jogo</button>
+      </div>
+
+      <div class="memory-grid" id="memory-grid" aria-label="Cartas do jogo da memória"></div>
+      <div class="minigame-feedback" id="minigame-feedback" role="status"></div>
+    </section>
+
+    {% elif lesson.minigame.type == 'word_search' %}
+    <section class="minigame-panel wordsearch-panel" id="secao-jogo" aria-labelledby="minigame-heading">
+      <div class="minigame-header">
+        <p class="eyebrow">Desafio 2 · Caça-palavras da IA</p>
+        <h2 id="minigame-heading" class="section-subheading">{{ lesson.minigame.title }}</h2>
+        <p class="minigame-instruction">{{ lesson.minigame.instruction }}</p>
+      </div>
+
+      <div class="game-hud">
+        <div class="hud-item">
+          <span class="hud-label">Pontos</span>
+          <span class="hud-value" id="ws-score">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Faltam</span>
+          <span class="hud-value" id="ws-remaining">0</span>
+        </div>
+        <button class="game-button reset-btn" id="reset-ws-btn" type="button">Trocar palavras</button>
+      </div>
+
+      <div class="wordsearch-body">
+        <span class="wordsearch-theme-pill" id="ws-theme-pill">Tema</span>
+        <div class="wordsearch-words-list" id="ws-words-list"></div>
+        <div class="wordsearch-grid-wrapper">
+          <div class="wordsearch-grid" id="ws-grid" aria-label="Grade de letras do caça-palavras"></div>
+        </div>
+      </div>
+
+      <div class="minigame-feedback" id="minigame-feedback" role="status"></div>
+    </section>
+
+    {% elif lesson.minigame.type == 'drag_drop' %}
+    <section class="minigame-panel dragdrop-panel" id="secao-jogo" aria-labelledby="minigame-heading">
+      <div class="minigame-header">
+        <p class="eyebrow">Desafio 2 · Ligue os blocos</p>
+        <h2 id="minigame-heading" class="section-subheading">{{ lesson.minigame.title }}</h2>
+        <p class="minigame-instruction">{{ lesson.minigame.instruction }}</p>
+        <div class="minigame-hint-box">
+          <img src="{{ url_for('static', filename='img/2.png') }}" alt="" aria-hidden="true">
+          <span><strong>Dica do robô:</strong> toque em um bloco azul e depois no espaço vazio certo para encaixar.
+            Você também pode arrastar, se preferir!</span>
+        </div>
+      </div>
+
+      <div class="minigame-columns">
+        <div class="minigame-column column-items">
+          <h4 class="column-title">Blocos para ligar</h4>
+          <div class="items-pool" id="items-pool"></div>
+        </div>
+        <div class="minigame-column column-targets">
+          <h4 class="column-title">Explicações</h4>
+          <div class="targets-pool" id="targets-pool"></div>
+        </div>
+      </div>
+
+      <div class="minigame-actions">
+        <button class="game-button validate-btn" id="validate-minigame-btn" type="button">Validar respostas</button>
+        <button class="game-button reset-btn" id="reset-minigame-btn" type="button">Reiniciar atividade</button>
+      </div>
+
+      <div class="minigame-feedback" id="minigame-feedback" role="status"></div>
+    </section>
+    {% endif %}
+
+    <!-- CONCLUSÃO -->
+    <section class="conclusion-panel" id="secao-conclusao">
+      <img class="conclusion-mascot" src="{{ url_for('static', filename='img/4.png') }}" alt="" aria-hidden="true">
+      <div class="conclusion-info">
+        <h3>Conclusão da etapa</h3>
+        <p id="completion-checklist">Acerte todas as questões do quiz{% if lesson.minigame.type != 'nenhum' %} e vença o
+          minijogo{% endif %} para liberar a conclusão.</p>
+      </div>
+      <button class="finish-button" id="finish-button" type="button" disabled>Concluir etapa</button>
+    </section>
+  </main>
+
+  <!-- MASCOTE COMPANHEIRO -->
+  <div class="mascot-buddy" id="mascot-buddy" aria-live="polite">
+    <div class="mascot-bubble" id="mascot-bubble">Oi! Eu sou o Robby. Leia com calma e me chame se precisar!</div>
+    <button class="mascot-avatar" id="mascot-avatar" type="button" aria-label="Pedir uma dica ao mascote">
+      <img id="mascot-image" src="{{ url_for('static', filename='img/1.png') }}" alt="Mascote RobooTeam">
+    </button>
+  </div>
+
+  <canvas class="confetti-layer" id="confetti-layer" aria-hidden="true"></canvas>
+
+  <script src="{{ url_for('static', filename='trilha_aula.js', v='4') }}"></script>
+</body>
+
 </html>
