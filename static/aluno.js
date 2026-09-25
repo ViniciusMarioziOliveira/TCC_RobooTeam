@@ -205,4 +205,30 @@ document.querySelectorAll(".sidebar .nav-item[href^='#']").forEach((link) => {
   });
 });
 
+function setupModal(modal, openButton) {
+  if (!modal || !openButton) return;
+
+  const closeModal = () => {
+    modal.hidden = true;
+    document.body.classList.remove("modal-open");
+  };
+
+  const openModal = () => {
+    modal.hidden = false;
+    document.body.classList.add("modal-open");
+    modal.querySelector(".app-modal-close")?.focus();
+  };
+
+  openButton.addEventListener("click", openModal);
+  modal.querySelectorAll("[data-modal-close]").forEach((element) => {
+    element.addEventListener("click", closeModal);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) closeModal();
+  });
+}
+
+setupModal(document.querySelector("#how-to-modal"), document.querySelector("#open-how-to-modal"));
+setupModal(document.querySelector("#help-modal"), document.querySelector("#open-help-modal"));
+
 loadStudentJourney();

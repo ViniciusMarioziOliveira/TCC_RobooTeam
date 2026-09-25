@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Robo Explorer — Dashboard</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -130,9 +131,11 @@
   }
   .nav-item{
     display:flex; align-items:center; gap:11px;
+    width:100%;
     padding:10px 12px;
     border-radius:10px;
-    font-size:13.5px; font-weight:500;
+    background:none;
+    font-size:13.5px; font-weight:500; text-align:left;
     color:#C4CBEC;
     transition:background 0.18s ease, color 0.18s ease, transform 0.12s ease;
     margin-bottom:2px;
@@ -469,6 +472,103 @@
   .trail-badge.current{ background:#E8EEFE; color:var(--primary); }
   .trail-badge.locked{ background:#F1F3F9; color:var(--text-soft); }
 
+  /* ===================== MODALS (Como aprender / Ajuda) ===================== */
+  body.modal-open{ overflow:hidden; }
+  .app-modal{
+    position:fixed; inset:0; z-index:80;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .app-modal[hidden]{ display:none; }
+  .app-modal-backdrop{
+    position:absolute; inset:0;
+    background:rgba(14,26,60,0.55);
+    backdrop-filter:blur(2px);
+  }
+  .app-modal-panel{
+    position:relative;
+    background:var(--card);
+    width:100%; max-width:560px;
+    max-height:min(640px, 86vh);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-lg);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+    animation:modal-pop 0.18s ease;
+  }
+  @keyframes modal-pop{
+    from{ opacity:0; transform:translateY(8px) scale(0.98); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  .app-modal-head{
+    display:flex; align-items:flex-start; gap:14px;
+    padding:22px 24px 18px;
+    border-bottom:1px solid var(--border);
+  }
+  .app-modal-head-ico{
+    width:42px; height:42px; border-radius:12px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .app-modal-head-ico.how-to{ background:#E8EEFE; }
+  .app-modal-head-ico.help{ background:#F1EBFE; }
+  .app-modal-head h2{ font-size:17px; font-weight:700; }
+  .app-modal-head p{ font-size:12.5px; color:var(--text-muted); margin-top:3px; }
+  .app-modal-head > div:nth-child(2){ flex:1; min-width:0; }
+  .app-modal-close{
+    background:#F3F6FC;
+    border-radius:9px;
+    width:30px; height:30px;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-muted);
+    flex-shrink:0;
+    transition:background 0.15s ease, color 0.15s ease;
+  }
+  .app-modal-close:hover{ background:#E7EAF3; color:var(--text-dark); }
+  .app-modal-body{
+    padding:20px 24px 26px;
+    overflow-y:auto;
+  }
+
+  .how-to-steps{ list-style:none; display:flex; flex-direction:column; gap:16px; }
+  .how-to-steps li{ display:flex; gap:14px; }
+  .how-to-num{
+    width:26px; height:26px; border-radius:50%;
+    background:linear-gradient(135deg,var(--cyan),var(--primary));
+    color:#fff; font-family:'Poppins',sans-serif; font-weight:700; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; margin-top:1px;
+  }
+  .how-to-steps h3{ font-size:14px; font-weight:600; }
+  .how-to-steps p{ font-size:12.5px; color:var(--text-muted); margin-top:3px; line-height:1.55; }
+
+  .faq-list{ display:flex; flex-direction:column; gap:8px; }
+  .faq-item{
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+  }
+  .faq-item summary{
+    cursor:pointer;
+    font-size:13.5px; font-weight:600;
+    list-style:none;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px;
+  }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::after{
+    content:"+";
+    font-size:16px; font-weight:600; color:var(--text-soft);
+    flex-shrink:0;
+    transition:transform 0.15s ease;
+  }
+  .faq-item[open] summary::after{ content:"−"; }
+  .faq-item p{ font-size:12.5px; color:var(--text-muted); margin-top:8px; line-height:1.55; }
+  .faq-contact{
+    margin-top:16px; padding-top:14px;
+    border-top:1px dashed var(--border);
+    font-size:12.5px; color:var(--text-muted);
+  }
+
   /* responsive */
   @media (max-width:1180px){
     .content-grid{ grid-template-columns:1fr; }
@@ -564,8 +664,8 @@
       </div>
       <div class="nav-group">
         <div class="nav-label">Ajuda</div>
-        <a class="nav-item" href="#ajuda"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Z"/><path d="M19 17.5H6a2 2 0 0 0-2 2"/></svg>Como aprender</a>
-        <a class="nav-item" href="#ajuda"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.9.4-1.4 1-1.4 2"/><circle cx="12" cy="16.5" r="0.2" fill="currentColor"/></svg>Ajuda</a>
+        <button type="button" class="nav-item" id="open-how-to-modal"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Z"/><path d="M19 17.5H6a2 2 0 0 0-2 2"/></svg>Como aprender</button>
+        <button type="button" class="nav-item" id="open-help-modal"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.9.4-1.4 1-1.4 2"/><circle cx="12" cy="16.5" r="0.2" fill="currentColor"/></svg>Ajuda</button>
       </div>
     </nav>
 
@@ -655,7 +755,7 @@
         <div class="lab-scene ai-character"><img src="{{ url_for('static', filename='img/3.png') }}" alt="Mascote RobooTeam comemorando a missão atual"></div>
       </div>
 
-      <div class="tip-card" id="ajuda">
+      <div class="tip-card" id="dica-robo">
         <div class="tip-ico">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F6B93B" stroke-width="2"><path d="M9 18h6M10 21h4M7 9a5 5 0 1 1 8.9 3.1c-.7.8-1.4 1.7-1.6 2.9H9.7c-.2-1.2-.9-2.1-1.6-2.9A5 5 0 0 1 7 9Z"/></svg>
         </div>
@@ -690,6 +790,108 @@
     </section>
 
   </main>
+</div>
+
+<!-- ===================== MODAL: COMO APRENDER ===================== -->
+<div class="app-modal" id="how-to-modal" hidden>
+  <div class="app-modal-backdrop" data-modal-close></div>
+  <div class="app-modal-panel" role="dialog" aria-modal="true" aria-labelledby="how-to-modal-title">
+    <header class="app-modal-head">
+      <div class="app-modal-head-ico how-to">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2F5DE0" stroke-width="2"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Z"/><path d="M19 17.5H6a2 2 0 0 0-2 2"/></svg>
+      </div>
+      <div>
+        <h2 id="how-to-modal-title">Como aprender na RobooTeam</h2>
+        <p>O passo a passo para aproveitar bem a sua trilha</p>
+      </div>
+      <button type="button" class="app-modal-close" data-modal-close aria-label="Fechar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="app-modal-body">
+      <ol class="how-to-steps">
+        <li>
+          <span class="how-to-num">1</span>
+          <div>
+            <h3>Entre na sua sala</h3>
+            <p>Peça o código de 24 horas para o seu professor e digite-o em "Entrar na sala" para liberar as atividades da sua turma.</p>
+          </div>
+        </li>
+        <li>
+          <span class="how-to-num">2</span>
+          <div>
+            <h3>Siga a trilha em ordem</h3>
+            <p>Cada etapa tem uma leitura, um quiz e um minijogo. Complete os três para marcar a etapa como concluída.</p>
+          </div>
+        </li>
+        <li>
+          <span class="how-to-num">3</span>
+          <div>
+            <h3>Ganhe pontos e suba de nível</h3>
+            <p>Toda etapa concluída soma pontos e progresso. Acompanhe sua evolução na barra lateral e em "Meu Progresso".</p>
+          </div>
+        </li>
+        <li>
+          <span class="how-to-num">4</span>
+          <div>
+            <h3>Revise quando quiser</h3>
+            <p>Etapas já concluídas continuam abertas — volte a elas a qualquer momento para relembrar o conteúdo.</p>
+          </div>
+        </li>
+        <li>
+          <span class="how-to-num">5</span>
+          <div>
+            <h3>Pratique no Jogo de Blocos</h3>
+            <p>Use o editor visual de blocos para treinar lógica de programação enquanto avança na trilha.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: AJUDA ===================== -->
+<div class="app-modal" id="help-modal" hidden>
+  <div class="app-modal-backdrop" data-modal-close></div>
+  <div class="app-modal-panel" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+    <header class="app-modal-head">
+      <div class="app-modal-head-ico help">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B6FEA" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.9.4-1.4 1-1.4 2"/><circle cx="12" cy="16.5" r="0.2" fill="currentColor"/></svg>
+      </div>
+      <div>
+        <h2 id="help-modal-title">Central de ajuda</h2>
+        <p>Respostas rápidas para as dúvidas mais comuns</p>
+      </div>
+      <button type="button" class="app-modal-close" data-modal-close aria-label="Fechar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="app-modal-body">
+      <div class="faq-list">
+        <details class="faq-item" open>
+          <summary>Não sei o código da minha sala</summary>
+          <p>Peça o código para o seu professor — ele pode gerar um novo a qualquer momento pelo painel dele. O código vale por 24 horas.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Uma etapa aparece bloqueada</summary>
+          <p>As etapas são liberadas em ordem. Complete a leitura, o quiz e o minijogo da etapa atual para desbloquear a próxima.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Errei o quiz, e agora?</summary>
+          <p>Sem problema! Você pode tentar novamente quantas vezes precisar, sem perder os pontos que já conquistou.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Meus pontos ou nível não atualizaram</summary>
+          <p>Seu progresso é salvo automaticamente ao concluir cada etapa. Atualize a página para ver os números mais recentes.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Como funciona o Jogo de Blocos?</summary>
+          <p>É um editor visual onde você monta comandos em blocos para programar o robô. Acesse pelo menu "Jogo de blocos" a qualquer momento.</p>
+        </details>
+      </div>
+      <p class="faq-contact">Ainda com dúvidas? Fale com o seu professor — ele acompanha o progresso da sua turma e pode te ajudar.</p>
+    </div>
+  </div>
 </div>
 
 </body>

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robo Explorer - Painel do Professor</title>
+    <title>RobooTeam - Painel do Professor</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -45,24 +46,20 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94A3B8;
         }
-        .robot-brand-badge {
-            align-items: center;
-            background: linear-gradient(145deg, #eef1ff, #dffbff);
+        .professor-logo {
             border-radius: 0.75rem;
-            box-shadow: 0 8px 20px rgba(0, 180, 216, 0.18);
-            display: flex;
-            flex: 0 0 auto;
-            height: 48px;
-            justify-content: center;
+            display: block;
             overflow: hidden;
-            width: 48px;
+            width: 176px;
         }
-        .robot-brand-badge img {
-            filter: drop-shadow(0 4px 5px rgba(4, 18, 60, 0.3));
-            height: 62px;
-            object-fit: contain;
-            transform: translateY(8px);
-            width: 50px;
+        .professor-logo img {
+            aspect-ratio: 3.05;
+            display: block;
+            filter: drop-shadow(0 5px 10px rgba(0, 180, 216, 0.35));
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            width: 100%;
         }
         .professor-header-robot {
             filter: drop-shadow(0 8px 8px rgba(20, 40, 120, 0.18));
@@ -231,17 +228,9 @@
             
             <!-- Logo & Badge -->
             <div class="p-6 border-b border-slate-800/80 flex flex-col gap-2">
-                <div class="flex items-center gap-3">
-                    <div class="robot-brand-badge">
-                        <img src="{{ url_for('static', filename='img/3.png') }}" alt="" aria-hidden="true">
-                    </div>
-                    <div>
-                        <h1 class="font-bold text-lg tracking-wider text-white flex items-center gap-1.5">
-                            ROBO<span class="text-brand-cyan">EXPLORER</span>
-                        </h1>
-                        <p class="text-[10px] font-semibold tracking-widest text-brand-lightCyan/70 uppercase">Plataforma Educacional</p>
-                    </div>
-                </div>
+                <a href="#dashboard" class="professor-logo" aria-label="RobooTeam — painel do professor">
+                    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="RobooTeam">
+                </a>
                 <div class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-brand-dark rounded-full text-xs text-brand-lightCyan border border-slate-700/50 w-max">
                     <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
                     <span class="font-medium tracking-wide">PAINEL DO PROFESSOR</span>
@@ -314,15 +303,6 @@
                 </div>
 
                 <!-- Categoria: Configurações -->
-                <div>
-                    <span class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase">Ajustes</span>
-                    <div class="mt-2 space-y-1">
-                        <a href="#dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all">
-                            <i data-lucide="settings" class="w-5 h-5"></i>
-                            <span>Configurações</span>
-                        </a>
-                    </div>
-                </div>
             </nav>
 
             <!-- Botão Sair -->
