@@ -35,10 +35,16 @@
 
   const LIMITES = { secoes: 8, perguntas: 10, opcoes: 5, pares: 8, palavras: 8, variacoes: 5 };
 
+  // Imagens: o servidor aceita até 4 MB; fotos grandes são reduzidas antes do envio.
+  const IMAGEM_TIPOS = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+  const IMAGEM_MAX_BYTES = 4 * 1024 * 1024;
+  const IMAGEM_LADO_MAX = 1600;
+
   let estado = { atividades: [], opcoes: { cores: [], minijogos: [] }, personalizada: false };
   let editandoId = null;
   let contadorRadio = 0;
   let ocupado = false;
+  let enviosDeImagem = 0;
 
   // ---------------------------------------------------------------- helpers
   function criarElemento(html) {
@@ -72,6 +78,7 @@
 
   // ------------------------------------------------------ lista de atividades
   function cardDaAtividade(atividade, indice, total) {
+    const imagens = (atividade.sections || []).filter((secao) => secao.image).length;
     return `
       <article class="activity-card" data-activity-id="${atividade.id}">
         <div class="activity-order">${atividade.posicao}</div>
@@ -84,13 +91,14 @@
           <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${escapeHtml(atividade.description)}</p>
           <div class="flex flex-wrap items-center gap-1.5 mt-2">
             <span class="activity-chip">${atividade.total_secoes} blocos de leitura</span>
+            ${imagens ? `<span class="activity-chip">🖼️ ${imagens} ${imagens === 1 ? "imagem" : "imagens"}</span>` : ""}
             <span class="activity-chip">${atividade.total_perguntas} perguntas</span>
             <span class="activity-chip">🎮 ${escapeHtml(atividade.minijogo_label)}</span>
             <span class="activity-chip">${atividade.conclusoes} aluno(s) concluíram</span>
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
+        <div class="activity-actions flex items-center gap-1.5 shrink-0">
           <button type="button" class="icon-button" data-move="-1" ${indice === 0 ? "disabled" : ""} title="Subir" aria-label="Mover para cima">
             <i data-lucide="chevron-up" class="w-4 h-4"></i>
           </button>
@@ -117,8 +125,8 @@
     if (origemBadge) {
       origemBadge.textContent = estado.personalizada ? "Trilha personalizada" : "Trilha padrão";
       origemBadge.className = estado.personalizada
-        ? "px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-100 text-cyan-800"
-        : "px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600";
+        ? "px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap bg-cyan-100 text-cyan-800"
+        : "px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap bg-slate-200 text-slate-600";
     }
 
     renderizarIcones();
@@ -137,6 +145,116 @@
     }
   }
 
+  // ----------------------------------------------------- imagens dos blocos
+  function carregarImagem(arquivo) {
+    return new Promise((resolver, rejeitar) => {
+      const endereco = URL.createObjectURL(arquivo);
+      const imagem = new Image();
+      imagem.onload = () => {
+        URL.revokeObjectURL(endereco);
+        resolver(imagem);
+      };
+      imagem.onerror = () => {
+        URL.revokeObjectURL(endereco);
+        rejeitar(new Error("Não foi possível abrir esta imagem."));
+      };
+      imagem.src = endereco;
+    });
+  }
+
+  async function prepararImagem(arquivo) {
+    // GIF segue como está para não perder a animação.
+    if (arquivo.type === "image/gif") return arquivo;
+
+    const imagem = await carregarImagem(arquivo);
+    const maiorLado = Math.max(imagem.naturalWidth, imagem.naturalHeight);
+    const escala = Math.min(1, IMAGEM_LADO_MAX / maiorLado);
+    if (escala === 1 && arquivo.size <= 1.5 * 1024 * 1024) return arquivo;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(imagem.naturalWidth * escala);
+    canvas.height = Math.round(imagem.naturalHeight * escala);
+    canvas.getContext("2d").drawImage(imagem, 0, 0, canvas.width, canvas.height);
+
+    const reduzida = await new Promise((resolver) => canvas.toBlob(resolver, "image/webp", 0.85));
+    return reduzida && reduzida.size < arquivo.size ? reduzida : arquivo;
+  }
+
+  async function enviarImagem(arquivo) {
+    if (!IMAGEM_TIPOS.includes(arquivo.type)) {
+      throw new Error("Use uma imagem PNG, JPG, WEBP ou GIF.");
+    }
+
+    const preparada = await prepararImagem(arquivo);
+    if (preparada.size > IMAGEM_MAX_BYTES) {
+      throw new Error("A imagem passou de 4 MB. Escolha uma imagem menor.");
+    }
+
+    const corpo = new FormData();
+    corpo.append("imagem", preparada, arquivo.name);
+    const resposta = await fetch(pagina.dataset.imagesUrl, {
+      method: "POST",
+      headers: authHeaders(false),
+      body: corpo,
+    });
+
+    if (resposta.status === 401) {
+      window.location.href = pagina.dataset.loginUrl;
+      throw new Error("Sessão expirada");
+    }
+
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) throw new Error(dados.error || "Não foi possível enviar a imagem.");
+    return dados.url;
+  }
+
+  function mostrarImagemDoBloco(card, url) {
+    const previa = card.querySelector("[data-image-preview]");
+    card.dataset.image = url || "";
+    card.querySelector("[data-image-tag]").src = url || "";
+    previa.classList.toggle("hidden", !url);
+    card.querySelector("[data-image-pick]").classList.toggle("hidden", Boolean(url));
+    if (!url) card.querySelector('[data-field="image_alt"]').value = "";
+  }
+
+  function configurarImagemDoBloco(card, dados) {
+    const seletor = card.querySelector("[data-image-file]");
+    const status = card.querySelector("[data-image-status]");
+
+    card.querySelector('[data-field="image_alt"]').value = dados.image_alt || "";
+    mostrarImagemDoBloco(card, dados.image);
+
+    const escolher = () => seletor.click();
+    card.querySelector("[data-image-pick]").addEventListener("click", escolher);
+    card.querySelector("[data-image-change]").addEventListener("click", escolher);
+    card.querySelector("[data-image-remove]").addEventListener("click", () => {
+      mostrarImagemDoBloco(card, "");
+      status.textContent = "";
+    });
+
+    seletor.addEventListener("change", async () => {
+      const arquivo = seletor.files[0];
+      seletor.value = "";
+      if (!arquivo) return;
+
+      enviosDeImagem += 1;
+      card.classList.add("enviando-imagem");
+      status.className = "section-image-status";
+      status.textContent = "Enviando imagem...";
+
+      try {
+        mostrarImagemDoBloco(card, await enviarImagem(arquivo));
+        status.textContent = "";
+      } catch (erro) {
+        status.classList.add("erro");
+        status.textContent = erro.message;
+      } finally {
+        enviosDeImagem -= 1;
+        card.classList.remove("enviando-imagem");
+      }
+    });
+  }
+
   // --------------------------------------------------------------- repeaters
   function adicionarSecao(dados = {}) {
     if (containerSecoes.children.length >= LIMITES.secoes) return;
@@ -151,10 +269,33 @@
         </div>
         <input class="form-input mb-2" data-field="title" maxlength="120" placeholder="Título do bloco de leitura">
         <textarea class="form-input" rows="3" data-field="text" maxlength="1200" placeholder="Explique o assunto com palavras simples para as crianças."></textarea>
+        <div class="section-image">
+          <input type="file" class="hidden" data-image-file accept="${IMAGEM_TIPOS.join(",")}">
+          <button type="button" class="section-image-add" data-image-pick>
+            <i data-lucide="image-plus" class="w-4 h-4"></i>
+            <span>Anexar imagem <small>PNG, JPG, WEBP ou GIF · até 4 MB</small></span>
+          </button>
+          <div class="section-image-preview hidden" data-image-preview>
+            <img alt="Prévia da imagem do bloco" data-image-tag>
+            <div class="section-image-actions">
+              <input class="form-input" data-field="image_alt" maxlength="160" placeholder="Legenda da imagem (opcional)">
+              <div class="flex flex-wrap gap-2">
+                <button type="button" class="repeater-add" data-image-change>
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Trocar
+                </button>
+                <button type="button" class="repeater-remove" data-image-remove>
+                  <i data-lucide="image-off" class="w-3.5 h-3.5"></i> Tirar imagem
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="section-image-status" data-image-status role="status"></p>
+        </div>
       </div>`);
 
     card.querySelector('[data-field="title"]').value = dados.title || "";
     card.querySelector('[data-field="text"]').value = dados.text || "";
+    configurarImagemDoBloco(card, dados);
     card.querySelector("[data-remove]").addEventListener("click", () => {
       card.remove();
       numerarCards(containerSecoes, "data-section", "Bloco");
@@ -431,6 +572,8 @@
       sections: [...containerSecoes.querySelectorAll("[data-section]")].map((card) => ({
         title: card.querySelector('[data-field="title"]').value,
         text: card.querySelector('[data-field="text"]').value,
+        image: card.dataset.image || "",
+        image_alt: card.querySelector('[data-field="image_alt"]').value,
       })),
       quiz: [...containerPerguntas.querySelectorAll("[data-question]")].map((card) => {
         const linhas = [...card.querySelectorAll("[data-option]")];
@@ -484,6 +627,10 @@
   async function salvarAtividade(evento) {
     evento.preventDefault();
     if (ocupado) return;
+    if (enviosDeImagem > 0) {
+      erroForm.textContent = "Aguarde o envio das imagens terminar para salvar.";
+      return;
+    }
 
     ocupado = true;
     erroForm.textContent = "";

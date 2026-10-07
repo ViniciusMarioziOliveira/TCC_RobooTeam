@@ -85,114 +85,116 @@
         <section class="platform-section section" id="cursos" aria-labelledby="platform-title">
             <div class="section-glow" aria-hidden="true"></div>
             <div class="container platform-grid">
-                <div class="simulator-column reveal" id="simulador">
-                    <div class="simulator-window" data-view="mission">
-                        <div class="simulator-toolbar">
-                            <div class="window-controls" aria-hidden="true"><span></span><span></span><span></span></div>
-                            <div class="simulator-brand"><img src="{{ url_for('static', filename='img/1.png') }}" alt="" width="1080" height="1350"><span>ROBOOT LAB</span></div>
-                            <div class="connection"><span></span> Sala 8A conectada</div>
+                <div class="signal-column reveal" id="simulador">
+                    <div class="signal-board" data-signal-board>
+                        <div class="signal-header">
+                            <span class="signal-tag" aria-hidden="true">RBT</span>
+                            <strong>Do código ao robô</strong>
+                            <span class="signal-live"><i aria-hidden="true"></i><span id="signal-state">AGUARDANDO SINAL</span></span>
                         </div>
 
-                        <div class="simulator-workspace">
-                            <div class="code-panel">
-                                <div class="panel-heading"><span>PROGRAMA</span><strong>missao_04.rbt</strong></div>
-                                <div class="code-canvas" aria-label="Exemplo de programação em blocos">
-                                    <div class="code-block code-event">ao iniciar missão</div>
-                                    <div class="code-block code-loop">repita até <b>amostra</b></div>
-                                    <div class="code-block code-move">avançar <b>45 cm</b></div>
-                                    <div class="code-block code-sensor">se distância &lt; <b>12 cm</b></div>
-                                    <div class="code-block code-turn">girar à direita <b>90°</b></div>
-                                    <div class="code-block code-action">coletar amostra</div>
-                                </div>
-                                <button class="run-button" type="button" aria-label="Executar programa"><span></span> EXECUTAR</button>
-                            </div>
+                        <div class="signal-body">
+                            <ol class="signal-code" aria-label="Exemplo de programa enviado ao robô">
+                                <li data-signal-step="0"><span>01</span><code><b>sensor</b>.ler()</code></li>
+                                <li data-signal-step="1"><span>02</span><code><b>motor</b>.avancar(<em>45</em>)</code></li>
+                                <li data-signal-step="2"><span>03</span><code><b>led</b>.piscar(<em>"azul"</em>)</code></li>
+                                <li data-signal-step="3"><span>04</span><code><b>garra</b>.coletar()</code></li>
+                                <li data-signal-step="4"><span>05</span><code><b>missao</b>.concluir()</code></li>
+                            </ol>
 
-                            <div class="mission-panel">
-                                <div class="mission-hud">
-                                    <span><small>MISSÃO</small><strong id="mission-name">M04 · COLETA</strong></span>
-                                    <span><small>TEMPO</small><strong>08:42</strong></span>
-                                </div>
-                                <div class="mission-arena">
-                                    <svg class="arena-svg" viewBox="0 0 600 440" role="img" aria-labelledby="arena-title arena-description">
-                                        <title id="arena-title">Arena de missão Roboo Lab em matriz cinco por cinco</title>
-                                        <desc id="arena-description">Um robô parte da célula zero zero e segue uma trajetória neon até uma amostra mineral na célula quatro quatro.</desc>
-                                        <defs>
-                                            <linearGradient id="arenaFloor" x1="0" y1="0" x2="1" y2="1">
-                                                <stop offset="0" stop-color="#111b48"/>
-                                                <stop offset="0.55" stop-color="#101439"/>
-                                                <stop offset="1" stop-color="#1f0d43"/>
-                                            </linearGradient>
-                                            <linearGradient id="arenaPath" x1="0" y1="1" x2="1" y2="0">
-                                                <stop offset="0" stop-color="#3b82f6"/>
-                                                <stop offset="0.52" stop-color="#6495ed"/>
-                                                <stop offset="1" stop-color="#7c3aed"/>
-                                            </linearGradient>
-                                            <radialGradient id="mineralCore">
-                                                <stop offset="0" stop-color="#ffffff"/>
-                                                <stop offset="0.35" stop-color="#93c5fd"/>
-                                                <stop offset="1" stop-color="#7c3aed"/>
-                                            </radialGradient>
-                                            <filter id="arenaGlow" x="-60%" y="-60%" width="220%" height="220%">
-                                                <feGaussianBlur stdDeviation="5" result="blur"/>
-                                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                                            </filter>
-                                        </defs>
+                            <svg class="signal-circuit" viewBox="0 0 400 360" role="img" aria-labelledby="circuit-title">
+                                <title id="circuit-title">Placa de circuito: o processador do robô recebe o código e envia sinais para sensor, motor, LED e garra</title>
+                                <defs>
+                                    <linearGradient id="traceGradient" gradientUnits="userSpaceOnUse" x1="0" y1="360" x2="400" y2="0">
+                                        <stop offset="0" stop-color="#3b82f6"/>
+                                        <stop offset="0.5" stop-color="#6495ed"/>
+                                        <stop offset="1" stop-color="#7c3aed"/>
+                                    </linearGradient>
+                                    <linearGradient id="chipGradient" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stop-color="#6495ed"/>
+                                        <stop offset="1" stop-color="#401070"/>
+                                    </linearGradient>
+                                    <filter id="circuitGlow" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="360">
+                                        <feGaussianBlur stdDeviation="4" result="blur"/>
+                                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                    </filter>
+                                </defs>
 
-                                        <path class="arena-floor" d="M110 86H520L490 376H80Z" fill="url(#arenaFloor)"/>
-                                        <path class="sensor-cone" d="M115 337 245 242 156 224Z"/>
+                                <g class="circuit-bg" aria-hidden="true">
+                                    <path d="M182 120V62L164 44H140M218 120V62L236 44H260M182 240V298L164 316H140M218 240V298L236 316H260M260 180H386"/>
+                                    <circle class="circuit-via" cx="140" cy="44" r="4"/><circle class="circuit-via" cx="260" cy="44" r="4"/>
+                                    <circle class="circuit-via" cx="140" cy="316" r="4"/><circle class="circuit-via" cx="260" cy="316" r="4"/>
+                                    <circle class="circuit-via" cx="386" cy="180" r="4"/>
+                                </g>
 
-                                        <g class="arena-grid-lines">
-                                            <path d="M110 86 80 376M192 86 162 376M274 86 244 376M356 86 326 376M438 86 408 376M520 86 490 376"/>
-                                            <path d="M110 86H520M104 144H514M98 202H508M92 260H502M86 318H496M80 376H490"/>
-                                        </g>
+                                <g class="chip-rings" aria-hidden="true">
+                                    <circle class="chip-ring" cx="200" cy="180" r="80"/>
+                                    <circle class="chip-ring chip-ring-outer" cx="200" cy="180" r="94"/>
+                                </g>
 
-                                        <g class="arena-coordinates" aria-hidden="true">
-                                            <text x="86" y="402">0</text><text x="168" y="402">1</text><text x="250" y="402">2</text><text x="332" y="402">3</text><text x="414" y="402">4</text>
-                                            <text x="53" y="350">0</text><text x="59" y="292">1</text><text x="65" y="234">2</text><text x="71" y="176">3</text><text x="77" y="118">4</text>
-                                        </g>
+                                <g class="circuit-link circuit-input" data-link="-1" aria-hidden="true">
+                                    <rect class="circuit-port" x="0" y="170" width="12" height="20" rx="3"/>
+                                    <path class="trace-base" d="M6 180H150"/>
+                                    <path class="trace-live" data-trace="-1" pathLength="100" d="M6 180H150"/>
+                                    <path class="trace-flow" d="M6 180H150"/>
+                                </g>
 
-                                        <path class="arena-path-shadow" d="M120 347 114 289 196 289 190 231 354 231 348 173 430 173 424 115 478 115"/>
-                                        <path class="arena-path" pathLength="100" d="M120 347 114 289 196 289 190 231 354 231 348 173 430 173 424 115 478 115"/>
+                                <g class="circuit-link" data-link="0" aria-hidden="true">
+                                    <path class="trace-base" d="M150 160H112L90 138V70"/>
+                                    <path class="trace-live" data-trace="0" pathLength="100" d="M150 160H112L90 138V70"/>
+                                    <path class="trace-flow" d="M150 160H112L90 138V70"/>
+                                    <rect class="module-box" x="16" y="22" width="104" height="48" rx="10"/>
+                                    <circle class="module-led" cx="106" cy="36" r="4"/>
+                                    <text class="module-label" x="30" y="43">SENSOR</text>
+                                    <text class="module-sub" x="30" y="57">ULTRASSOM</text>
+                                </g>
 
-                                        <g class="team-nodes" aria-hidden="true">
-                                            <circle cx="196" cy="289" r="7"/><circle cx="354" cy="231" r="7"/><circle cx="430" cy="173" r="7"/>
-                                        </g>
+                                <g class="circuit-link" data-link="1" aria-hidden="true">
+                                    <path class="trace-base" d="M250 160H288L310 138V70"/>
+                                    <path class="trace-live" data-trace="1" pathLength="100" d="M250 160H288L310 138V70"/>
+                                    <path class="trace-flow" d="M250 160H288L310 138V70"/>
+                                    <rect class="module-box" x="280" y="22" width="104" height="48" rx="10"/>
+                                    <circle class="module-led" cx="370" cy="36" r="4"/>
+                                    <text class="module-label" x="294" y="43">MOTOR</text>
+                                    <text class="module-sub" x="294" y="57">PWM · 45 CM</text>
+                                </g>
 
-                                        <g class="arena-robot" transform="translate(120 347)" aria-hidden="true">
-                                            <circle class="robot-pulse" r="35"/>
-                                            <rect x="-24" y="-17" width="48" height="34" rx="9"/>
-                                            <rect x="-18" y="-12" width="36" height="20" rx="6"/>
-                                            <circle cx="-9" cy="-3" r="3"/><circle cx="9" cy="-3" r="3"/>
-                                            <path d="M-8 7H8M0-17v-9M-4-28h8"/>
-                                            <circle class="robot-wheel" cx="-25" cy="-10" r="7"/><circle class="robot-wheel" cx="25" cy="-10" r="7"/>
-                                            <circle class="robot-wheel" cx="-25" cy="12" r="7"/><circle class="robot-wheel" cx="25" cy="12" r="7"/>
-                                        </g>
+                                <g class="circuit-link" data-link="2" aria-hidden="true">
+                                    <path class="trace-base" d="M150 200H112L90 222V290"/>
+                                    <path class="trace-live" data-trace="2" pathLength="100" d="M150 200H112L90 222V290"/>
+                                    <path class="trace-flow" d="M150 200H112L90 222V290"/>
+                                    <rect class="module-box" x="16" y="290" width="104" height="48" rx="10"/>
+                                    <circle class="module-led" cx="106" cy="304" r="4"/>
+                                    <text class="module-label" x="30" y="311">LED</text>
+                                    <text class="module-sub" x="30" y="325">RGB · AZUL</text>
+                                </g>
 
-                                        <g class="arena-target" transform="translate(478 115)" aria-hidden="true">
-                                            <circle class="target-ring" r="37"/>
-                                            <circle class="target-ring target-ring-two" r="27"/>
-                                            <path class="mineral-shape" d="m0-22 17 12-6 23-23 3-10-19Z" fill="url(#mineralCore)"/>
-                                            <path d="m0-22 1 21 16-9M1-1l10 14M1-1l-13 17M1-1l-23-2"/>
-                                        </g>
+                                <g class="circuit-link" data-link="3" aria-hidden="true">
+                                    <path class="trace-base" d="M250 200H288L310 222V290"/>
+                                    <path class="trace-live" data-trace="3" pathLength="100" d="M250 200H288L310 222V290"/>
+                                    <path class="trace-flow" d="M250 200H288L310 222V290"/>
+                                    <rect class="module-box" x="280" y="290" width="104" height="48" rx="10"/>
+                                    <circle class="module-led" cx="370" cy="304" r="4"/>
+                                    <text class="module-label" x="294" y="311">GARRA</text>
+                                    <text class="module-sub" x="294" y="325">SERVO · 90°</text>
+                                </g>
 
-                                        <g class="arena-labels" aria-hidden="true">
-                                            <g transform="translate(92 407)"><rect width="88" height="24" rx="12"/><text x="44" y="16">INÍCIO [0,0]</text></g>
-                                            <g transform="translate(430 56)"><rect width="108" height="24" rx="12"/><text x="54" y="16">AMOSTRA [4,4]</text></g>
-                                        </g>
-                                    </svg>
-                                </div>
-                                <div class="mission-status"><span></span><strong id="mission-status">AMOSTRA IDENTIFICADA</strong></div>
-                                <div class="team-load"><span id="team-load-bar"></span></div>
-                            </div>
+                                <g class="circuit-chip" aria-hidden="true">
+                                    <path class="chip-pins" d="M165 130V120M182 130V120M200 130V120M218 130V120M235 130V120M165 230V240M182 230V240M200 230V240M218 230V240M235 230V240M150 145H140M150 160H140M150 180H140M150 200H140M150 215H140M250 145H260M250 160H260M250 180H260M250 200H260M250 215H260"/>
+                                    <rect class="chip-body" x="150" y="130" width="100" height="100" rx="14"/>
+                                    <rect class="chip-core" x="168" y="148" width="64" height="64" rx="10"/>
+                                    <text class="chip-name" x="200" y="184">RBT</text>
+                                    <text class="chip-sub" x="200" y="199">CORE · 01</text>
+                                </g>
+                            </svg>
                         </div>
 
-                        <div class="simulator-footer">
-                            <span>Missão de robótica</span>
-                            <span>Progresso da missão <strong id="mission-progress">72%</strong></span>
+                        <div class="signal-footer">
+                            <span><small>SINAL</small><strong id="signal-percent">0%</strong></span>
+                            <span><small>MÓDULOS</small><strong id="signal-modules">0/4</strong></span>
+                            <div class="signal-meter" aria-hidden="true"><i></i></div>
                         </div>
                     </div>
-
-                   
                 </div>
 
                 <div class="platform-copy reveal" id="alunos">

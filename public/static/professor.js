@@ -63,6 +63,15 @@ function renderMetrics(data) {
   document.querySelector("#metric-active-students").textContent = data.metrics.alunos_iniciaram;
   document.querySelector("#metric-activities").textContent = data.metrics.total_atividades;
   document.querySelector("#metric-average").textContent = `${data.metrics.media_geral}%`;
+
+  const initials = data.professor.nome.trim().split(/\s+/);
+  document.querySelector("#professor-avatar").textContent =
+    (initials[0][0] + (initials.length > 1 ? initials[initials.length - 1][0] : "")).toUpperCase();
+  document.querySelector("#sidebar-total-students").textContent = data.metrics.total_alunos;
+  document.querySelector("#sidebar-active-classes").textContent = data.metrics.turmas_ativas;
+  document.querySelector("#sidebar-average").textContent = `${data.metrics.media_geral}%`;
+  document.querySelector("#sidebar-students-badge").textContent = data.metrics.total_alunos;
+  document.querySelector("#sidebar-classes-badge").textContent = data.metrics.turmas_ativas;
 }
 
 function renderChart(students) {
@@ -134,6 +143,9 @@ function renderActivities(students) {
 function renderRoomCode(code, expiration) {
   document.querySelector("#room-code").textContent = code || "Nenhum";
   document.querySelector("#room-code-expiration").textContent = expiration ? formatDate(expiration) : "gere um código";
+  const sidebarCode = document.querySelector("#sidebar-room-code");
+  sidebarCode.textContent = code || "—";
+  sidebarCode.classList.toggle("is-live", Boolean(code));
 }
 
 function renderSearchResults(students) {
@@ -233,6 +245,57 @@ document.querySelector("#professor-logout")?.addEventListener("click", async () 
     sessionStorage.removeItem("robooteam-token");
     window.location.href = professorPage.dataset.loginUrl;
   }
+});
+
+/* ---- SIDEBAR: gaveta no celular + item ativo conforme a rolagem ---- */
+const sidebarToggle = document.querySelector("#sidebar-toggle");
+
+function setSidebarOpen(open) {
+  document.body.classList.toggle("sidebar-open", open);
+  sidebarToggle?.setAttribute("aria-expanded", String(open));
+}
+
+sidebarToggle?.addEventListener("click", () => setSidebarOpen(true));
+document.querySelector("#sidebar-close")?.addEventListener("click", () => setSidebarOpen(false));
+document.querySelector("#sidebar-overlay")?.addEventListener("click", () => setSidebarOpen(false));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") setSidebarOpen(false);
+});
+
+const professorMain = document.querySelector("#professor-main");
+const spyLinks = [...document.querySelectorAll(".prof-nav-link[data-spy]")];
+const spySections = spyLinks
+  .map((link) => document.getElementById(link.dataset.spy))
+  .filter((section) => section && section.id !== "dashboard");
+
+function setActiveNav(sectionId) {
+  spyLinks.forEach((link) => link.classList.toggle("is-active", link.dataset.spy === sectionId));
+}
+
+function updateActiveNav() {
+  if (!professorMain) return;
+  const { scrollTop, clientHeight, scrollHeight } = professorMain;
+  if (scrollTop < 60) return setActiveNav("dashboard");
+
+  const ordered = [...spySections].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+  if (scrollTop + clientHeight >= scrollHeight - 4) return setActiveNav(ordered[ordered.length - 1].id);
+
+  const limit = professorMain.getBoundingClientRect().top + 140;
+  const current = ordered.filter((section) => section.getBoundingClientRect().top <= limit).pop();
+  setActiveNav(current ? current.id : "dashboard");
+}
+
+let navFrame = null;
+professorMain?.addEventListener("scroll", () => {
+  if (navFrame) return;
+  navFrame = requestAnimationFrame(() => {
+    navFrame = null;
+    updateActiveNav();
+  });
+});
+
+document.querySelectorAll(".prof-nav-link").forEach((link) => {
+  link.addEventListener("click", () => setSidebarOpen(false));
 });
 
 loadProfessorDashboard();

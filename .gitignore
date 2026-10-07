@@ -2,9 +2,12 @@
 .env.*
 !.env.example
 
+.venv/
+venv/
 __pycache__/
 *.py[cod]
 
 .vercel/
 trilha_atividades.json
 *.tmp
+arena_salas.json

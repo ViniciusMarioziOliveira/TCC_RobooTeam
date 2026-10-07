@@ -79,13 +79,40 @@ function renderRoomState(room) {
   setRoomFeedback(`Sala conectada · Responsável: ${room.professor}`, "success");
 }
 
+function animateNumber(element, target) {
+  if (!element) return;
+  const start = Number(element.textContent) || 0;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (start === target || reduceMotion) {
+    element.textContent = target;
+    return;
+  }
+  const duration = 900;
+  const startedAt = performance.now();
+  const step = (now) => {
+    const progress = Math.min((now - startedAt) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    element.textContent = Math.round(start + (target - start) * eased);
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function popValue(element) {
+  if (!element) return;
+  element.classList.remove("pop");
+  void element.offsetWidth;
+  element.classList.add("pop");
+}
+
 function renderDashboard(data) {
   const { progress, usuario } = data;
   const firstName = usuario.nome.split(" ")[0];
   document.querySelector("#student-name").textContent = usuario.nome;
   document.querySelector("#greeting-name").textContent = firstName;
-  document.querySelector("#student-points").textContent = progress.points;
-  document.querySelector("#sidebar-points").textContent = progress.points;
+  animateNumber(document.querySelector("#student-points"), progress.points);
+  animateNumber(document.querySelector("#sidebar-points"), progress.points);
+  animateNumber(document.querySelector("#header-points"), progress.points);
   document.querySelector("#student-level").textContent = `Nível ${progress.level}`;
   document.querySelector("#sidebar-level").textContent = String(progress.level).padStart(2, "0");
   document.querySelector("#student-missions").textContent = `${progress.completed} / ${progress.total}`;
@@ -94,6 +121,7 @@ function renderDashboard(data) {
   document.querySelector("#trail-progress-percent").textContent = `${progress.percent}%`;
   document.querySelector("#trail-progress-text").textContent = `${progress.completed} de ${progress.total} etapas concluídas`;
   document.querySelector("#trail-progress-fill").style.width = `${progress.percent}%`;
+  ["#student-points", "#student-level", "#student-missions"].forEach((selector) => popValue(document.querySelector(selector)));
   renderRoomState(data.sala);
 
   if (data.next) {
@@ -169,7 +197,7 @@ roomJoinForm?.addEventListener("submit", async (event) => {
     }
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Não foi possível entrar na sala");
-    renderRoomState(result.sala);
+    if (result.sala) renderRoomState(result.sala);
     setRoomFeedback(result.message, "success");
     roomCodeInput.value = "";
     if (result.redirect_url) {
@@ -198,15 +226,57 @@ document.querySelector("#student-logout")?.addEventListener("click", async (even
   }
 });
 
-document.querySelectorAll(".sidebar .nav-item[href^='#']").forEach((link) => {
-  link.addEventListener("click", () => {
-    document.querySelectorAll(".sidebar .nav-item").forEach((item) => item.classList.remove("active"));
-    link.classList.add("active");
-  });
+/* ---- SIDEBAR: gaveta no celular + item ativo conforme a rolagem ---- */
+const sidebarToggle = document.querySelector("#sidebar-toggle");
+
+function setSidebarOpen(open) {
+  document.body.classList.toggle("sidebar-open", open);
+  sidebarToggle?.setAttribute("aria-expanded", String(open));
+}
+
+sidebarToggle?.addEventListener("click", () => setSidebarOpen(true));
+document.querySelector("#sidebar-close")?.addEventListener("click", () => setSidebarOpen(false));
+document.querySelector("#sidebar-overlay")?.addEventListener("click", () => setSidebarOpen(false));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") setSidebarOpen(false);
+});
+document.querySelectorAll(".sidebar .nav-item, .sidebar .avatar-wrap").forEach((item) => {
+  item.addEventListener("click", () => setSidebarOpen(false));
 });
 
-function setupModal(modal, openButton) {
-  if (!modal || !openButton) return;
+const spyLinks = [...document.querySelectorAll(".sidebar .nav-item[data-spy]")];
+const spySections = spyLinks
+  .map((link) => document.getElementById(link.dataset.spy))
+  .filter((section) => section && section.id !== "inicio");
+
+function setActiveNav(sectionId) {
+  spyLinks.forEach((link) => link.classList.toggle("active", link.dataset.spy === sectionId));
+}
+
+function updateActiveNav() {
+  const scrollTop = window.scrollY;
+  if (scrollTop < 60) return setActiveNav("inicio");
+
+  const ordered = [...spySections].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+  if (window.innerHeight + scrollTop >= document.documentElement.scrollHeight - 4) {
+    return setActiveNav(ordered[ordered.length - 1].id);
+  }
+  const current = ordered.filter((section) => section.getBoundingClientRect().top <= 140).pop();
+  setActiveNav(current ? current.id : "inicio");
+}
+
+let navFrame = null;
+window.addEventListener("scroll", () => {
+  if (navFrame) return;
+  navFrame = requestAnimationFrame(() => {
+    navFrame = null;
+    updateActiveNav();
+  });
+}, { passive: true });
+
+function setupModal(modal) {
+  if (!modal) return;
+  const openButtons = document.querySelectorAll(`[data-open-modal="${modal.id}"]`);
 
   const closeModal = () => {
     modal.hidden = true;
@@ -219,7 +289,7 @@ function setupModal(modal, openButton) {
     modal.querySelector(".app-modal-close")?.focus();
   };
 
-  openButton.addEventListener("click", openModal);
+  openButtons.forEach((button) => button.addEventListener("click", openModal));
   modal.querySelectorAll("[data-modal-close]").forEach((element) => {
     element.addEventListener("click", closeModal);
   });
@@ -228,7 +298,27 @@ function setupModal(modal, openButton) {
   });
 }
 
-setupModal(document.querySelector("#how-to-modal"), document.querySelector("#open-how-to-modal"));
-setupModal(document.querySelector("#help-modal"), document.querySelector("#open-help-modal"));
+async function loadArenaShortcuts() {
+  const box = document.querySelector("#arena-quick");
+  if (!box || !studentPage.dataset.arenasUrl) return;
+  try {
+    const response = await fetch(studentPage.dataset.arenasUrl, { headers: authHeaders() });
+    if (!response.ok) return;
+    const { arenas } = await response.json();
+    const active = arenas.filter((arena) => arena.status !== "finalizada");
+    box.hidden = !active.length;
+    document.querySelector("#arena-quick-list").innerHTML = active.map((arena) => `
+      <a class="arena-quick-item${arena.status === "em_jogo" ? " live" : ""}" href="${escapeHtml(arena.url)}">
+        <strong>${escapeHtml(arena.nome)}</strong>
+        <span>${arena.status === "em_jogo" ? "▶ Jogar agora" : "⏳ Aguardando a largada"} · ${escapeHtml(arena.codigo)}</span>
+      </a>`).join("");
+  } catch {
+    // atalhos da Arena são opcionais
+  }
+}
+
+setupModal(document.querySelector("#how-to-modal"));
+setupModal(document.querySelector("#help-modal"));
 
 loadStudentJourney();
+loadArenaShortcuts();

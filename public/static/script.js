@@ -26,54 +26,6 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeMenu();
 });
 
-const simulator = document.querySelector('.simulator-window');
-const simulatorTabs = document.querySelectorAll('.simulator-tab');
-const missionName = document.querySelector('#mission-name');
-const missionStatus = document.querySelector('#mission-status');
-const missionProgress = document.querySelector('#mission-progress');
-const teamLoadBar = document.querySelector('#team-load-bar');
-const runButton = document.querySelector('.run-button');
-let executionTimer;
-
-simulatorTabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-        simulatorTabs.forEach((item) => {
-            const isSelected = item === tab;
-            item.classList.toggle('active', isSelected);
-            item.setAttribute('aria-pressed', String(isSelected));
-        });
-
-        const progress = tab.dataset.progress || '0%';
-        simulator.dataset.view = tab.dataset.view;
-        missionName.textContent = tab.dataset.name;
-        missionStatus.textContent = tab.dataset.status;
-        missionProgress.textContent = progress;
-        teamLoadBar.style.width = progress;
-    });
-});
-
-runButton?.addEventListener('click', () => {
-    clearTimeout(executionTimer);
-    simulator.classList.remove('is-running');
-    void simulator.offsetWidth;
-    simulator.classList.add('is-running');
-    missionStatus.textContent = 'EXECUTANDO TRAJETÓRIA';
-    missionProgress.textContent = '0%';
-    teamLoadBar.style.width = '0%';
-    runButton.disabled = true;
-
-    requestAnimationFrame(() => {
-        teamLoadBar.style.width = '100%';
-    });
-
-    executionTimer = setTimeout(() => {
-        simulator.classList.remove('is-running');
-        missionStatus.textContent = 'AMOSTRA ALCANÇADA';
-        missionProgress.textContent = '100%';
-        runButton.disabled = false;
-    }, 2500);
-});
-
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const revealItems = document.querySelectorAll('.reveal');
 const journeySection = document.querySelector('.journey-section');
@@ -138,6 +90,93 @@ if (journeySection) {
     if (!prefersReducedMotion) {
         window.addEventListener('scroll', requestJourneyUpdate, { passive: true });
         window.addEventListener('resize', requestJourneyUpdate);
+    }
+}
+
+const signalBoard = document.querySelector('[data-signal-board]');
+const signalTraces = signalBoard ? [...signalBoard.querySelectorAll('[data-trace]')] : [];
+const signalLinks = signalBoard ? [...signalBoard.querySelectorAll('[data-link]')] : [];
+const signalLines = signalBoard ? [...signalBoard.querySelectorAll('[data-signal-step]')] : [];
+const signalState = document.querySelector('#signal-state');
+const signalPercent = document.querySelector('#signal-percent');
+const signalModules = document.querySelector('#signal-modules');
+let signalFrame;
+
+// O sinal percorre primeiro a entrada (código → processador) e depois
+// acende um módulo por vez; a última linha do código fecha a missão.
+const SIGNAL_INPUT_END = 0.12;
+const SIGNAL_MODULE_SPAN = 0.18;
+const SIGNAL_COMPLETE = 0.95;
+
+function clamp01(value) {
+    return Math.min(Math.max(value, 0), 1);
+}
+
+function signalWindow(link) {
+    return link < 0
+        ? { from: 0, span: SIGNAL_INPUT_END }
+        : { from: SIGNAL_INPUT_END + link * SIGNAL_MODULE_SPAN, span: SIGNAL_MODULE_SPAN };
+}
+
+function updateSignalBoard() {
+    signalFrame = null;
+
+    const rect = signalBoard.getBoundingClientRect();
+    const viewport = window.innerHeight;
+    // --view vai de 0 (placa entrando por baixo) a 1 (saindo por cima).
+    const view = clamp01((viewport - rect.top) / (viewport + rect.height));
+    // O sinal completa quando o centro da placa chega a ~40% da altura da tela.
+    const start = viewport * 0.92;
+    const end = viewport * 0.4 - rect.height / 2;
+    const signal = prefersReducedMotion ? 1 : clamp01((start - rect.top) / Math.max(start - end, 1));
+
+    signalBoard.style.setProperty('--view', (prefersReducedMotion ? 0.5 : view).toFixed(3));
+    signalBoard.style.setProperty('--signal', signal.toFixed(3));
+
+    signalTraces.forEach((trace) => {
+        const { from, span } = signalWindow(Number(trace.dataset.trace));
+        trace.style.strokeDashoffset = String(100 - clamp01((signal - from) / span) * 100);
+    });
+
+    let activeModules = 0;
+    signalLinks.forEach((link) => {
+        const index = Number(link.dataset.link);
+        const { from, span } = signalWindow(index);
+        const isOn = signal >= from + span;
+        link.classList.toggle('on', isOn);
+        if (isOn && index >= 0) activeModules += 1;
+    });
+
+    signalLines.forEach((line) => {
+        const step = Number(line.dataset.signalStep);
+        const { from, span } = step < 4 ? signalWindow(step) : { from: SIGNAL_COMPLETE - 0.08, span: 0.08 };
+        line.classList.toggle('active', signal > from && signal < from + span);
+        line.classList.toggle('done', signal >= from + span);
+    });
+
+    signalBoard.classList.toggle('is-powered', signal >= SIGNAL_INPUT_END);
+    signalBoard.classList.toggle('is-complete', signal >= SIGNAL_COMPLETE);
+
+    if (signalPercent) signalPercent.textContent = `${Math.round(signal * 100)}%`;
+    if (signalModules) signalModules.textContent = `${activeModules}/4`;
+    if (signalState) {
+        signalState.textContent = signal <= 0.02 ? 'AGUARDANDO SINAL'
+            : signal < SIGNAL_INPUT_END ? 'COMPILANDO'
+            : signal < SIGNAL_COMPLETE ? 'TRANSMITINDO'
+            : 'ROBÔ ONLINE';
+    }
+}
+
+function requestSignalUpdate() {
+    if (signalFrame) return;
+    signalFrame = requestAnimationFrame(updateSignalBoard);
+}
+
+if (signalBoard) {
+    updateSignalBoard();
+    if (!prefersReducedMotion) {
+        window.addEventListener('scroll', requestSignalUpdate, { passive: true });
+        window.addEventListener('resize', requestSignalUpdate);
     }
 }
 
@@ -364,8 +403,7 @@ if (authCard) {
                 body: JSON.stringify({
                     nome: String(formData.get('name')).trim(),
                     email,
-                    senha: String(formData.get('password')),
-                    perfil: String(formData.get('profile'))
+                    senha: String(formData.get('password'))
                 })
             });
             const result = await response.json();

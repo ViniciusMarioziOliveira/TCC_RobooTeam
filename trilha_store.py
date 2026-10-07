@@ -2,46 +2,28 @@
 """Persistencia e validacao das atividades da trilha.
 
 A trilha padrao vive em ``trilha_conteudo.ATIVIDADES_PADRAO``. Quando um
-professor edita a trilha, uma copia personalizada dela e gravada em
-``trilha_atividades.json`` sob o id daquele professor. Os alunos que estao na
+professor edita a trilha, uma copia personalizada dela e gravada na tabela
+``trilha_atividades`` do Supabase, uma linha por etapa. Os alunos que estao na
 sala desse professor passam a ver a trilha personalizada; quem ainda nao entrou
 em nenhuma sala continua vendo a trilha padrao.
 
-Formato do arquivo::
-
-    {
-      "proximo_id": 6,
-      "professores": {
-        "2001": [ {atividade}, {atividade}, ... ]
-      }
-    }
+Os blocos de leitura podem ter uma imagem (``image``) enviada pelo painel e
+guardada no Supabase Storage (veja ``armazenamento.py``).
 """
 
 import copy
-import json
-import os
 import re
-import tempfile
-import threading
-from pathlib import Path
 
+from psycopg.types.json import Jsonb
+
+import armazenamento
+import db
 from trilha_conteudo import (
     ATIVIDADES_PADRAO,
     CORES_DISPONIVEIS,
     ROTULOS_MINIJOGO,
     TIPOS_MINIJOGO,
 )
-
-DIRETORIO_PROJETO = Path(__file__).resolve().parent
-DIRETORIO_DADOS = DIRETORIO_PROJETO
-
-if os.getenv("VERCEL"):
-    DIRETORIO_DADOS = Path(tempfile.gettempdir()) / "robooteam"
-    DIRETORIO_DADOS.mkdir(parents=True, exist_ok=True)
-
-ARQUIVO_TRILHA = DIRETORIO_DADOS / "trilha_atividades.json"
-
-_LOCK = threading.Lock()
 
 LIMITES = {
     "secoes": (1, 8),
@@ -58,55 +40,55 @@ class ErroDeValidacao(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# Leitura e gravacao do arquivo
+# Leitura e gravacao no banco
 # ---------------------------------------------------------------------------
 
-def _estrutura_vazia():
-    return {"proximo_id": _maior_id_padrao() + 1, "professores": {}}
+_COLUNAS = (
+    "id", "period", "title", "description", "color", "eyebrow",
+    "lesson_title", "intro", "sections", "quiz", "minigame",
+)
+_COLUNAS_JSON = {"sections", "quiz", "minigame"}
 
 
-def _maior_id_padrao():
-    return max((int(item["id"]) for item in ATIVIDADES_PADRAO), default=0)
-
-
-def _ler():
-    if not ARQUIVO_TRILHA.exists():
-        return _estrutura_vazia()
-
-    try:
-        dados = json.loads(ARQUIVO_TRILHA.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return _estrutura_vazia()
-
-    if not isinstance(dados, dict):
-        return _estrutura_vazia()
-
-    professores = dados.get("professores")
-    if not isinstance(professores, dict):
-        professores = {}
-
-    try:
-        proximo_id = int(dados.get("proximo_id"))
-    except (TypeError, ValueError):
-        proximo_id = _maior_id_padrao() + 1
-
-    return {
-        "proximo_id": max(proximo_id, _maior_id_padrao() + 1),
-        "professores": {
-            str(chave): valor
-            for chave, valor in professores.items()
-            if isinstance(valor, list)
-        },
-    }
-
-
-def _gravar(dados):
-    temporario = ARQUIVO_TRILHA.with_suffix(".tmp")
-    temporario.write_text(
-        json.dumps(dados, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+def _carregar(cursor, professor_id):
+    cursor.execute(
+        f"""
+        select {", ".join(_COLUNAS)}
+          from public.trilha_atividades
+         where professor_id = %s
+         order by posicao, id
+        """,
+        (int(professor_id),),
     )
-    temporario.replace(ARQUIVO_TRILHA)
+    return [dict(linha) for linha in cursor.fetchall()]
+
+
+def _gravar(cursor, professor_id, atividades):
+    """Substitui a trilha do professor pelas atividades, na ordem da lista."""
+    cursor.execute("delete from public.trilha_atividades where professor_id = %s", (int(professor_id),))
+    cursor.executemany(
+        f"""
+        insert into public.trilha_atividades (professor_id, posicao, {", ".join(_COLUNAS)})
+        values ({", ".join(["%s"] * (len(_COLUNAS) + 2))})
+        """,
+        [
+            (
+                int(professor_id),
+                posicao,
+                *(Jsonb(item[coluna]) if coluna in _COLUNAS_JSON else item[coluna] for coluna in _COLUNAS),
+            )
+            for posicao, item in enumerate(atividades, start=1)
+        ],
+    )
+
+
+def _imagens(atividades):
+    return {
+        secao["image"]
+        for atividade in atividades
+        for secao in atividade.get("sections", [])
+        if secao.get("image")
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -123,18 +105,20 @@ def trilha_do_professor(professor_id):
     if professor_id is None:
         return atividades_padrao()
 
-    dados = _ler()
-    personalizada = dados["professores"].get(str(professor_id))
-    if not personalizada:
-        return atividades_padrao()
-
-    return copy.deepcopy(personalizada)
+    with db.transacao() as cursor:
+        personalizada = _carregar(cursor, professor_id)
+    return personalizada or atividades_padrao()
 
 
 def usa_trilha_personalizada(professor_id):
     if professor_id is None:
         return False
-    return str(professor_id) in _ler()["professores"]
+    with db.transacao() as cursor:
+        cursor.execute(
+            "select exists (select 1 from public.trilha_atividades where professor_id = %s) as existe",
+            (int(professor_id),),
+        )
+        return cursor.fetchone()["existe"]
 
 
 def trilha_para_aluno(aluno):
@@ -219,10 +203,23 @@ def _normalizar_secoes(valor):
     for indice, secao in enumerate(secoes, start=1):
         if not isinstance(secao, dict):
             raise ErroDeValidacao(f"O bloco de leitura {indice} esta em formato invalido.")
-        resultado.append({
+        item = {
             "title": _texto(secao.get("title"), f"titulo do bloco de leitura {indice}", 3, 120),
             "text": _texto(secao.get("text"), f"texto do bloco de leitura {indice}", 10, 1200),
-        })
+        }
+
+        imagem = str(secao.get("image") or "").strip()
+        if imagem:
+            if not armazenamento.eh_imagem_da_trilha(imagem):
+                raise ErroDeValidacao(
+                    f"A imagem do bloco de leitura {indice} precisa ser enviada pelo botao Anexar imagem."
+                )
+            item["image"] = imagem
+            item["image_alt"] = _texto(
+                secao.get("image_alt"), f"legenda da imagem do bloco {indice}", 0, 160, obrigatorio=False
+            )
+
+        resultado.append(item)
 
     return resultado
 
@@ -394,77 +391,71 @@ def normalizar_atividade(payload, atividade_id):
 # Operacoes de escrita (CRUD)
 # ---------------------------------------------------------------------------
 
-def _trilha_para_escrita(dados, professor_id):
-    """Garante que o professor tenha uma copia propria antes de editar."""
-    chave = str(professor_id)
-    if chave not in dados["professores"]:
-        dados["professores"][chave] = atividades_padrao()
-    return dados["professores"][chave]
+def _trilha_para_escrita(cursor, professor_id):
+    """Trava a trilha do professor e garante uma copia propria antes de editar."""
+    cursor.execute("select id from public.usuarios where id = %s for update", (int(professor_id),))
+    return _carregar(cursor, professor_id) or atividades_padrao()
+
+
+def _indice_da_atividade(atividades, atividade_id):
+    try:
+        alvo = int(atividade_id)
+    except (TypeError, ValueError):
+        raise ErroDeValidacao("Atividade nao encontrada.")
+
+    indice = next((i for i, item in enumerate(atividades) if int(item["id"]) == alvo), None)
+    if indice is None:
+        raise ErroDeValidacao("Atividade nao encontrada.")
+    return indice
 
 
 def criar_atividade(professor_id, payload, posicao=None):
-    with _LOCK:
-        dados = _ler()
-        atividades = _trilha_para_escrita(dados, professor_id)
+    with db.transacao() as cursor:
+        atividades = _trilha_para_escrita(cursor, professor_id)
 
-        novo_id = dados["proximo_id"]
-        atividade = normalizar_atividade(payload, novo_id)
-        dados["proximo_id"] = novo_id + 1
+        cursor.execute("select nextval('public.trilha_atividades_id_seq') as id")
+        atividade = normalizar_atividade(payload, cursor.fetchone()["id"])
 
         if posicao is None or not isinstance(posicao, int) or posicao < 0 or posicao > len(atividades):
             atividades.append(atividade)
         else:
             atividades.insert(posicao, atividade)
 
-        _gravar(dados)
+        _gravar(cursor, professor_id, atividades)
         return copy.deepcopy(atividade)
 
 
 def atualizar_atividade(professor_id, atividade_id, payload):
-    with _LOCK:
-        dados = _ler()
-        atividades = _trilha_para_escrita(dados, professor_id)
+    with db.transacao() as cursor:
+        atividades = _trilha_para_escrita(cursor, professor_id)
+        indice = _indice_da_atividade(atividades, atividade_id)
+        antiga = atividades[indice]
 
-        try:
-            alvo = int(atividade_id)
-        except (TypeError, ValueError):
-            raise ErroDeValidacao("Atividade nao encontrada.")
+        atividades[indice] = normalizar_atividade(payload, antiga["id"])
+        _gravar(cursor, professor_id, atividades)
 
-        indice = next((i for i, item in enumerate(atividades) if int(item["id"]) == alvo), None)
-        if indice is None:
-            raise ErroDeValidacao("Atividade nao encontrada.")
-
-        atividades[indice] = normalizar_atividade(payload, alvo)
-        _gravar(dados)
-        return copy.deepcopy(atividades[indice])
+    armazenamento.remover_imagens(_imagens([antiga]) - _imagens([atividades[indice]]))
+    return copy.deepcopy(atividades[indice])
 
 
 def remover_atividade(professor_id, atividade_id):
-    with _LOCK:
-        dados = _ler()
-        atividades = _trilha_para_escrita(dados, professor_id)
-
-        try:
-            alvo = int(atividade_id)
-        except (TypeError, ValueError):
-            raise ErroDeValidacao("Atividade nao encontrada.")
+    with db.transacao() as cursor:
+        atividades = _trilha_para_escrita(cursor, professor_id)
+        indice = _indice_da_atividade(atividades, atividade_id)
 
         if len(atividades) <= 1:
             raise ErroDeValidacao("A trilha precisa ter pelo menos uma atividade.")
 
-        indice = next((i for i, item in enumerate(atividades) if int(item["id"]) == alvo), None)
-        if indice is None:
-            raise ErroDeValidacao("Atividade nao encontrada.")
-
         removida = atividades.pop(indice)
-        _gravar(dados)
-        return copy.deepcopy(removida)
+        _gravar(cursor, professor_id, atividades)
+
+    armazenamento.remover_imagens(_imagens([removida]))
+    return copy.deepcopy(removida)
 
 
 def reordenar_atividades(professor_id, ids):
-    with _LOCK:
-        dados = _ler()
-        atividades = _trilha_para_escrita(dados, professor_id)
+    with db.transacao() as cursor:
+        atividades = _trilha_para_escrita(cursor, professor_id)
 
         if not isinstance(ids, list):
             raise ErroDeValidacao("Envie a nova ordem das atividades.")
@@ -478,15 +469,16 @@ def reordenar_atividades(professor_id, ids):
             raise ErroDeValidacao("A nova ordem precisa conter exatamente as atividades atuais.")
 
         por_id = {int(item["id"]): item for item in atividades}
-        dados["professores"][str(professor_id)] = [por_id[item] for item in ordem]
+        atividades = [por_id[item] for item in ordem]
 
-        _gravar(dados)
-        return copy.deepcopy(dados["professores"][str(professor_id)])
+        _gravar(cursor, professor_id, atividades)
+        return copy.deepcopy(atividades)
 
 
 def restaurar_padrao(professor_id):
-    with _LOCK:
-        dados = _ler()
-        dados["professores"].pop(str(professor_id), None)
-        _gravar(dados)
-        return atividades_padrao()
+    with db.transacao() as cursor:
+        personalizada = _carregar(cursor, professor_id)
+        cursor.execute("delete from public.trilha_atividades where professor_id = %s", (int(professor_id),))
+
+    armazenamento.remover_imagens(_imagens(personalizada))
+    return atividades_padrao()

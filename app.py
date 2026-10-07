@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 import secrets
-import tempfile
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-import json
 from dotenv import load_dotenv
 
+import arena_store
+import armazenamento
+import db
 import trilha_store
+import usuarios_store
 from trilha_conteudo import CORES_DISPONIVEIS, ROTULOS_MINIJOGO, TIPOS_MINIJOGO
 from jogo_conteudo import (
     COMANDOS_PERMITIDOS,
@@ -27,55 +28,43 @@ from jogo_conteudo import (
 
 load_dotenv()
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = (
-    os.getenv("SECRET_KEY")
-    or os.getenv("FLASK_SECRET_KEY")
-    or "robooteam-chave-local-de-testes"
-)
+# Na Vercel, os arquivos de public/ são entregues direto pela CDN (sem passar
+# pelo Flask). Localmente o Flask serve a mesma pasta, no mesmo endereço /static.
+app = Flask(__name__, static_folder="public/static", static_url_path="/static")
+
+chave_secreta = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY")
+if not chave_secreta and os.getenv("VERCEL"):
+    # sem a variável, qualquer pessoa com o código-fonte conseguiria forjar logins
+    raise RuntimeError("Defina SECRET_KEY nas Environment Variables do projeto na Vercel.")
+app.config["SECRET_KEY"] = chave_secreta or "robooteam-chave-local-de-testes"
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
-
-diretorio_projeto = Path(app.root_path)
-diretorio_dados = diretorio_projeto
-
-if os.getenv("VERCEL"):
-    # Vercel Functions permitem escrita somente no diretório temporário.
-    # Os dados ficam disponíveis enquanto a instância estiver ativa, mas não
-    # substituem um banco de dados persistente.
-    diretorio_dados = Path(tempfile.gettempdir()) / "robooteam"
-    diretorio_dados.mkdir(parents=True, exist_ok=True)
-
-usuarios_json_path = diretorio_dados / "usuarios_teste.json"
-usuarios_iniciais_path = diretorio_projeto / "usuarios_teste.json"
-
-if (
-    os.getenv("VERCEL")
-    and not usuarios_json_path.exists()
-    and usuarios_iniciais_path.exists()
-):
-    usuarios_json_path.write_bytes(usuarios_iniciais_path.read_bytes())
+# imagens das trilhas chegam com no máximo 4 MB (limite da Vercel: 4,5 MB)
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 token_serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="robooteam-login")
 
 
-def carregar_usuarios_json():
-    if not usuarios_json_path.exists():
-        return []
-
-    try:
-        usuarios = json.loads(usuarios_json_path.read_text(encoding="utf-8"))
-        return usuarios if isinstance(usuarios, list) else []
-    except (OSError, json.JSONDecodeError):
-        return []
+def falha_no_banco(mensagem):
+    """Resposta padrão quando o Supabase não responde (o erro vai para o log)."""
+    app.logger.exception(mensagem)
+    return jsonify({"error": mensagem}), 500
 
 
-def salvar_usuarios_json(usuarios):
-    arquivo_temporario = usuarios_json_path.with_suffix(".tmp")
-    arquivo_temporario.write_text(
-        json.dumps(usuarios, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    arquivo_temporario.replace(usuarios_json_path)
+def banco_indisponivel(erro):
+    app.logger.error("Falha ao acessar o banco de dados", exc_info=erro)
+    mensagem = "Não foi possível acessar o banco de dados agora. Tente novamente em instantes."
+    if request.path.startswith("/api/"):
+        return jsonify({"error": mensagem}), 503
+    return mensagem, 503
+
+
+for tipo_de_erro in db.ERROS_DE_BANCO:
+    app.register_error_handler(tipo_de_erro, banco_indisponivel)
+
+
+@app.errorhandler(413)
+def arquivo_grande_demais(_erro):
+    return jsonify({"error": "O arquivo enviado é grande demais. Use uma imagem de até 4 MB."}), 413
 
 
 def gerar_token_json(usuario):
@@ -101,10 +90,7 @@ def obter_usuario_autenticado(perfil=None):
     except BadSignature:
         return None, (jsonify({"error": "Sessão inválida"}), 401)
 
-    usuario = next(
-        (item for item in carregar_usuarios_json() if int(item.get("id", -1)) == int(payload.get("id", -2))),
-        None,
-    )
+    usuario = usuarios_store.buscar_por_id(payload.get("id"))
 
     if not usuario:
         return None, (jsonify({"error": "Usuário não encontrado"}), 401)
@@ -310,6 +296,19 @@ def pagina_jogo_blocos():
     return render_template("jogo_blocos.html", usuario=usuario)
 
 
+@app.get("/aluno/arena/<codigo>")
+def pagina_arena_aluno(codigo):
+    usuario, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return redirect(url_for("pagina_login", next=request.path))
+
+    arena = arena_store.buscar_por_codigo(codigo)
+    if not arena:
+        return redirect(url_for("pagina_aluno", _anchor="sala"))
+
+    return render_template("arena.html", usuario=usuario, codigo=arena["codigo"])
+
+
 @app.get("/professor")
 def pagina_professor():
     usuario, erro = obter_usuario_autenticado("PROFESSOR")
@@ -365,12 +364,9 @@ def login():
     if not email or not senha:
         return jsonify({"error": "Email e senha obrigatórios"}), 400
 
-    usuario = next(
-        (item for item in carregar_usuarios_json() if item.get("email", "").lower() == email),
-        None,
-    )
+    usuario = usuarios_store.buscar_por_email(email)
 
-    if not usuario or not check_password_hash(usuario["senha"], senha):
+    if not usuario or not check_password_hash(usuario["senha_hash"], str(senha)):
         return jsonify({"error": "E-mail ou senha incorretos"}), 401
 
     token = gerar_token_json(usuario)
@@ -402,47 +398,29 @@ def logout():
 
 
 # ============================================
-# CADASTRO LOCAL PARA TESTES
+# CADASTRO (SEMPRE DE ALUNO)
 # ============================================
 
 @app.post("/api/cadastro")
 def cadastrar_usuario_json():
+    # A conta de professor (Beatriz) é criada direto no banco; pelo site
+    # só é possível criar contas de aluno, mesmo que outro perfil seja enviado.
     dados = request.get_json(silent=True) or {}
-    nome = str(dados.get("nome", "")).strip()
+    nome = " ".join(str(dados.get("nome", "")).split())
     email = str(dados.get("email", "")).strip().lower()
     senha = str(dados.get("senha", ""))
-    perfil_recebido = str(dados.get("perfil", "")).strip().lower()
-    perfis = {"aluno": "ALUNO", "educador": "PROFESSOR", "professor": "PROFESSOR"}
-    perfil = perfis.get(perfil_recebido)
 
-    if len(nome) < 3 or not email or len(senha) < 8 or not perfil:
+    if not 3 <= len(nome) <= 80 or "@" not in email or len(email) > 254 or len(senha) < 8:
         return jsonify({"error": "Dados de cadastro inválidos"}), 400
 
-    usuarios = carregar_usuarios_json()
-    if any(usuario.get("email", "").lower() == email for usuario in usuarios):
-        return jsonify({"error": "Já existe uma conta com este e-mail"}), 409
-
-    novo_id = max((int(usuario.get("id", 0)) for usuario in usuarios), default=0) + 1
-    usuarios.append({
-        "id": novo_id,
-        "nome": nome,
-        "email": email,
-        "senha": generate_password_hash(senha),
-        "perfil": perfil,
-        "turma": None,
-        "etapas_concluidas": [],
-        "pontuacoes": {},
-        "fases_jogo_concluidas": [],
-        "pontuacoes_jogo": {},
-        "progresso_atualizado_em": None,
-    })
-
     try:
-        salvar_usuarios_json(usuarios)
-    except OSError:
-        return jsonify({"error": "Não foi possível salvar o cadastro"}), 500
+        usuarios_store.criar_aluno(nome, email, generate_password_hash(senha))
+    except usuarios_store.EmailJaCadastrado as problema:
+        return jsonify({"error": str(problema)}), 409
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível salvar o cadastro")
 
-    return jsonify({"message": "Cadastro realizado", "perfil": perfil}), 201
+    return jsonify({"message": "Cadastro realizado", "perfil": usuarios_store.PERFIL_ALUNO}), 201
 
 
 # ============================================
@@ -488,15 +466,7 @@ def obter_trilha_aluno():
     nivel = 1 + quantidade_concluida // 2
     proxima = next((item for item in itens if item["estado"] == "atual"), None)
     professor_id = usuario.get("professor_id")
-    professor = next(
-        (
-            item
-            for item in carregar_usuarios_json()
-            if item.get("perfil") == "PROFESSOR"
-            and str(item.get("id")) == str(professor_id)
-        ),
-        None,
-    )
+    professor = usuarios_store.buscar_professor(professor_id) if professor_id else None
     sala = None
     if professor:
         sala = {
@@ -566,9 +536,7 @@ def concluir_etapa_trilha(lesson_id):
             "total": len(respostas_corretas),
         }), 400
 
-    usuarios = carregar_usuarios_json()
-    usuario_salvo = next(item for item in usuarios if int(item["id"]) == int(usuario["id"]))
-    concluidas = trilha_store.normalizar_concluidas(atividades, usuario_salvo.get("etapas_concluidas", []))
+    concluidas = trilha_store.normalizar_concluidas(atividades, usuario.get("etapas_concluidas", []))
     etapa_atual = trilha_store.primeira_pendente(atividades, concluidas)
 
     if lesson_id not in concluidas and lesson_id != etapa_atual:
@@ -578,14 +546,10 @@ def concluir_etapa_trilha(lesson_id):
         concluidas.append(lesson_id)
         concluidas.sort()
 
-    usuario_salvo["etapas_concluidas"] = concluidas
-    usuario_salvo.setdefault("pontuacoes", {})[str(lesson_id)] = acertos
-    usuario_salvo["progresso_atualizado_em"] = datetime.now(timezone.utc).isoformat()
-
     try:
-        salvar_usuarios_json(usuarios)
-    except OSError:
-        return jsonify({"error": "Não foi possível salvar o progresso"}), 500
+        usuarios_store.registrar_etapa_concluida(usuario["id"], lesson_id, acertos)
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível salvar o progresso")
 
     proxima_id = trilha_store.primeira_pendente(atividades, concluidas)
     proxima = trilha_store.buscar_atividade(atividades, proxima_id) if proxima_id else None
@@ -720,22 +684,7 @@ def concluir_fase_jogo_blocos(phase_id):
             "resultado": resultado,
         }), 422
 
-    usuarios = carregar_usuarios_json()
-    usuario_salvo = next(
-        (item for item in usuarios if str(item.get("id")) == str(usuario["id"])),
-        None,
-    )
-    if not usuario_salvo:
-        return jsonify({"error": "Aluno não encontrado"}), 404
-
-    concluidas = fases_jogo_concluidas(usuario_salvo)
-    fase_atual_salva = primeira_fase_jogo_pendente(concluidas)
-    if phase_id not in concluidas and phase_id != fase_atual_salva:
-        return jsonify({
-            "error": "Conclua a fase anterior primeiro",
-            "fase_desbloqueada": fase_atual_salva,
-        }), 409
-
+    concluidas = list(concluidas_usuario)
     ja_concluida = phase_id in concluidas
     if not ja_concluida:
         concluidas.append(phase_id)
@@ -745,7 +694,7 @@ def concluir_fase_jogo_blocos(phase_id):
         0,
         fase["limite_blocos"] - resultado["blocos_executados"],
     ) * 10
-    pontuacoes_salvas = usuario_salvo.get("pontuacoes_jogo")
+    pontuacoes_salvas = usuario.get("pontuacoes_jogo")
     pontuacoes = dict(pontuacoes_salvas) if isinstance(pontuacoes_salvas, dict) else {}
 
     pontuacao_anterior = pontuacoes.get(str(phase_id), 0)
@@ -761,16 +710,16 @@ def concluir_fase_jogo_blocos(phase_id):
 
     if houve_alteracao:
         pontuacoes[str(phase_id)] = melhor_pontuacao
-        usuario_salvo["pontuacoes_jogo"] = pontuacoes
-        usuario_salvo["fases_jogo_concluidas"] = concluidas
-        usuario_salvo["jogo_atualizado_em"] = datetime.now(timezone.utc).isoformat()
+        usuario["pontuacoes_jogo"] = pontuacoes
+        usuario["fases_jogo_concluidas"] = concluidas
+        usuario["jogo_atualizado_em"] = datetime.now(timezone.utc).isoformat()
 
         try:
-            salvar_usuarios_json(usuarios)
-        except OSError:
-            return jsonify({"error": "Não foi possível salvar o progresso do jogo"}), 500
+            usuarios_store.salvar_fase_jogo(usuario["id"], phase_id, melhor_pontuacao)
+        except db.ERROS_DE_BANCO:
+            return falha_no_banco("Não foi possível salvar o progresso do jogo")
 
-    progresso = resumo_progresso_jogo(usuario_salvo)
+    progresso = resumo_progresso_jogo(usuario)
     return jsonify({
         "message": "Fase já concluída" if ja_concluida else "Fase concluída!",
         "fase_id": phase_id,
@@ -795,17 +744,18 @@ def entrar_sala_aluno():
     if not codigo:
         return jsonify({"error": "Digite o código da sala"}), 400
 
-    usuarios = carregar_usuarios_json()
-    professor = next(
-        (
-            item
-            for item in usuarios
-            if item.get("perfil") == "PROFESSOR"
-            and str(item.get("codigo_sala", "")).upper() == codigo
-        ),
-        None,
-    )
+    professor = usuarios_store.buscar_professor_por_codigo(codigo)
     if not professor:
+        # codigos ARN-XXXX levam para uma partida da Arena RobooTeam
+        arena = arena_store.buscar_por_codigo(codigo)
+        if arena:
+            if arena["status"] == "finalizada":
+                return jsonify({"error": "Esta partida da Arena já terminou"}), 410
+            return jsonify({
+                "message": f"Arena \"{arena['nome']}\" encontrada! Preparando o robô...",
+                "redirect_url": url_for("pagina_arena_aluno", codigo=arena["codigo"]),
+                "arena": {"codigo": arena["codigo"], "nome": arena["nome"]},
+            }), 200
         return jsonify({"error": "Código de sala inválido"}), 404
 
     try:
@@ -818,24 +768,13 @@ def entrar_sala_aluno():
     if validade.astimezone(timezone.utc) <= datetime.now(timezone.utc):
         return jsonify({"error": "Este código de sala expirou. Peça um novo ao professor"}), 410
 
-    aluno_salvo = next(
-        (item for item in usuarios if str(item.get("id")) == str(aluno["id"])),
-        None,
-    )
-    if not aluno_salvo:
-        return jsonify({"error": "Aluno não encontrado"}), 404
-
-    ja_participa = str(aluno_salvo.get("professor_id")) == str(professor["id"])
+    ja_participa = str(aluno.get("professor_id")) == str(professor["id"])
     nome_turma = professor.get("turma_nome") or f"Turma de {professor['nome']}"
-    professor["turma_nome"] = nome_turma
-    aluno_salvo["professor_id"] = professor["id"]
-    aluno_salvo["turma"] = nome_turma
-    aluno_salvo["sala_entrada_em"] = datetime.now(timezone.utc).isoformat()
 
     try:
-        salvar_usuarios_json(usuarios)
-    except OSError:
-        return jsonify({"error": "Não foi possível entrar na sala agora"}), 500
+        usuarios_store.vincular_aluno_a_sala(aluno["id"], professor["id"], nome_turma)
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível entrar na sala agora")
 
     return jsonify({
         "message": "Você já faz parte desta sala" if ja_participa else "Entrada na sala realizada com sucesso!",
@@ -857,13 +796,7 @@ def obter_resumo_professor():
     if erro:
         return erro
 
-    usuarios = carregar_usuarios_json()
-    alunos = [
-        usuario
-        for usuario in usuarios
-        if usuario.get("perfil") == "ALUNO"
-        and str(usuario.get("professor_id")) == str(professor["id"])
-    ]
+    alunos = usuarios_store.alunos_do_professor(professor["id"])
     atividades = trilha_store.trilha_do_professor(professor["id"])
     total_etapas = len(atividades)
     alunos_formatados = []
@@ -931,23 +864,20 @@ def gerar_codigo_sala():
     if erro:
         return erro
 
-    usuarios = carregar_usuarios_json()
-    professor_salvo = next(item for item in usuarios if int(item["id"]) == int(professor["id"]))
     codigo = f"RBT-{secrets.token_hex(2).upper()}"
     validade = datetime.now(timezone.utc) + timedelta(hours=24)
-    professor_salvo.setdefault("turma_nome", f"Turma de {professor['nome']}")
-    professor_salvo["codigo_sala"] = codigo
-    professor_salvo["codigo_validade"] = validade.isoformat()
 
     try:
-        salvar_usuarios_json(usuarios)
-    except OSError:
-        return jsonify({"error": "Não foi possível gerar o código"}), 500
+        nome_turma = usuarios_store.salvar_codigo_sala(
+            professor["id"], codigo, validade, f"Turma de {professor['nome']}"
+        )
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível gerar o código")
 
     return jsonify({
         "codigo": codigo,
         "validade": validade.isoformat(),
-        "turma": professor_salvo["turma_nome"],
+        "turma": nome_turma,
     }), 201
 
 
@@ -955,26 +885,9 @@ def gerar_codigo_sala():
 # ATIVIDADES DA TRILHA (CRUD DO PROFESSOR)
 # ============================================
 
-def contar_conclusoes_por_etapa(professor_id):
-    """Quantos alunos da sala ja concluiram cada etapa."""
-    contagem = {}
-    for usuario in carregar_usuarios_json():
-        if usuario.get("perfil") != "ALUNO":
-            continue
-        if str(usuario.get("professor_id")) != str(professor_id):
-            continue
-        for etapa in usuario.get("etapas_concluidas", []):
-            try:
-                etapa = int(etapa)
-            except (TypeError, ValueError):
-                continue
-            contagem[etapa] = contagem.get(etapa, 0) + 1
-    return contagem
-
-
 def resposta_das_atividades(professor_id, mensagem=None, status=200):
     atividades = trilha_store.trilha_do_professor(professor_id)
-    conclusoes = contar_conclusoes_por_etapa(professor_id)
+    conclusoes = usuarios_store.contar_conclusoes_por_etapa(professor_id)
 
     itens = []
     for posicao, atividade in enumerate(atividades, start=1):
@@ -1032,8 +945,8 @@ def criar_atividade_trilha():
         )
     except trilha_store.ErroDeValidacao as problema:
         return jsonify({"error": str(problema)}), 400
-    except OSError:
-        return jsonify({"error": "Não foi possível salvar a atividade"}), 500
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível salvar a atividade")
 
     return resposta_das_atividades(
         professor["id"],
@@ -1056,8 +969,8 @@ def atualizar_atividade_trilha(atividade_id):
         )
     except trilha_store.ErroDeValidacao as problema:
         return jsonify({"error": str(problema)}), 400
-    except OSError:
-        return jsonify({"error": "Não foi possível salvar a atividade"}), 500
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível salvar a atividade")
 
     return resposta_das_atividades(
         professor["id"],
@@ -1075,8 +988,8 @@ def remover_atividade_trilha(atividade_id):
         atividade = trilha_store.remover_atividade(professor["id"], atividade_id)
     except trilha_store.ErroDeValidacao as problema:
         return jsonify({"error": str(problema)}), 400
-    except OSError:
-        return jsonify({"error": "Não foi possível remover a atividade"}), 500
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível remover a atividade")
 
     return resposta_das_atividades(
         professor["id"],
@@ -1096,8 +1009,8 @@ def reordenar_atividades_trilha():
         trilha_store.reordenar_atividades(professor["id"], dados.get("ids"))
     except trilha_store.ErroDeValidacao as problema:
         return jsonify({"error": str(problema)}), 400
-    except OSError:
-        return jsonify({"error": "Não foi possível salvar a nova ordem"}), 500
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível salvar a nova ordem")
 
     return resposta_das_atividades(professor["id"], "Nova ordem da trilha salva!")
 
@@ -1110,11 +1023,226 @@ def restaurar_atividades_trilha():
 
     try:
         trilha_store.restaurar_padrao(professor["id"])
-    except OSError:
-        return jsonify({"error": "Não foi possível restaurar a trilha"}), 500
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível restaurar a trilha")
 
     return resposta_das_atividades(professor["id"], "Trilha original do RobooTeam restaurada.")
 
+
+@app.post("/api/professor/imagens")
+def enviar_imagem_trilha():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    arquivo = request.files.get("imagem")
+    if not arquivo:
+        return jsonify({"error": "Escolha uma imagem para enviar."}), 400
+
+    try:
+        url = armazenamento.enviar_imagem(professor["id"], arquivo.read(armazenamento.TAMANHO_MAXIMO + 1))
+    except armazenamento.ErroImagem as problema:
+        if problema.status >= 500:
+            app.logger.warning("Envio de imagem falhou: %s", problema)
+        return jsonify({"error": str(problema)}), problema.status
+
+    return jsonify({"url": url}), 201
+
+
+# ============================================
+# ARENA ROBOOTEAM (PARTIDAS EM SALA)
+# ============================================
+
+def erro_arena(falha):
+    return jsonify({"error": str(falha)}), getattr(falha, "status", 400)
+
+
+def falha_ao_salvar_arena():
+    return falha_no_banco("Não foi possível salvar agora. Tente de novo")
+
+
+@app.get("/api/aluno/arenas")
+def listar_arenas_aluno():
+    aluno, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return erro
+    arenas = arena_store.arenas_do_aluno(aluno["id"])
+    for arena in arenas:
+        arena["url"] = url_for("pagina_arena_aluno", codigo=arena["codigo"])
+    return jsonify({"arenas": arenas})
+
+
+@app.get("/api/aluno/arena/<codigo>")
+def estado_arena_aluno(codigo):
+    aluno, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return erro
+    sala = arena_store.buscar_por_codigo(codigo)
+    if not sala:
+        return jsonify({"error": "Arena não encontrada"}), 404
+    if str(aluno["id"]) in sala.get("jogadores", {}):
+        arena_store.registrar_visita(sala, aluno["id"])
+    return jsonify(arena_store.visao_aluno(sala, aluno["id"]))
+
+
+@app.post("/api/aluno/arena/<codigo>/equipe")
+def entrar_equipe_arena(codigo):
+    aluno, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return erro
+    dados = request.get_json(silent=True) or {}
+    try:
+        sala = arena_store.entrar_na_equipe(codigo, aluno, dados.get("nome"), dados.get("cor"), dados.get("emoji"))
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    arena_store.registrar_visita(sala, aluno["id"])
+    return jsonify(arena_store.visao_aluno(sala, aluno["id"]))
+
+
+@app.post("/api/aluno/arena/<codigo>/executar")
+def executar_programa_arena(codigo):
+    aluno, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return erro
+    dados = request.get_json(silent=True) or {}
+    try:
+        resultado = arena_store.executar_programa(codigo, aluno["id"], dados.get("programa"))
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    return jsonify(resultado)
+
+
+@app.post("/api/aluno/arena/<codigo>/dica")
+def dica_arena(codigo):
+    aluno, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return erro
+    try:
+        return jsonify(arena_store.pedir_dica(codigo, aluno["id"]))
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+
+
+@app.route("/api/aluno/arena/<codigo>/ajuda", methods=["POST", "DELETE"])
+def ajuda_arena(codigo):
+    aluno, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return erro
+    dados = request.get_json(silent=True) or {}
+    try:
+        if request.method == "DELETE":
+            sala = arena_store.cancelar_ajuda(codigo, aluno["id"])
+        else:
+            sala = arena_store.pedir_ajuda(codigo, aluno["id"], dados.get("tipo"), dados.get("motivo"))
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    return jsonify(arena_store.visao_aluno(sala, aluno["id"]))
+
+
+@app.post("/api/aluno/arena/<codigo>/ajudar/<int:colega_id>")
+def ajudar_colega_arena(codigo, colega_id):
+    aluno, erro = obter_usuario_autenticado("ALUNO")
+    if erro:
+        return erro
+    try:
+        sala = arena_store.oferecer_ajuda(codigo, aluno, colega_id)
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    return jsonify(arena_store.visao_aluno(sala, aluno["id"]))
+
+
+@app.get("/api/professor/arenas")
+def listar_arenas_professor():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+    salas = arena_store.listar_do_professor(professor["id"])
+    return jsonify({"arenas": [arena_store.resumo_professor(sala) for sala in salas]})
+
+
+@app.get("/api/professor/arenas/mapa-aleatorio")
+def sortear_mapa_arena():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+    tamanho = request.args.get("tamanho", 8, type=int)
+    mapa = arena_store.gerar_mapa_aleatorio(tamanho if tamanho in arena_store.TAMANHOS else 8)
+    mapa.update(arena_store.resumo_do_mapa(mapa["tamanho"], mapa["mapa"], mapa["direcao"]))
+    return jsonify(mapa)
+
+
+@app.post("/api/professor/arenas")
+def criar_arena():
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+    try:
+        sala = arena_store.criar_sala(professor, request.get_json(silent=True))
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    return jsonify(arena_store.visao_professor(sala)), 201
+
+
+@app.route("/api/professor/arenas/<int:arena_id>", methods=["GET", "PUT", "DELETE"])
+def gerenciar_arena(arena_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+    try:
+        if request.method == "DELETE":
+            arena_store.remover_sala(arena_id, professor["id"])
+            return jsonify({"message": "Arena excluída"})
+        if request.method == "PUT":
+            sala = arena_store.atualizar_sala(arena_id, professor["id"], request.get_json(silent=True))
+        else:
+            sala = arena_store.obter_do_professor(arena_id, professor["id"])
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    return jsonify(arena_store.visao_professor(sala))
+
+
+@app.post("/api/professor/arenas/<int:arena_id>/status")
+def status_arena(arena_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+    dados = request.get_json(silent=True) or {}
+    try:
+        sala = arena_store.alterar_status(arena_id, professor["id"], dados.get("acao"))
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    return jsonify(arena_store.visao_professor(sala))
+
+
+@app.post("/api/professor/arenas/<int:arena_id>/ajuda/<int:aluno_id>")
+def responder_ajuda_arena(arena_id, aluno_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+    dados = request.get_json(silent=True) or {}
+    try:
+        sala = arena_store.responder_ajuda(arena_id, professor, aluno_id, dados.get("acao"))
+    except arena_store.ErroArena as falha:
+        return erro_arena(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_ao_salvar_arena()
+    return jsonify(arena_store.visao_professor(sala))
 
 if __name__ == "__main__":
     app.run(debug=True)

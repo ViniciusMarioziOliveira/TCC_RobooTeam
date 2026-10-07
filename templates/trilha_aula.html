@@ -11,7 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='trilha_aula.css', v='4') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='trilha_aula.css', v='5') }}">
 </head>
 
 <body class="lesson-page">
@@ -67,6 +67,12 @@
         <div>
           <h2>{{ section.title }}</h2>
           <p>{{ section.text }}</p>
+          {% if section.image %}
+          <figure class="reading-figure">
+            <img src="{{ section.image }}" alt="{{ section.image_alt or section.title }}" loading="lazy">
+            {% if section.image_alt %}<figcaption>{{ section.image_alt }}</figcaption>{% endif %}
+          </figure>
+          {% endif %}
         </div>
       </article>
       {% endfor %}

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arena RobooTeam — {{ codigo }}</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena.css', v='1') }}">
+<style>
+  .galaxy-bg{ background-image:linear-gradient(115deg, rgba(14,26,60,0.92) 0%, rgba(30,24,96,0.62) 58%, rgba(70,24,120,0.4) 100%), url("{{ url_for('static', filename='img/galaxy-bg.png') }}"); }
+  .board-space{ background-image:linear-gradient(160deg, rgba(10,20,48,0.9), rgba(40,20,90,0.78)), url("{{ url_for('static', filename='img/galaxy-bg.png') }}"); }
+</style>
+<script src="{{ url_for('static', filename='robo_perfil.js', v='1') }}" defer></script>
+<script src="{{ url_for('static', filename='arena.js', v='1') }}" defer></script>
+</head>
+<body
+  data-codigo="{{ codigo }}"
+  data-student-id="{{ usuario.id }}"
+  data-student-name="{{ usuario.nome }}"
+  data-state-url="{{ url_for('estado_arena_aluno', codigo=codigo) }}"
+  data-team-url="{{ url_for('entrar_equipe_arena', codigo=codigo) }}"
+  data-run-url="{{ url_for('executar_programa_arena', codigo=codigo) }}"
+  data-hint-url="{{ url_for('dica_arena', codigo=codigo) }}"
+  data-help-url="{{ url_for('ajuda_arena', codigo=codigo) }}"
+  data-help-mate-url="{{ url_for('ajudar_colega_arena', codigo=codigo, colega_id=0) }}"
+  data-dashboard-url="{{ url_for('pagina_aluno') }}"
+  data-login-url="{{ url_for('pagina_login') }}"
+  data-robot-img-base="{{ url_for('static', filename='img/') }}">
+
+<!-- ===================== CABEÇALHO ===================== -->
+<header class="arena-header">
+  <div class="arena-header-left">
+    <a class="back-btn" href="{{ url_for('pagina_aluno') }}" aria-label="Voltar ao meu painel">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 18-6-6 6-6"/></svg>
+    </a>
+    <img class="arena-logo" src="{{ url_for('static', filename='img/logo2.png') }}" alt="RobooTeam">
+    <div class="arena-title">
+      <span class="arena-kicker">🏟️ Arena RobooTeam</span>
+      <h1 id="arena-name">Carregando arena...</h1>
+    </div>
+  </div>
+  <div class="arena-header-right">
+    <span class="chip chip-code" title="Código da arena">{{ codigo }}</span>
+    <span class="chip chip-status" id="arena-status" data-status="aguardando">Aguardando</span>
+    <span class="chip chip-timer" id="arena-timer" hidden><span aria-hidden="true">⏱️</span> <strong id="arena-timer-value">00:00</strong></span>
+    <span class="chip chip-team" id="arena-team-chip" hidden></span>
+    <button type="button" class="icon-btn" id="sound-toggle" aria-pressed="true" title="Som ligado" aria-label="Ligar ou desligar o som">🔊</button>
+    <button type="button" class="help-btn" id="open-help" hidden>
+      <span class="help-btn-icon" aria-hidden="true">🙋</span>
+      <span id="open-help-label">Preciso de ajuda</span>
+    </button>
+  </div>
+</header>
+
+<main class="arena-main">
+
+  <div class="arena-loading" id="view-loading">
+    <img src="{{ url_for('static', filename='img/5.png') }}" alt="">
+    <strong>Preparando a arena...</strong>
+  </div>
+
+  <!-- ===================== ESCOLHER EQUIPE ===================== -->
+  <section class="view" id="view-lobby" hidden>
+    <div class="hero galaxy-bg">
+      <div class="hero-copy">
+        <span class="hero-kicker">✨ Bem-vindo à Arena!</span>
+        <h2>Monte sua equipe e prepare o robô!</h2>
+        <p>Cada equipe pode ter até 4 exploradores. O tempo de todos é somado no ranking — então ajudem uns aos outros!</p>
+      </div>
+      <div class="hero-robot robot-float"><span class="robot-figure" data-my-robot><img src="{{ url_for('static', filename='img/1.png') }}" alt="Seu robô"><span class="robot-acc"></span></span></div>
+    </div>
+
+    <div class="lobby-grid">
+      <div class="card">
+        <div class="card-head">
+          <h3>Entrar em uma equipe</h3>
+          <span class="card-sub">Clique na equipe dos seus amigos</span>
+        </div>
+        <div class="team-list" id="team-list">
+          <p class="empty-note">Nenhuma equipe ainda. Seja o primeiro a criar uma! 🚀</p>
+        </div>
+      </div>
+
+      <form class="card" id="team-form" novalidate>
+        <div class="card-head">
+          <h3>Criar nova equipe</h3>
+          <span class="card-sub">Escolha um nome bem legal</span>
+        </div>
+        <label class="field-label" for="team-name">Nome da equipe</label>
+        <input class="field-input" id="team-name" maxlength="24" autocomplete="off" placeholder="Ex.: Foguetes Azuis" required>
+        <div class="suggestions" id="team-suggestions"></div>
+        <span class="field-label">Mascote da equipe</span>
+        <div class="emoji-row" id="team-emojis"></div>
+        <span class="field-label">Cor</span>
+        <div class="color-row" id="team-colors"></div>
+        <p class="form-error" id="team-error" role="alert"></p>
+        <button type="submit" class="btn-candy primary wide" id="team-submit"><span aria-hidden="true">🚀</span> Criar e entrar</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===================== AGUARDANDO LARGADA ===================== -->
+  <section class="view" id="view-waiting" hidden>
+    <div class="hero galaxy-bg waiting-hero">
+      <div class="hero-copy">
+        <span class="hero-kicker">⏳ Quase lá!</span>
+        <h2>Tudo pronto, <span id="waiting-name"></span>!</h2>
+        <p>Aguardando o professor dar a largada<span class="dots"><i>.</i><i>.</i><i>.</i></span></p>
+        <div class="waiting-tip" id="waiting-tip" aria-live="polite"></div>
+      </div>
+      <div class="hero-robot robot-bounce"><span class="robot-figure" data-my-robot><img src="{{ url_for('static', filename='img/1.png') }}" alt="Seu robô esperando"><span class="robot-acc"></span></span></div>
+    </div>
+    <div class="lobby-grid">
+      <div class="card">
+        <div class="card-head">
+          <h3 id="waiting-team-title">Sua equipe</h3>
+          <button type="button" class="link-btn" id="change-team">Trocar de equipe</button>
+        </div>
+        <div class="member-list" id="waiting-members"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Equipes na arena</h3>
+          <span class="card-sub" id="waiting-count"></span>
+        </div>
+        <div class="team-pills" id="waiting-teams"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== JOGO ===================== -->
+  <section class="view" id="view-game" hidden>
+    <div class="help-banner" id="help-status" hidden>
+      <span class="help-banner-icon" id="help-status-icon" aria-hidden="true">⏳</span>
+      <div class="help-banner-copy">
+        <strong id="help-status-title">Pedido enviado!</strong>
+        <span id="help-status-text">O professor já vai te ajudar.</span>
+      </div>
+      <button type="button" class="btn-soft small" id="help-cancel">Já resolvi ✅</button>
+    </div>
+
+    <div class="mate-banner" id="mate-help" hidden>
+      <span aria-hidden="true">🙋</span>
+      <span id="mate-help-text"></span>
+      <button type="button" class="btn-candy small" id="mate-help-btn">Vou ajudar!</button>
+    </div>
+
+    <div class="game-grid">
+      <!-- tabuleiro -->
+      <section class="card board-card">
+        <div class="robot-says">
+          <span class="says-avatar"><span class="robot-figure" data-my-robot><img src="{{ url_for('static', filename='img/1.png') }}" alt=""><span class="robot-acc"></span></span></span>
+          <div class="says-bubble">
+            <strong id="says-name">Robô</strong>
+            <p id="says-text" aria-live="polite">Monte os blocos e me leve até a bandeira! 🏁</p>
+          </div>
+        </div>
+
+        <div class="board-wrap board-space">
+          <div class="board" id="board" role="grid" aria-label="Mapa da arena"></div>
+        </div>
+
+        <div class="board-foot">
+          <div class="legend">
+            <span><i class="lg lg-start"></i>Início</span>
+            <span><i class="lg lg-wall"></i>Parede</span>
+            <span><i class="lg lg-goal"></i>Bandeira</span>
+          </div>
+          <div class="hint-toggle-wrap">
+            <button type="button" class="link-btn" id="hint-toggle" hidden>Esconder dica</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- programação -->
+      <section class="card code-card">
+        <div class="card-head">
+          <h3>Programe seu robô</h3>
+          <span class="block-counter" id="block-counter"><strong id="block-count">0</strong>/<span id="block-limit">40</span> blocos</span>
+        </div>
+
+        <div class="palette" id="palette">
+          <button type="button" class="block b-avancar" data-tipo="avancar" draggable="true"><span class="b-ico">⬆️</span>Avançar</button>
+          <button type="button" class="block b-esquerda" data-tipo="virar_esquerda" draggable="true"><span class="b-ico">↩️</span>Virar à esquerda</button>
+          <button type="button" class="block b-direita" data-tipo="virar_direita" draggable="true"><span class="b-ico">↪️</span>Virar à direita</button>
+          <button type="button" class="block b-repetir" data-tipo="repetir" draggable="true"><span class="b-ico">🔁</span>Repetir</button>
+        </div>
+        <p class="palette-help">Clique ou arraste os blocos. Dentro do <strong>Repetir</strong> os blocos rodam várias vezes!</p>
+
+        <div class="program" id="program" data-lista="raiz" aria-label="Meu programa">
+          <div class="program-empty" id="program-empty">
+            <span aria-hidden="true">🧩</span>
+            <strong>Solte seus blocos aqui</strong>
+            <span>O robô executa de cima para baixo</span>
+          </div>
+        </div>
+
+        <div class="run-bar">
+          <button type="button" class="btn-candy go" id="run-btn"><span aria-hidden="true">▶</span> Executar</button>
+          <button type="button" class="btn-soft" id="reset-btn" title="Voltar o robô ao início"><span aria-hidden="true">↺</span> Reiniciar</button>
+          <button type="button" class="btn-soft" id="speed-btn" title="Velocidade do robô" aria-pressed="false"><span aria-hidden="true" id="speed-icon">🐢</span> <span id="speed-label">Devagar</span></button>
+          <button type="button" class="btn-soft danger" id="clear-btn" title="Apagar todos os blocos"><span aria-hidden="true">🗑️</span></button>
+        </div>
+        <p class="train-note" id="train-note" hidden>🏆 Você já completou! Agora está no <strong>modo treino</strong> — tente usar menos blocos.</p>
+      </section>
+
+      <!-- equipe -->
+      <section class="card team-card">
+        <div class="card-head">
+          <h3 id="team-card-title">Minha equipe</h3>
+          <span class="card-sub" id="team-card-sub"></span>
+        </div>
+        <div class="member-list" id="game-members"></div>
+      </section>
+
+      <!-- ranking -->
+      <section class="card rank-card">
+        <div class="card-head">
+          <h3>🏆 Ranking ao vivo</h3>
+          <span class="card-sub">Mais pessoas na bandeira e menor tempo</span>
+        </div>
+        <ol class="rank-list" id="rank-list"></ol>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===================== FIM DA PARTIDA ===================== -->
+  <section class="view" id="view-final" hidden>
+    <div class="hero galaxy-bg final-hero">
+      <div class="hero-copy">
+        <span class="hero-kicker">🏁 Fim da partida!</span>
+        <h2 id="final-title">Parabéns, exploradores!</h2>
+        <p id="final-text">Veja como ficou o ranking das equipes.</p>
+        <a class="btn-candy" href="{{ url_for('pagina_aluno') }}"><span aria-hidden="true">🏠</span> Voltar ao meu painel</a>
+      </div>
+      <div class="hero-robot robot-float"><span class="robot-figure" data-my-robot data-image="3"><img src="{{ url_for('static', filename='img/3.png') }}" alt="Seu robô comemorando"><span class="robot-acc"></span></span></div>
+    </div>
+    <div class="podium" id="podium"></div>
+    <div class="card">
+      <ol class="rank-list" id="final-rank"></ol>
+    </div>
+  </section>
+</main>
+
+<!-- ===================== MODAL: AJUDA ===================== -->
+<div class="modal" id="help-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <header class="modal-head">
+      <span class="modal-head-ico" aria-hidden="true">🙋</span>
+      <div>
+        <h2 id="help-title">Precisa de uma forcinha?</h2>
+        <p>Escolha o tipo de ajuda. Pedir ajuda é coisa de quem quer aprender! 💙</p>
+      </div>
+      <button type="button" class="modal-close" data-close aria-label="Fechar">✕</button>
+    </header>
+    <div class="modal-body">
+      <div class="help-options">
+        <button type="button" class="help-option opt-hint" id="help-hint">
+          <span class="opt-ico" aria-hidden="true">💡</span>
+          <strong>Dica do robô</strong>
+          <span>Eu mostro um pedacinho do caminho.</span>
+          <span class="opt-meter" id="hint-meter" aria-label="Dicas usadas"><i></i><i></i><i></i></span>
+        </button>
+        <button type="button" class="help-option opt-team" id="help-team">
+          <span class="opt-ico" aria-hidden="true">🤝</span>
+          <strong>Chamar minha equipe</strong>
+          <span id="help-team-text">Seus colegas recebem um aviso na tela.</span>
+        </button>
+        <button type="button" class="help-option opt-prof" id="help-prof">
+          <span class="opt-ico" aria-hidden="true">🧑‍🏫</span>
+          <strong>Chamar o professor</strong>
+          <span>Conte qual é a dúvida e entre na fila.</span>
+        </button>
+      </div>
+      <div class="reason-box" id="reason-box" hidden>
+        <p class="reason-title">Qual é a sua dúvida?</p>
+        <div class="reason-chips" id="reason-chips"></div>
+        <button type="button" class="btn-candy primary wide" id="send-prof-help" disabled><span aria-hidden="true">📣</span> Chamar o professor</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: VITÓRIA ===================== -->
+<div class="modal" id="win-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel win-panel" role="dialog" aria-modal="true" aria-labelledby="win-title">
+    <div class="win-stage galaxy-bg">
+      <span class="win-spark s1" aria-hidden="true">✦</span>
+      <span class="win-spark s2" aria-hidden="true">✦</span>
+      <span class="win-spark s3" aria-hidden="true">✦</span>
+      <div class="win-robot robot-bounce"><span class="robot-figure" data-my-robot data-image="3"><img src="{{ url_for('static', filename='img/3.png') }}" alt="Seu robô comemorando"><span class="robot-acc"></span></span></div>
+    </div>
+    <div class="win-body">
+      <p class="win-kicker">Missão cumprida!</p>
+      <h2 id="win-title">Você chegou à bandeira! 🏁</h2>
+      <div class="win-stars" id="win-stars" aria-label="Estrelas"></div>
+      <div class="win-stats">
+        <div><strong id="win-time">00:00</strong><span>seu tempo</span></div>
+        <div><strong id="win-blocks">0</strong><span>blocos</span></div>
+        <div><strong id="win-tries">1</strong><span>tentativas</span></div>
+      </div>
+      <p class="win-team" id="win-team"></p>
+      <div class="win-actions">
+        <button type="button" class="btn-candy primary" data-close><span aria-hidden="true">🏆</span> Ver ranking</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- contagem regressiva -->
+<div class="countdown" id="countdown" hidden aria-live="assertive"><span id="countdown-value">3</span></div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+</body>
+</html>
