@@ -1,201 +1,335 @@
+<div align="center">
+
+<img src="public/static/img/logo.png" alt="Logo da RobooTeam" width="220">
+
 # RobooTeam
 
-RobooTeam é um projeto educacional em desenvolvimento que apresenta a robótica e a programação por meio de atividades práticas, trilhas de aprendizado, quizzes e minijogos. A proposta é estimular a curiosidade, o raciocínio lógico e a colaboração entre alunos e professores.
+**Robótica, programação e inteligência artificial aprendidas na prática, com trilhas, quizzes e minijogos.**
 
-## Página inicial
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Hospedagem-Vercel-000000?logo=vercel&logoColor=white)
+![Status](https://img.shields.io/badge/Status-TCC%20em%20desenvolvimento-8A2BE2)
 
-A página `templates/index.html` apresenta o projeto e oferece acesso ao cadastro e ao login. Ela reúne:
+</div>
 
-- Apresentação da RobooTeam e dos benefícios do aprendizado na prática.
-- Demonstração visual de uma missão de robótica com programação em blocos.
-- Jornada de aprendizado: descoberta, construção e resultados.
-- Apresentação das trilhas, dos minijogos e do painel do professor.
-- Rodapé com as áreas **Aluno**, **Professor** e **Atividades**.
+---
 
-A demonstração da página inicial é uma interface ilustrativa; não representa uma conexão com um robô físico.
+## 📑 Sumário
 
-## Funcionalidades do projeto
+- [Sobre o projeto](#-sobre-o-projeto)
+- [Funcionalidades](#-funcionalidades)
+- [Tecnologias](#-tecnologias)
+- [Como o sistema funciona](#-como-o-sistema-funciona)
+- [Como executar no seu computador](#-como-executar-no-seu-computador)
+- [Primeiro acesso](#-primeiro-acesso)
+- [Trocar a senha da professora](#-trocar-a-senha-da-professora)
+- [Banco de dados](#-banco-de-dados)
+- [Segurança](#-segurança)
+- [Estrutura dos arquivos](#-estrutura-dos-arquivos)
 
-- **Aluno:** acessar a trilha, estudar conteúdos, responder quizzes, realizar minijogos e acompanhar o progresso.
-- **Professor:** criar e editar etapas (com imagens nos blocos de leitura), escolher perguntas e minijogos, organizar a trilha e acompanhar os alunos da sala.
-- **Atividades:** leituras, quizzes com explicações, jogo da memória, labirinto, caça-palavras, cobrinha e ligação de blocos.
-- **Jogo de programação:** resolver fases usando comandos de movimento do robô.
-- **Salas:** vincular alunos a um professor por meio de um código.
-- **Arena RobooTeam:** partidas em equipe com mapa desenhado pelo professor, ranking e pedidos de ajuda ao vivo.
+---
 
-## Tecnologias
+## 🤖 Sobre o projeto
 
-- Python e Flask no servidor.
-- Templates Jinja2, HTML, CSS e JavaScript na interface.
-- Banco de dados PostgreSQL no Supabase (região São Paulo, `sa-east-1`) para usuários, progresso, trilhas e arenas.
-- Supabase Storage para as imagens anexadas às trilhas.
-- Werkzeug para hashes de senhas e ItsDangerous para os tokens de acesso.
+A **RobooTeam** é uma plataforma educacional que apresenta a robótica, a programação e a inteligência artificial a crianças e adolescentes de um jeito leve e divertido. Em vez de aulas só teóricas, o aluno avança por uma **trilha de aprendizado** com leituras curtas, **quizzes** e **minijogos**, programa um robô com **blocos** e participa de **partidas em equipe** na Arena.
 
-## Banco de dados (Supabase)
+A professora acompanha tudo por um **painel próprio**: vê o progresso de cada aluno, monta a trilha da turma do jeito que quiser e cria partidas na Arena.
 
-As tabelas ficam em `supabase/schema.sql`:
+O objetivo é estimular a curiosidade, o raciocínio lógico e a colaboração entre os alunos.
 
-| Tabela | Conteúdo |
+---
+
+## ✨ Funcionalidades
+
+### 👦 Área do aluno
+
+- **Cadastro e login** com e-mail e senha.
+- **Trilha da IA**: etapas que vão sendo liberadas uma de cada vez. Para concluir uma etapa, o aluno lê o conteúdo, acerta todas as perguntas do quiz e completa o minijogo.
+- **Pontos e níveis**: cada etapa concluída vale 100 pontos, e o nível sobe a cada duas etapas.
+- **Entrar na sala** da professora com um código, para ver a trilha personalizada da turma.
+- **Oficina do Robô**: o aluno personaliza o próprio robô (pose, cor e acessório).
+
+### 👩‍🏫 Painel da professora
+
+- **Resumo da turma**: total de alunos, média de progresso e situação de cada aluno.
+- **Código da sala** (`RBT-XXXX`), válido por 24 horas, para os alunos entrarem na turma.
+- **Editor da trilha**: criar, editar, reordenar e remover etapas, escolher perguntas e minijogos, anexar imagens (até 4 MB) e restaurar a trilha original quando quiser.
+- **Arena RobooTeam**: criar partidas, desenhar ou sortear o mapa, iniciar e encerrar o jogo e responder aos pedidos de ajuda dos alunos.
+
+### 🗺️ Trilha padrão: "Conhecendo a inteligência artificial"
+
+| Etapa | Período | Tema | Minijogo |
+| :---: | --- | --- | --- |
+| 1 | 1940 a 1959 | O começo dos robôs pensantes | Jogo da memória |
+| 2 | 1960 a 1999 | Robôs de regras e xadrez | Labirinto do robô |
+| 3 | 2000 a 2019 | Computadores que aprendem | Caça-palavras |
+| 4 | 2020 até hoje | Robôs escritores e artistas | Jogo da memória |
+| 5 | O futuro da IA | Os guardiões do futuro | Jogo da cobrinha |
+
+Cada etapa tem 4 perguntas de quiz, com explicação da resposta certa.
+
+### 🎮 Minijogos disponíveis
+
+| Minijogo | Como funciona |
 | --- | --- |
-| `usuarios` | Alunos e a professora (cadastro e login) |
-| `progresso_trilha` | Etapas da trilha concluídas por aluno |
-| `progresso_jogo` | Fases do jogo de programação concluídas |
-| `trilha_atividades` | Trilha personalizada da professora |
-| `arenas`, `arena_equipes`, `arena_jogadores` | Partidas da Arena, equipes e jogadores |
+| 🧠 Jogo da memória | Encontrar os pares de termo e significado |
+| 🧭 Labirinto | Guiar o robô até a saída (1 a 3 fases) |
+| 🔤 Caça-palavras | Achar as palavras escondidas na grade |
+| 🐍 Cobrinha | Pegar a quantidade de bolinhas da meta |
+| 🧩 Ligar blocos | Arrastar cada bloco até a explicação correta |
 
-O RLS fica ativo em todas as tabelas e sem políticas: só o servidor Flask, conectado pela string do banco, lê e grava os dados. As chaves públicas da API do Supabase não acessam nada.
+### 🧱 Missão Robô: programação em blocos
 
-### Criar o projeto
+Jogo com **5 fases** em um mapa 6×6. O aluno monta uma sequência de comandos (**avançar**, **virar à esquerda** e **virar à direita**) para levar o robô até a bandeira sem bater nas paredes e sem passar do limite de blocos. Quanto menos blocos usar, mais pontos ganha. O jogo é liberado depois que o aluno entra em uma sala.
 
-1. Em [supabase.com/dashboard](https://supabase.com/dashboard), crie um projeto novo e escolha a região **South America (São Paulo)**. Guarde a senha do banco.
-2. Abra **SQL Editor**, cole o conteúdo de `supabase/schema.sql` e execute. Depois faça o mesmo com `supabase/professora_beatriz.sql`.
-3. Em **Connect**, copie a string do **Transaction pooler** (porta 6543) e troque `[YOUR-PASSWORD]` pela senha do banco.
-4. Em **Project Settings → API Keys**, copie a URL do projeto e uma **secret key** (usada para guardar as imagens das trilhas).
+### 🏆 Arena RobooTeam
 
-### Professora e alunos
+Partidas em sala criadas pela professora:
 
-Existe um único login de professor: **Beatriz** (`beatriz@robooteam.com`), criado direto no banco por `supabase/professora_beatriz.sql`. O banco impede que exista um segundo professor, e todo cadastro feito pelo site é de aluno. As instruções para trocar a senha da professora estão no próprio arquivo SQL.
+1. A professora desenha (ou sorteia) um mapa de 6×6, 8×8 ou 10×10 e recebe um código `ARN-XXXX`.
+2. Os alunos digitam o código no campo **Entrar na sala** e escolhem uma equipe (até 4 jogadores por equipe).
+3. Cada aluno programa o robô com blocos (**avançar**, **virar** e **repetir**).
+4. O tempo de cada jogador é somado no **ranking da equipe**.
+5. Se travar, o aluno pode pedir uma **dica**, pedir ajuda a um **colega de equipe** ou chamar a **professora**.
 
-## Como executar localmente
+---
 
-É necessário ter Python instalado e disponível no terminal. Execute os comandos abaixo na pasta do projeto, usando PowerShell no Windows.
+## 🛠️ Tecnologias
 
-1. Crie um ambiente virtual:
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=python,flask,html,css,js,supabase,vercel,git,github" alt="Python, Flask, HTML, CSS, JavaScript, Supabase, Vercel, Git e GitHub">
+</p>
 
-   ```powershell
-   py -m venv .venv
-   ```
+| Tecnologia | Para que é usada |
+| --- | --- |
+| **Python 3.12** | Linguagem do servidor |
+| **Flask** | Páginas, rotas e API do sistema |
+| **Jinja2** | Montagem das páginas HTML no servidor |
+| **HTML, CSS e JavaScript** | Interface, animações e minijogos (sem frameworks) |
+| **PostgreSQL (Supabase)** | Banco de dados: usuários, progresso, trilhas e arenas |
+| **Supabase Storage** | Armazenamento das imagens enviadas para as trilhas |
+| **psycopg 3** | Conexão do Python com o PostgreSQL |
+| **Werkzeug** | Criptografia (hash) das senhas |
+| **ItsDangerous** | Tokens de login assinados |
+| **Vercel** | Hospedagem do site (região São Paulo) |
+| **Git e GitHub** | Controle de versão |
 
-2. Instale as dependências usadas pelo código:
+---
 
-   ```powershell
-   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-   ```
+## 🔄 Como o sistema funciona
 
-   As dependências e versões usadas na hospedagem estão em `requirements.txt`.
-
-3. Copie `.env.example` para `.env` e preencha com os dados do Supabase:
-
-   ```dotenv
-   SECRET_KEY=substitua-por-uma-chave-aleatoria
-   DATABASE_URL=postgresql://postgres.SEU_PROJETO:SUA_SENHA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
-   SUPABASE_URL=https://SEU_PROJETO.supabase.co
-   SUPABASE_SECRET_KEY=sb_secret_...
-   ```
-
-4. Inicie a aplicação:
-
-   ```powershell
-   .\.venv\Scripts\python.exe app.py
-   ```
-
-5. Abra `http://127.0.0.1:5000` no navegador.
-
-A página deve ser aberta pelo servidor Flask, pois usa expressões Jinja2 para gerar os endereços dos arquivos e das rotas. A execução por `app.py` habilita o modo de depuração para desenvolvimento local.
-
-## Primeiro acesso
-
-Na página inicial, selecione **Cadastre-se**, crie uma conta de aluno e entre pelo login. O cadastro exige nome com pelo menos três caracteres e senha com pelo menos oito caracteres.
-
-Para explorar as salas, entre como a professora Beatriz, gere o código da sala e use-o no painel de um aluno. Alunos sem sala utilizam a trilha padrão; alunos vinculados acessam a trilha da professora.
-
-## Estrutura dos arquivos
-
-```text
-RobooTeam/
-├── app.py                  # Aplicação Flask, páginas e APIs
-├── db.py                   # Conexão com o banco do Supabase
-├── usuarios_store.py       # Usuários, login e progresso dos alunos
-├── trilha_store.py         # Trilhas personalizadas da professora
-├── arena_store.py          # Partidas da Arena RobooTeam
-├── armazenamento.py        # Imagens das trilhas no Supabase Storage
-├── jogo_conteudo.py        # Fases e regras do jogo de programação
-├── trilha_conteudo.py      # Conteúdo padrão das trilhas e minijogos
-├── supabase/
-│   ├── schema.sql          # Tabelas, segurança e bucket de imagens
-│   └── professora_beatriz.sql  # Login da professora
-├── templates/              # Páginas HTML renderizadas pelo Flask
-│   ├── index.html          # Apresentação do projeto
-│   ├── login.html          # Login e cadastro
-│   ├── aluno.html          # Área do aluno
-│   ├── professor.html      # Área do professor
-│   ├── trilha_aula.html    # Conteúdo de uma etapa
-│   ├── jogo_blocos.html    # Jogo de programação
-│   └── arena.html          # Arena RobooTeam
-├── public/
-│   └── static/             # Estilos, scripts e imagens (servidos em /static)
-├── vercel.json             # Configuração da hospedagem na Vercel
-├── requirements.txt        # Dependências Python
-└── .python-version         # Versão do Python usada na Vercel (3.12)
+```mermaid
+flowchart LR
+    A["🧑 Navegador<br/>(aluno ou professora)"] -->|páginas e API| B["🐍 Flask<br/>app.py"]
+    A -->|CSS, JS e imagens| C["⚡ CDN da Vercel<br/>public/static"]
+    B -->|consultas SQL| D[("Supabase")]
+    B -->|envio de imagens| E["🖼️ Supabase Storage"]
+    A -->|exibe imagens da trilha| E
 ```
 
-O arquivo `.env` contém as configurações locais e não vai para o repositório.
+- O **navegador** carrega as páginas pelo Flask. Os arquivos fixos (CSS, JavaScript e imagens) vêm direto da CDN.
+- O **Flask** é o único que conversa com o banco. Ele confere o login, valida as respostas e salva o progresso.
+- As **imagens da trilha** são enviadas pelo servidor ao Supabase Storage, e os alunos as abrem pelo link público.
 
-Os arquivos estáticos ficam em `public/static/` porque, na Vercel, tudo o que está em `public/` é entregue direto pela CDN, sem passar pelo Flask. Localmente, o Flask serve a mesma pasta no mesmo endereço (`/static/...`), então os templates continuam usando `url_for('static', ...)` normalmente.
+---
 
-## Hospedagem na Vercel
+## 💻 Como executar no seu computador
 
-O projeto já está pronto para a Vercel:
+### O que você precisa ter instalado
 
-- `vercel.json` usa o preset **Flask**, coloca a função na região de São Paulo (`gru1`, perto do banco) e deixa `public/` e `supabase/` fora do pacote da função.
-- `requirements.txt` e `.python-version` definem as dependências e o Python 3.12.
-- `.vercelignore` impede que `.env`, `.venv` e arquivos locais sejam enviados.
-- Na Vercel, o app não inicia sem `SECRET_KEY`. Isso evita que ele rode com a chave de testes que está no código.
+| Programa | Onde baixar |
+| --- | --- |
+| Python 3.12 (ou mais novo) | [python.org/downloads](https://www.python.org/downloads/). Na instalação, marque **"Add Python to PATH"** |
+| Git | [git-scm.com](https://git-scm.com/) |
+| Conta no Supabase (gratuita) | [supabase.com](https://supabase.com/) |
 
-### Passo a passo
+> Os comandos abaixo são para o **PowerShell** do Windows. Abra o terminal **dentro da pasta do projeto**.
 
-1. **Envie todo o código para o GitHub.** Os arquivos novos (`db.py`, `usuarios_store.py`, `arena_store.py`, `armazenamento.py`, `public/`, `supabase/` etc.) precisam estar no repositório, senão o deploy quebra:
+### Passo 1: baixar o projeto
+
+```powershell
+git clone https://github.com/ViniciusMarioziOliveira/TCC_RobooTeam.git
+cd TCC_RobooTeam
+```
+
+### Passo 2: criar o banco de dados no Supabase
+
+1. Entre em [supabase.com/dashboard](https://supabase.com/dashboard) e clique em **New project**.
+2. Escolha a região **South America (São Paulo)** e crie uma senha para o banco. **Guarde essa senha.**
+3. No menu lateral, abra o **SQL Editor**.
+4. Copie todo o conteúdo do arquivo `supabase/schema.sql`, cole no editor e clique em **Run**. Isso cria as tabelas.
+5. Faça o mesmo com o arquivo `supabase/professora_beatriz.sql`. Isso cria o login da professora.
+
+### Passo 3: criar o ambiente virtual do Python
+
+O ambiente virtual é uma pasta (`.venv`) que guarda as bibliotecas só deste projeto.
+
+```powershell
+py -m venv .venv
+```
+
+### Passo 4: instalar as bibliotecas
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+### Passo 5: configurar o arquivo `.env`
+
+O `.env` guarda as senhas e chaves do projeto. Ele **nunca** vai para o GitHub.
+
+1. Faça uma cópia do arquivo de exemplo:
 
    ```powershell
-   git add -A
-   git commit -m "Prepara o projeto para a Vercel"
-   git push
+   Copy-Item .env.example .env
    ```
 
-   Confira no GitHub se `.env` **não** aparece na lista de arquivos.
+2. Abra o `.env` e preencha cada linha:
 
-2. **Gere uma chave secreta** para a produção:
+   | Variável | Onde encontrar |
+   | --- | --- |
+   | `SECRET_KEY` | Uma chave aleatória. Gere com o comando abaixo da tabela |
+   | `DATABASE_URL` | Supabase → botão **Connect** → **Transaction pooler** (porta 6543). Troque `[YOUR-PASSWORD]` pela senha do Passo 2 |
+   | `SUPABASE_URL` | Supabase → **Project Settings → API Keys** → URL do projeto |
+   | `SUPABASE_SECRET_KEY` | Supabase → **Project Settings → API Keys** → **secret key** (começa com `sb_secret_`) |
+
+   Para gerar a `SECRET_KEY`:
 
    ```powershell
    .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
    ```
 
-3. **Importe o projeto.** Em [vercel.com/new](https://vercel.com/new), escolha o repositório `TCC_RobooTeam`. Confira se:
-   - **Framework Preset** está como **Flask** (é detectado sozinho);
-   - **Root Directory** está como `./`;
-   - **Build Command**, **Output Directory** e **Install Command** estão vazios ou com o padrão (não sobrescreva).
+### Passo 6: iniciar o sistema
 
-4. **Cadastre as Environment Variables** (ainda na tela de importação, ou depois em **Settings → Environment Variables**), marcando **Production** e **Preview**:
+```powershell
+.\.venv\Scripts\python.exe app.py
+```
 
-   | Nome | Valor |
-   | --- | --- |
-   | `SECRET_KEY` | A chave gerada no passo 2 |
-   | `DATABASE_URL` | Supabase → **Connect** → **Transaction pooler** (porta **6543**), com `[YOUR-PASSWORD]` trocado pela senha do banco |
-   | `SUPABASE_URL` | `https://SEU_PROJETO.supabase.co` |
-   | `SUPABASE_SECRET_KEY` | Supabase → **Project Settings → API Keys** → secret key (`sb_secret_...`) |
+Quando aparecer `Running on http://127.0.0.1:5000`, o sistema está no ar.
 
-   Cole os valores sem aspas. Se a senha do banco tiver caracteres como `@`, `#`, `/` ou `%`, eles precisam ser codificados na URL (por exemplo, `@` vira `%40`). Ou troque a senha no Supabase por uma só com letras e números.
+### Passo 7: abrir no navegador
 
-5. **Clique em Deploy** e aguarde a URL (`https://...vercel.app`).
+Acesse **http://127.0.0.1:5000**. Para desligar o servidor, volte ao terminal e aperte `Ctrl + C`.
 
-6. **Teste o site publicado:**
-   - entre como a professora Beatriz e gere um código de sala;
-   - cadastre um aluno em outra janela anônima e entre na sala com o código;
-   - no painel da professora, edite uma etapa e envie uma imagem (testa o Supabase Storage).
+> **Algo deu errado?**
+> - *"Não foi possível acessar o banco de dados"*: confira a `DATABASE_URL` no `.env`. Ela deve ser a do **Transaction pooler** (porta 6543), com a senha correta.
+> - *"O envio de imagens ainda não foi configurado"*: faltou preencher `SUPABASE_URL` ou `SUPABASE_SECRET_KEY`.
+> - *`py` não é reconhecido*: reinstale o Python marcando **"Add Python to PATH"**.
 
-### Depois do primeiro deploy
+---
 
-- Cada `git push` na branch `main` publica uma nova versão automaticamente.
-- Alterou uma Environment Variable? Ela só vale para deploys novos: abra **Deployments**, clique nos três pontos do último deploy e escolha **Redeploy**.
-- Trocar a `SECRET_KEY` desconecta todos os usuários (eles só precisam entrar de novo).
+## 🚀 Primeiro acesso
 
-### Se algo der errado
+### Como professora
 
-Os erros aparecem em **Deployments → (deploy) → Logs** na Vercel.
+- **E-mail:** `beatriz@robooteam.com`
+- **Senha:** entregue separadamente pela equipe (não fica no repositório).
 
-| Sintoma | Causa provável |
+No painel, clique em **Gerar novo código** para criar o código da sala (`RBT-XXXX`). Ele vale por 24 horas.
+
+### Como aluno
+
+1. Na página inicial, clique em **Cadastre-se**.
+2. Preencha nome (mínimo de 3 letras), e-mail e senha (mínimo de 8 caracteres).
+3. Entre com o e-mail e a senha cadastrados.
+4. No painel, digite o código da sala que a professora gerou.
+
+> Alunos **sem sala** veem a trilha padrão. Alunos **com sala** veem a trilha montada pela professora.
+
+---
+
+## 🔑 Trocar a senha da professora
+
+O banco guarda apenas o **hash** da senha (uma versão embaralhada), nunca a senha em si. Para trocar:
+
+**1. No terminal**, gere o hash da nova senha (troque `NOVA_SENHA` pela senha desejada):
+
+```powershell
+.\.venv\Scripts\python.exe -c "from werkzeug.security import generate_password_hash as h; print(h('NOVA_SENHA'))"
+```
+
+Copie o resultado inteiro (começa com `scrypt:`).
+
+**2. No Supabase**, abra o **SQL Editor** e rode, colando o hash entre as aspas simples:
+
+```sql
+update public.usuarios set senha_hash = 'COLE_O_HASH_AQUI' where perfil = 'PROFESSOR';
+```
+
+Pronto: a próxima entrada já usa a senha nova.
+
+---
+
+## 🗄️ Banco de dados
+
+As tabelas são criadas pelo arquivo `supabase/schema.sql`:
+
+| Tabela | O que guarda |
 | --- | --- |
-| Erro 500 em todas as páginas e o log mostra `Defina SECRET_KEY...` | `SECRET_KEY` não cadastrada (ou cadastrada só em outro ambiente) |
-| "Não foi possível acessar o banco de dados agora" | `DATABASE_URL` errada: confira se é a do **Transaction pooler** (porta 6543) e se a senha foi trocada |
-| "O envio de imagens ainda não foi configurado no servidor" | Faltou `SUPABASE_URL` ou `SUPABASE_SECRET_KEY` |
-| Página sem estilo ou sem imagens | A pasta `public/` não foi enviada ao GitHub |
+| `usuarios` | Alunos e a professora (nome, e-mail, senha em hash, sala) |
+| `progresso_trilha` | Etapas da trilha concluídas por cada aluno |
+| `progresso_jogo` | Fases do jogo de blocos concluídas e pontuação |
+| `trilha_atividades` | Trilha personalizada pela professora |
+| `arenas` | Partidas da Arena (mapa, código e situação) |
+| `arena_equipes` | Equipes de cada partida |
+| `arena_jogadores` | Jogadores, tempos, tentativas e pedidos de ajuda |
+
+Também é criado o bucket público `trilha-imagens`, no Supabase Storage, para as imagens das etapas.
+
+---
+
+## 🔒 Segurança
+
+- **Senhas** guardadas apenas como hash (algoritmo *scrypt*).
+- **Login** por token assinado, guardado em cookie `HttpOnly` (o JavaScript da página não consegue lê-lo).
+- **Um único professor**: o banco impede a criação de um segundo, e todo cadastro feito pelo site é de aluno.
+- **RLS (Row Level Security)** ligado em todas as tabelas: só o servidor acessa os dados, e as chaves públicas do Supabase não leem nada.
+- **Respostas conferidas no servidor**: quizzes, fases e partidas são validados pelo Flask, não pelo navegador.
+- **Imagens verificadas** pelo conteúdo do arquivo (PNG, JPG, WEBP ou GIF, até 4 MB), não apenas pela extensão.
+- **Chaves e senhas** ficam no `.env` (fora do GitHub) ou nas variáveis de ambiente da hospedagem.
+
+---
+
+## 📁 Estrutura dos arquivos
+
+```text
+TCC_RobooTeam/
+├── app.py                  # Aplicação Flask: páginas e API
+├── db.py                   # Conexão com o banco do Supabase
+├── usuarios_store.py       # Usuários, login e progresso dos alunos
+├── trilha_store.py         # Trilha personalizada da professora
+├── arena_store.py          # Partidas da Arena RobooTeam
+├── armazenamento.py        # Imagens da trilha no Supabase Storage
+├── trilha_conteudo.py      # Conteúdo padrão da trilha e dos minijogos
+├── jogo_conteudo.py        # Fases e regras do jogo de blocos
+│
+├── templates/              # Páginas HTML
+│   ├── index.html          # Página inicial
+│   ├── login.html          # Login e cadastro
+│   ├── aluno.html          # Painel do aluno
+│   ├── trilha_aula.html    # Conteúdo de uma etapa da trilha
+│   ├── jogo_blocos.html    # Missão Robô (programação em blocos)
+│   ├── arena.html          # Arena RobooTeam
+│   └── professor.html      # Painel da professora
+│
+├── public/static/          # CSS, JavaScript e imagens
+│
+├── supabase/
+│   ├── schema.sql              # Tabelas, segurança e bucket de imagens
+│   └── professora_beatriz.sql  # Login da professora
+│
+├── .env.example            # Modelo das variáveis de ambiente
+├── requirements.txt        # Bibliotecas Python
+├── .python-version         # Versão do Python
+└── vercel.json             # Configuração da hospedagem
+```
+
+---
+
+<div align="center">
+
+Feito com 💜 pela equipe **RobooTeam** como Trabalho de Conclusão de Curso.
+
+</div>
