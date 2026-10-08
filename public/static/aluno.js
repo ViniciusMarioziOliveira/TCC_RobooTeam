@@ -197,14 +197,18 @@ roomJoinForm?.addEventListener("submit", async (event) => {
     }
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Não foi possível entrar na sala");
-    if (result.sala) renderRoomState(result.sala);
-    setRoomFeedback(result.message, "success");
     roomCodeInput.value = "";
     if (result.redirect_url) {
+      setRoomFeedback(result.message, "success");
       window.setTimeout(() => {
         window.location.href = result.redirect_url;
       }, 650);
+      return;
     }
+    // sala da turma: fica no painel e recarrega a trilha/arenas do professor
+    await Promise.all([loadStudentJourney(), loadArenaShortcuts()]);
+    if (result.sala) renderRoomState(result.sala);
+    setRoomFeedback(result.message, "success");
   } catch (error) {
     setRoomFeedback(error.message, "error");
   } finally {

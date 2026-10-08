@@ -776,9 +776,9 @@ def entrar_sala_aluno():
     except db.ERROS_DE_BANCO:
         return falha_no_banco("Não foi possível entrar na sala agora")
 
+    # entrar na turma so vincula o aluno; os minijogos ficam na Arena (codigos ARN-XXXX)
     return jsonify({
         "message": "Você já faz parte desta sala" if ja_participa else "Entrada na sala realizada com sucesso!",
-        "redirect_url": url_for("pagina_jogo_blocos"),
         "sala": {
             "turma": nome_turma,
             "professor": professor["nome"],
