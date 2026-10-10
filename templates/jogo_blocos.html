@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#0e1a3c">
     <title>Missão de Blocos | RobooTeam</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='jogo_blocos.css') }}">
-    <script src="{{ url_for('static', filename='jogo_blocos.js', v='1') }}" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='jogo_blocos.css', v='2') }}">
+    <script src="{{ url_for('static', filename='jogo_blocos.js', v='2') }}" defer></script>
   </head>
   <body
     id="game-page"
@@ -307,10 +307,12 @@
         <img class="success-mascot" id="success-mascot" src="{{ url_for('static', filename='img/3.png') }}" alt="Mascote RobooTeam comemorando">
         <div class="success-stats" id="success-stats">
           <div><strong id="success-blocks">0</strong><span>blocos usados</span></div>
-          <div><strong id="success-stars">★★★</strong><span>desempenho</span></div>
+          <div><strong id="success-stars" role="img" aria-label="3 de 3 estrelas"></strong><span>desempenho</span></div>
         </div>
         <div class="success-actions">
-          <button class="modal-button modal-next" id="next-level" type="button">Próxima fase <span aria-hidden="true">→</span></button>
+          <button class="modal-button modal-next" id="next-level" type="button"><span>Próxima fase</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+          </button>
           <button class="modal-button modal-replay" id="replay-level" type="button" data-close-success>Jogar novamente</button>
         </div>
         <a class="success-dashboard" href="{{ url_for('pagina_aluno') }}">Voltar ao painel do aluno</a>

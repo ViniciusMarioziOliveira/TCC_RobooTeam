@@ -28,26 +28,31 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+// ícones do sprite (templates/_icones.html)
+function icon(name, extra = "") {
+  return `<svg class="ico${extra ? ` ${extra}` : ""}" aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
+}
+
 const ICONES_MINIJOGO = {
-  memory: "🃏",
-  maze: "🤖",
-  word_search: "🔤",
-  snake: "🐍",
-  drag_drop: "🧩",
-  nenhum: "📖",
+  memory: "brain",
+  maze: "route",
+  word_search: "text-search",
+  snake: "worm",
+  drag_drop: "puzzle",
+  nenhum: "book-open",
 };
 
 function minigameBadge(minijogo) {
   if (!minijogo || !minijogo.type) return "";
-  const icone = ICONES_MINIJOGO[minijogo.type] || "🎮";
-  return `<span class="ai-game-badge ${escapeHtml(minijogo.type)}"><span aria-hidden="true">${icone}</span>${escapeHtml(minijogo.label)}</span>`;
+  const icone = ICONES_MINIJOGO[minijogo.type] || "gamepad-2";
+  return `<span class="ai-game-badge ${escapeHtml(minijogo.type)}">${icon(icone)}${escapeHtml(minijogo.label)}</span>`;
 }
 
 function renderTimeline(items) {
   timelineElement.innerHTML = items.map((item, index) => {
     const isLocked = item.estado === "bloqueada";
     const label = item.estado === "concluida" ? "Revisar etapa" : item.estado === "atual" ? "Iniciar etapa" : "Bloqueada";
-    const marker = item.estado === "concluida" ? "✓" : (item.posicao ?? index + 1);
+    const marker = item.estado === "concluida" ? icon("check") : (item.posicao ?? index + 1);
 
     return `
       <article class="ai-timeline-card ${item.estado}" style="animation-delay:${index * 70}ms">
@@ -129,7 +134,7 @@ function renderDashboard(data) {
     document.querySelector("#current-mission-name").textContent = data.next.title;
     document.querySelector("#current-mission-description").textContent = data.next.description;
     continueButton.disabled = false;
-    continueButton.textContent = "▶ Continuar Etapa";
+    continueButton.innerHTML = `${icon("play", "ico-fill")} Continuar Etapa`;
   } else {
     nextLessonUrl = null;
     document.querySelector("#current-mission-name").textContent = "Trilha concluída!";
@@ -314,7 +319,7 @@ async function loadArenaShortcuts() {
     document.querySelector("#arena-quick-list").innerHTML = active.map((arena) => `
       <a class="arena-quick-item${arena.status === "em_jogo" ? " live" : ""}" href="${escapeHtml(arena.url)}">
         <strong>${escapeHtml(arena.nome)}</strong>
-        <span>${arena.status === "em_jogo" ? "▶ Jogar agora" : "⏳ Aguardando a largada"} · ${escapeHtml(arena.codigo)}</span>
+        <span>${arena.status === "em_jogo" ? `${icon("play", "ico-fill")} Jogar agora` : `${icon("hourglass")} Aguardando a largada`} · ${escapeHtml(arena.codigo)}</span>
       </a>`).join("");
   } catch {
     // atalhos da Arena são opcionais

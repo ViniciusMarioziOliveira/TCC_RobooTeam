@@ -13,9 +13,12 @@ Os dados ficam no Supabase, nas tabelas ``arenas``, ``arena_equipes`` e
       "id": 1, "professor_id": 1, "codigo": "ARN-7K3P",
       "nome": "...", "tamanho": 8, "mapa": "LLOL...", "direcao": "E",
       "limite_blocos": 0, "status": "aguardando" | "em_jogo" | "finalizada",
-      "equipes": {"foguetes": {"nome": "Foguetes", "cor": "cyan", "emoji": "🚀"}},
+      "equipes": {"foguetes": {"nome": "Foguetes", "cor": "cyan", "icone": "rocket"}},
       "jogadores": {"1001": {...}}
     }
+
+O icone da equipe e o nome de um icone do site (sprite em ``templates/_icones.html``)
+e fica gravado na coluna ``arena_equipes.emoji``.
 
 As operacoes que alteram uma arena travam a linha dela (``for update``) ate o
 fim da transacao, entao dois alunos jogando ao mesmo tempo nunca sobrescrevem
@@ -43,15 +46,29 @@ MAX_BLOCOS = 40
 MAX_REPETICOES = 10
 MAX_PASSOS = 400
 SEGUNDOS_ONLINE = 15
+# tempo de chamada de um pedido de ajuda; depois dele a equipe pode chamar o professor
+SEGUNDOS_AJUDA = 30
 
 CORES_EQUIPE = ("cyan", "purple", "pink", "orange", "green", "yellow")
-EMOJIS_EQUIPE = ("🚀", "⚡", "🌟", "🦖", "🐙", "🦊", "🐝", "🌈", "🔥", "🍀", "🎯", "🛸")
+ICONES_EQUIPE = (
+    "rocket", "zap", "star", "turtle", "fish", "cat",
+    "bug", "rainbow", "flame", "clover", "target", "satellite",
+)
+# equipes criadas antes dos icones guardaram um emoji na coluna "emoji"
+ICONE_DO_EMOJI_ANTIGO = {
+    "\U0001F680": "rocket", "\u26A1": "zap", "\U0001F31F": "star", "\U0001F996": "turtle",
+    "\U0001F419": "fish", "\U0001F98A": "cat", "\U0001F41D": "bug", "\U0001F308": "rainbow",
+    "\U0001F525": "flame", "\U0001F340": "clover", "\U0001F3AF": "target", "\U0001F6F8": "satellite",
+}
 MOTIVOS_AJUDA = {
     "comecar": "Não sei por onde começar",
     "parede": "Meu robô bate na parede",
     "repetir": "Não entendi o bloco Repetir",
     "outro": "Tenho outra dúvida",
 }
+# usado quando a equipe tentou ajudar, nao conseguiu e chamou o professor
+MOTIVO_EQUIPE_TODA = "equipe_toda"
+TEXTO_EQUIPE_TODA = "A equipe toda está com dúvida"
 ALFABETO_CODIGO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
 
@@ -94,6 +111,13 @@ def _segundos_entre(inicio, fim):
 
 def _chave_equipe(nome):
     return " ".join(str(nome).split()).lower()
+
+
+def icone_da_equipe(valor):
+    """Nome do icone da equipe (converte os emojis gravados antes da troca)."""
+    valor = str(valor or "").replace("️", "").strip()
+    valor = ICONE_DO_EMOJI_ANTIGO.get(valor, valor)
+    return valor if valor in ICONES_EQUIPE else ICONES_EQUIPE[0]
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +167,7 @@ def _carregar_salas(cursor, filtro, parametros, bloquear=False):
     )
     for linha in cursor.fetchall():
         por_id[linha["arena_id"]]["equipes"][linha["chave"]] = {
-            "nome": linha["nome"], "cor": linha["cor"], "emoji": linha["emoji"],
+            "nome": linha["nome"], "cor": linha["cor"], "icone": icone_da_equipe(linha["emoji"]),
         }
 
     cursor.execute(
@@ -190,7 +214,7 @@ def _salvar_equipe(cursor, sala, chave):
         values (%s, %s, %s, %s, %s)
         on conflict (arena_id, chave) do nothing
         """,
-        (sala["id"], chave, equipe["nome"], equipe["cor"], equipe["emoji"]),
+        (sala["id"], chave, equipe["nome"], equipe["cor"], equipe["icone"]),
     )
 
 
@@ -490,7 +514,7 @@ def ranking(sala):
             "chave": chave,
             "nome": equipe["nome"],
             "cor": equipe.get("cor", "cyan"),
-            "emoji": equipe.get("emoji", "🚀"),
+            "icone": equipe.get("icone", ICONES_EQUIPE[0]),
             "jogadores": len(membros),
             "concluidos": len(concluidos),
             "tempo_total": sum(int(j.get("tempo") or 0) for j in concluidos),
@@ -545,6 +569,7 @@ def visao_professor(sala):
         **_sala_publica(sala),
         "mapa_info": resumo_do_mapa(sala["tamanho"], sala["mapa"], sala["direcao"]),
         "agora": agora_iso(),
+        "segundos_ajuda": SEGUNDOS_AJUDA,
         "equipes": equipes,
         "ranking": ranking(sala),
         "pedidos_professor": fila,
@@ -562,15 +587,25 @@ def visao_professor(sala):
 def resumo_professor(sala):
     """Versao curta para a lista de arenas do painel."""
     jogadores = list(sala.get("jogadores", {}).values())
+    equipes = sala.get("equipes", {})
+    fila = _fila_professor(sala)
     return {
         **_sala_publica(sala),
         "jogadores": len(jogadores),
         "equipes": len({j.get("equipe") for j in jogadores}),
         "concluiram": sum(1 for j in jogadores if j.get("concluiu")),
-        "pedidos": len(_fila_professor(sala)),
+        "pedidos": len(fila),
         "pedidos_detalhe": [
-            {"aluno_id": j["id"], "nome": j["nome"], "pedida_em": j["ajuda"].get("pedida_em")}
-            for j in _fila_professor(sala)
+            {
+                "aluno_id": j["id"],
+                "nome": j["nome"],
+                "equipe": equipes.get(j.get("equipe"), {}).get("nome", ""),
+                "pedida_em": j["ajuda"].get("pedida_em"),
+                "motivo": j["ajuda"].get("motivo"),
+                "motivo_texto": j["ajuda"].get("motivo_texto"),
+                "status": j["ajuda"].get("status"),
+            }
+            for j in fila
         ],
     }
 
@@ -588,7 +623,7 @@ def visao_aluno(sala, aluno_id):
             "chave": chave,
             "nome": equipe["nome"],
             "cor": equipe.get("cor", "cyan"),
-            "emoji": equipe.get("emoji", "🚀"),
+            "icone": equipe.get("icone", ICONES_EQUIPE[0]),
             "membros": [m["nome"].split()[0] for m in membros],
             "lotada": len(membros) >= MAX_JOGADORES_EQUIPE,
         })
@@ -599,6 +634,7 @@ def visao_aluno(sala, aluno_id):
         "equipes": equipes,
         "ranking": ranking(sala),
         "motivos_ajuda": MOTIVOS_AJUDA,
+        "segundos_ajuda": SEGUNDOS_AJUDA,
         "max_blocos": MAX_BLOCOS,
         "max_repeticoes": MAX_REPETICOES,
         "eu": None,
@@ -622,7 +658,7 @@ def visao_aluno(sala, aluno_id):
         "chave": eu["equipe"],
         "nome": equipe.get("nome", ""),
         "cor": equipe.get("cor", "cyan"),
-        "emoji": equipe.get("emoji", "🚀"),
+        "icone": equipe.get("icone", ICONES_EQUIPE[0]),
         "membros": membros,
     }
     resposta["colegas_pedindo_ajuda"] = [
@@ -838,7 +874,7 @@ def arenas_do_aluno(aluno_id):
         return [dict(linha) for linha in cursor.fetchall()]
 
 
-def entrar_na_equipe(codigo, aluno, nome_equipe, cor=None, emoji=None):
+def entrar_na_equipe(codigo, aluno, nome_equipe, cor=None, icone=None):
     nome_equipe = " ".join(str(nome_equipe or "").split())[:24]
     if len(nome_equipe) < 2:
         raise ErroArena("Dê um nome para a sua equipe")
@@ -860,7 +896,7 @@ def entrar_na_equipe(codigo, aluno, nome_equipe, cor=None, emoji=None):
             equipes[chave] = {
                 "nome": nome_equipe,
                 "cor": cor if cor in CORES_EQUIPE else random.choice(CORES_EQUIPE),
-                "emoji": emoji if emoji in EMOJIS_EQUIPE else random.choice(EMOJIS_EQUIPE),
+                "icone": icone if icone in ICONES_EQUIPE else random.choice(ICONES_EQUIPE),
             }
             _salvar_equipe(cursor, sala, chave)
         elif len(membros) >= MAX_JOGADORES_EQUIPE:
@@ -954,9 +990,15 @@ def pedir_dica(codigo, aluno_id):
 
 
 def pedir_ajuda(codigo, aluno_id, tipo, motivo=None):
+    """Abre (ou renova) o pedido de ajuda do aluno.
+
+    A ajuda e presencial: a equipe ou o professor vao ate o computador do aluno.
+    Se a equipe nao resolver no tempo de chamada, o aluno chama o professor com o
+    motivo ``equipe_toda`` ("A equipe toda esta com duvida").
+    """
     if tipo not in ("equipe", "professor"):
         raise ErroArena("Tipo de ajuda inválido")
-    if tipo == "professor" and motivo not in MOTIVOS_AJUDA:
+    if tipo == "professor" and motivo not in MOTIVOS_AJUDA and motivo != MOTIVO_EQUIPE_TODA:
         raise ErroArena("Conte para o professor qual é a dúvida")
     with db.transacao() as cursor:
         sala = _sala_por_codigo(cursor, codigo)
@@ -968,10 +1010,15 @@ def pedir_ajuda(codigo, aluno_id, tipo, motivo=None):
                        if j.get("equipe") == jogador["equipe"] and str(j["id"]) != str(aluno_id)]
             if not colegas:
                 raise ErroArena("Você ainda está sozinho na equipe. Chame o professor!", 409)
+            motivo_texto = "Pediu ajuda à equipe"
+        elif motivo == MOTIVO_EQUIPE_TODA:
+            motivo_texto = TEXTO_EQUIPE_TODA
+        else:
+            motivo_texto = MOTIVOS_AJUDA[motivo]
         jogador["ajuda"] = {
             "tipo": tipo,
             "motivo": motivo if tipo == "professor" else None,
-            "motivo_texto": MOTIVOS_AJUDA.get(motivo) if tipo == "professor" else "Pediu ajuda à equipe",
+            "motivo_texto": motivo_texto,
             "pedida_em": agora_iso(),
             "status": "aberta",
             "ajudante": None,
@@ -1000,6 +1047,10 @@ def oferecer_ajuda(codigo, ajudante, colega_id):
             raise ErroArena("Esse pedido de ajuda já foi resolvido", 404)
         if colega["ajuda"].get("ajudante_professor"):
             raise ErroArena("O professor já está ajudando", 409)
-        colega["ajuda"].update({"status": "a_caminho", "ajudante": ajudante["nome"].split()[0]})
+        colega["ajuda"].update({
+            "status": "a_caminho",
+            "ajudante": ajudante["nome"].split()[0],
+            "ajudante_id": ajudante["id"],
+        })
         _salvar_jogadores(cursor, sala, [colega_id])
         return sala

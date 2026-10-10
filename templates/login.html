@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='2') }}">
     <script src="{{ url_for('static', filename='script.js', v='3') }}" defer></script>
 </head>
 <body class="auth-page">
@@ -23,7 +23,7 @@
                 <span class="brand-image" aria-hidden="true"></span>
             </a>
             <a class="button button-small button-outline-accent auth-back-link" href="{{ url_for('pagina_inicial') }}">
-                <span aria-hidden="true">←</span> Voltar ao início
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar ao início
             </a>
         </div>
     </header>

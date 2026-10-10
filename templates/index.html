@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='2') }}">
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
@@ -293,7 +293,7 @@
 
                         <div class="flight-particles"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
-                        <p class="mission-complete"><span>✓</span> MISSÃO CUMPRIDA</p>
+                        <p class="mission-complete"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> MISSÃO CUMPRIDA</p>
                         <p class="scroll-hint" id="scroll-hint">ROLE PARA LANÇAR</p>
                     </div>
                 </div>

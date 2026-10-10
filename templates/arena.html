@@ -7,14 +7,15 @@
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='arena.css', v='1') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena.css', v='2') }}">
 <style>
   .galaxy-bg{ background-image:linear-gradient(115deg, rgba(14,26,60,0.92) 0%, rgba(30,24,96,0.62) 58%, rgba(70,24,120,0.4) 100%), url("{{ url_for('static', filename='img/galaxy-bg.png') }}"); }
   .board-space{ background-image:linear-gradient(160deg, rgba(10,20,48,0.9), rgba(40,20,90,0.78)), url("{{ url_for('static', filename='img/galaxy-bg.png') }}"); }
 </style>
-<script src="{{ url_for('static', filename='robo_perfil.js', v='1') }}" defer></script>
-<script src="{{ url_for('static', filename='arena.js', v='1') }}" defer></script>
+<script src="{{ url_for('static', filename='robo_perfil.js', v='2') }}" defer></script>
+<script src="{{ url_for('static', filename='arena.js', v='2') }}" defer></script>
 </head>
+{% from "_icones.html" import ico %}
 <body
   data-codigo="{{ codigo }}"
   data-student-id="{{ usuario.id }}"
@@ -28,27 +29,28 @@
   data-dashboard-url="{{ url_for('pagina_aluno') }}"
   data-login-url="{{ url_for('pagina_login') }}"
   data-robot-img-base="{{ url_for('static', filename='img/') }}">
+{% include "_icones.html" %}
 
 <!-- ===================== CABEÇALHO ===================== -->
 <header class="arena-header">
   <div class="arena-header-left">
     <a class="back-btn" href="{{ url_for('pagina_aluno') }}" aria-label="Voltar ao meu painel">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 18-6-6 6-6"/></svg>
+      {{ ico("chevron-left") }}
     </a>
     <img class="arena-logo" src="{{ url_for('static', filename='img/logo2.png') }}" alt="RobooTeam">
     <div class="arena-title">
-      <span class="arena-kicker">🏟️ Arena RobooTeam</span>
+      <span class="arena-kicker">{{ ico("gamepad-2") }} Arena RobooTeam</span>
       <h1 id="arena-name">Carregando arena...</h1>
     </div>
   </div>
   <div class="arena-header-right">
     <span class="chip chip-code" title="Código da arena">{{ codigo }}</span>
     <span class="chip chip-status" id="arena-status" data-status="aguardando">Aguardando</span>
-    <span class="chip chip-timer" id="arena-timer" hidden><span aria-hidden="true">⏱️</span> <strong id="arena-timer-value">00:00</strong></span>
+    <span class="chip chip-timer" id="arena-timer" hidden>{{ ico("timer") }} <strong id="arena-timer-value">00:00</strong></span>
     <span class="chip chip-team" id="arena-team-chip" hidden></span>
-    <button type="button" class="icon-btn" id="sound-toggle" aria-pressed="true" title="Som ligado" aria-label="Ligar ou desligar o som">🔊</button>
+    <button type="button" class="icon-btn" id="sound-toggle" aria-pressed="true" title="Som ligado" aria-label="Ligar ou desligar o som">{{ ico("volume-2") }}</button>
     <button type="button" class="help-btn" id="open-help" hidden>
-      <span class="help-btn-icon" aria-hidden="true">🙋</span>
+      <span class="help-btn-icon">{{ ico("hand") }}</span>
       <span id="open-help-label">Preciso de ajuda</span>
     </button>
   </div>
@@ -65,7 +67,7 @@
   <section class="view" id="view-lobby" hidden>
     <div class="hero galaxy-bg">
       <div class="hero-copy">
-        <span class="hero-kicker">✨ Bem-vindo à Arena!</span>
+        <span class="hero-kicker">{{ ico("sparkles") }} Bem-vindo à Arena!</span>
         <h2>Monte sua equipe e prepare o robô!</h2>
         <p>Cada equipe pode ter até 4 exploradores. O tempo de todos é somado no ranking — então ajudem uns aos outros!</p>
       </div>
@@ -79,7 +81,7 @@
           <span class="card-sub">Clique na equipe dos seus amigos</span>
         </div>
         <div class="team-list" id="team-list">
-          <p class="empty-note">Nenhuma equipe ainda. Seja o primeiro a criar uma! 🚀</p>
+          <p class="empty-note">{{ ico("rocket") }} Nenhuma equipe ainda. Seja o primeiro a criar uma!</p>
         </div>
       </div>
 
@@ -92,11 +94,11 @@
         <input class="field-input" id="team-name" maxlength="24" autocomplete="off" placeholder="Ex.: Foguetes Azuis" required>
         <div class="suggestions" id="team-suggestions"></div>
         <span class="field-label">Mascote da equipe</span>
-        <div class="emoji-row" id="team-emojis"></div>
+        <div class="icon-row" id="team-icons"></div>
         <span class="field-label">Cor</span>
         <div class="color-row" id="team-colors"></div>
         <p class="form-error" id="team-error" role="alert"></p>
-        <button type="submit" class="btn-candy primary wide" id="team-submit"><span aria-hidden="true">🚀</span> Criar e entrar</button>
+        <button type="submit" class="btn-candy primary wide" id="team-submit">{{ ico("rocket") }} Criar e entrar</button>
       </form>
     </div>
   </section>
@@ -105,10 +107,11 @@
   <section class="view" id="view-waiting" hidden>
     <div class="hero galaxy-bg waiting-hero">
       <div class="hero-copy">
-        <span class="hero-kicker">⏳ Quase lá!</span>
+        <span class="hero-kicker">{{ ico("hourglass") }} Quase lá!</span>
         <h2>Tudo pronto, <span id="waiting-name"></span>!</h2>
         <p>Aguardando o professor dar a largada<span class="dots"><i>.</i><i>.</i><i>.</i></span></p>
         <div class="waiting-tip" id="waiting-tip" aria-live="polite"></div>
+        <button type="button" class="btn-candy" data-open-guide="missao">{{ ico("lightbulb") }} Aprender a jogar</button>
       </div>
       <div class="hero-robot robot-bounce"><span class="robot-figure" data-my-robot><img src="{{ url_for('static', filename='img/1.png') }}" alt="Seu robô esperando"><span class="robot-acc"></span></span></div>
     </div>
@@ -132,20 +135,29 @@
 
   <!-- ===================== JOGO ===================== -->
   <section class="view" id="view-game" hidden>
-    <div class="help-banner" id="help-status" hidden>
-      <span class="help-banner-icon" id="help-status-icon" aria-hidden="true">⏳</span>
-      <div class="help-banner-copy">
-        <strong id="help-status-title">Pedido enviado!</strong>
-        <span id="help-status-text">O professor já vai te ajudar.</span>
+    <!-- pedido de ajuda deste aluno (com o tempo de chamada) -->
+    <div class="help-banner" id="help-status" data-tone="team" hidden>
+      <div class="help-ring" aria-hidden="true">
+        <svg class="help-ring-svg" viewBox="0 0 48 48">
+          <circle class="help-ring-track" cx="24" cy="24" r="21"></circle>
+          <circle class="help-ring-bar" id="help-ring-bar" cx="24" cy="24" r="21" pathLength="100"></circle>
+        </svg>
+        <strong class="help-ring-value" id="help-ring-value">30</strong>
+        <span class="help-ring-icon" id="help-status-icon"></span>
       </div>
-      <button type="button" class="btn-soft small" id="help-cancel">Já resolvi ✅</button>
+      <div class="help-banner-copy" aria-live="polite">
+        <strong id="help-status-title">Pedido enviado!</strong>
+        <span id="help-status-text">Alguém já vai te ajudar.</span>
+      </div>
+      <div class="help-banner-actions">
+        <button type="button" class="btn-candy small primary" id="help-escalate" hidden>{{ ico("presentation") }} Chamar o professor</button>
+        <button type="button" class="btn-soft small" id="help-guide-btn" hidden>{{ ico("lightbulb") }} Dicas do robô</button>
+        <button type="button" class="btn-soft small" id="help-cancel">{{ ico("circle-check") }} Já resolvi</button>
+      </div>
     </div>
 
-    <div class="mate-banner" id="mate-help" hidden>
-      <span aria-hidden="true">🙋</span>
-      <span id="mate-help-text"></span>
-      <button type="button" class="btn-candy small" id="mate-help-btn">Vou ajudar!</button>
-    </div>
+    <!-- colegas da equipe que pediram ajuda -->
+    <div class="mate-list" id="mate-help" hidden></div>
 
     <div class="game-grid">
       <!-- tabuleiro -->
@@ -154,7 +166,7 @@
           <span class="says-avatar"><span class="robot-figure" data-my-robot><img src="{{ url_for('static', filename='img/1.png') }}" alt=""><span class="robot-acc"></span></span></span>
           <div class="says-bubble">
             <strong id="says-name">Robô</strong>
-            <p id="says-text" aria-live="polite">Monte os blocos e me leve até a bandeira! 🏁</p>
+            <p id="says-text" aria-live="polite">Monte os blocos e me leve até a bandeira!</p>
           </div>
         </div>
 
@@ -182,28 +194,29 @@
         </div>
 
         <div class="palette" id="palette">
-          <button type="button" class="block b-avancar" data-tipo="avancar" draggable="true"><span class="b-ico">⬆️</span>Avançar</button>
-          <button type="button" class="block b-esquerda" data-tipo="virar_esquerda" draggable="true"><span class="b-ico">↩️</span>Virar à esquerda</button>
-          <button type="button" class="block b-direita" data-tipo="virar_direita" draggable="true"><span class="b-ico">↪️</span>Virar à direita</button>
-          <button type="button" class="block b-repetir" data-tipo="repetir" draggable="true"><span class="b-ico">🔁</span>Repetir</button>
+          <button type="button" class="block b-avancar" data-tipo="avancar" draggable="true"><span class="b-ico">{{ ico("arrow-up") }}</span>Avançar</button>
+          <button type="button" class="block b-esquerda" data-tipo="virar_esquerda" draggable="true"><span class="b-ico">{{ ico("corner-up-left") }}</span>Virar à esquerda</button>
+          <button type="button" class="block b-direita" data-tipo="virar_direita" draggable="true"><span class="b-ico">{{ ico("corner-up-right") }}</span>Virar à direita</button>
+          <button type="button" class="block b-repetir" data-tipo="repetir" draggable="true"><span class="b-ico">{{ ico("repeat") }}</span>Repetir</button>
         </div>
-        <p class="palette-help">Clique ou arraste os blocos. Dentro do <strong>Repetir</strong> os blocos rodam várias vezes!</p>
+        <p class="palette-help">Clique ou arraste os blocos. Dentro do <strong>Repetir</strong> os blocos rodam várias vezes!
+          <button type="button" class="link-btn" data-open-guide="blocos">{{ ico("lightbulb") }} O que cada bloco faz?</button></p>
 
         <div class="program" id="program" data-lista="raiz" aria-label="Meu programa">
           <div class="program-empty" id="program-empty">
-            <span aria-hidden="true">🧩</span>
+            <span class="program-empty-ico">{{ ico("puzzle") }}</span>
             <strong>Solte seus blocos aqui</strong>
             <span>O robô executa de cima para baixo</span>
           </div>
         </div>
 
         <div class="run-bar">
-          <button type="button" class="btn-candy go" id="run-btn"><span aria-hidden="true">▶</span> Executar</button>
-          <button type="button" class="btn-soft" id="reset-btn" title="Voltar o robô ao início"><span aria-hidden="true">↺</span> Reiniciar</button>
-          <button type="button" class="btn-soft" id="speed-btn" title="Velocidade do robô" aria-pressed="false"><span aria-hidden="true" id="speed-icon">🐢</span> <span id="speed-label">Devagar</span></button>
-          <button type="button" class="btn-soft danger" id="clear-btn" title="Apagar todos os blocos"><span aria-hidden="true">🗑️</span></button>
+          <button type="button" class="btn-candy go" id="run-btn">{{ ico("play", "ico-fill") }} Executar</button>
+          <button type="button" class="btn-soft" id="reset-btn" title="Voltar o robô ao início">{{ ico("rotate-ccw") }} Reiniciar</button>
+          <button type="button" class="btn-soft" id="speed-btn" title="Velocidade do robô" aria-pressed="false"><span id="speed-icon">{{ ico("turtle") }}</span> <span id="speed-label">Devagar</span></button>
+          <button type="button" class="btn-soft danger" id="clear-btn" title="Apagar todos os blocos" aria-label="Apagar todos os blocos">{{ ico("trash-2") }}</button>
         </div>
-        <p class="train-note" id="train-note" hidden>🏆 Você já completou! Agora está no <strong>modo treino</strong> — tente usar menos blocos.</p>
+        <p class="train-note" id="train-note" hidden>{{ ico("trophy") }}<span>Você já completou! Agora está no <strong>modo treino</strong> — tente usar menos blocos.</span></p>
       </section>
 
       <!-- equipe -->
@@ -218,7 +231,7 @@
       <!-- ranking -->
       <section class="card rank-card">
         <div class="card-head">
-          <h3>🏆 Ranking ao vivo</h3>
+          <h3 class="title-ico">{{ ico("trophy") }} Ranking ao vivo</h3>
           <span class="card-sub">Mais pessoas na bandeira e menor tempo</span>
         </div>
         <ol class="rank-list" id="rank-list"></ol>
@@ -230,10 +243,10 @@
   <section class="view" id="view-final" hidden>
     <div class="hero galaxy-bg final-hero">
       <div class="hero-copy">
-        <span class="hero-kicker">🏁 Fim da partida!</span>
+        <span class="hero-kicker">{{ ico("flag") }} Fim da partida!</span>
         <h2 id="final-title">Parabéns, exploradores!</h2>
         <p id="final-text">Veja como ficou o ranking das equipes.</p>
-        <a class="btn-candy" href="{{ url_for('pagina_aluno') }}"><span aria-hidden="true">🏠</span> Voltar ao meu painel</a>
+        <a class="btn-candy" href="{{ url_for('pagina_aluno') }}">{{ ico("house") }} Voltar ao meu painel</a>
       </div>
       <div class="hero-robot robot-float"><span class="robot-figure" data-my-robot data-image="3"><img src="{{ url_for('static', filename='img/3.png') }}" alt="Seu robô comemorando"><span class="robot-acc"></span></span></div>
     </div>
@@ -247,38 +260,206 @@
 <!-- ===================== MODAL: AJUDA ===================== -->
 <div class="modal" id="help-modal" hidden>
   <div class="modal-backdrop" data-close></div>
-  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
+  <div class="modal-panel help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
     <header class="modal-head">
-      <span class="modal-head-ico" aria-hidden="true">🙋</span>
+      <span class="modal-head-ico" id="help-head-ico">{{ ico("hand") }}</span>
       <div>
         <h2 id="help-title">Precisa de uma forcinha?</h2>
-        <p>Escolha o tipo de ajuda. Pedir ajuda é coisa de quem quer aprender! 💙</p>
+        <p id="help-subtitle">Escolha o tipo de ajuda. Pedir ajuda é coisa de quem quer aprender!</p>
       </div>
-      <button type="button" class="modal-close" data-close aria-label="Fechar">✕</button>
+      <button type="button" class="modal-close" data-close aria-label="Fechar">{{ ico("x") }}</button>
     </header>
-    <div class="modal-body">
+
+    <!-- menu: tipos de ajuda -->
+    <div class="modal-body" id="help-menu">
       <div class="help-options">
-        <button type="button" class="help-option opt-hint" id="help-hint">
-          <span class="opt-ico" aria-hidden="true">💡</span>
-          <strong>Dica do robô</strong>
-          <span>Eu mostro um pedacinho do caminho.</span>
-          <span class="opt-meter" id="hint-meter" aria-label="Dicas usadas"><i></i><i></i><i></i></span>
+        <button type="button" class="help-option opt-hint" id="help-open-guide">
+          <span class="opt-ico">{{ ico("lightbulb") }}</span>
+          <strong>Dicas do robô</strong>
+          <span>Entenda a fase, o que cada bloco faz e peça uma dica do mapa.</span>
+          <span class="opt-meter" id="hint-meter" aria-label="Dicas do mapa usadas"><i></i><i></i><i></i></span>
         </button>
         <button type="button" class="help-option opt-team" id="help-team">
-          <span class="opt-ico" aria-hidden="true">🤝</span>
+          <span class="opt-ico">{{ ico("handshake") }}</span>
           <strong>Chamar minha equipe</strong>
-          <span id="help-team-text">Seus colegas recebem um aviso na tela.</span>
+          <span id="help-team-text">Um colega vem até o seu computador.</span>
         </button>
         <button type="button" class="help-option opt-prof" id="help-prof">
-          <span class="opt-ico" aria-hidden="true">🧑‍🏫</span>
+          <span class="opt-ico">{{ ico("presentation") }}</span>
           <strong>Chamar o professor</strong>
-          <span>Conte qual é a dúvida e entre na fila.</span>
+          <span id="help-prof-text">Conte qual é a dúvida e ele vem até você.</span>
         </button>
       </div>
       <div class="reason-box" id="reason-box" hidden>
         <p class="reason-title">Qual é a sua dúvida?</p>
         <div class="reason-chips" id="reason-chips"></div>
-        <button type="button" class="btn-candy primary wide" id="send-prof-help" disabled><span aria-hidden="true">📣</span> Chamar o professor</button>
+        <button type="button" class="btn-candy primary wide" id="send-prof-help" disabled>{{ ico("megaphone") }} Chamar o professor</button>
+      </div>
+      <p class="help-how">{{ ico("clock") }} <span>Quando você chama alguém, começa um tempo de <strong><span data-help-seconds>30</span> segundos</strong>. A ajuda é pessoalmente: fique no seu lugar que vão até você!</span></p>
+    </div>
+
+    <!-- guia do robô -->
+    <div class="modal-body guide" id="help-guide" hidden>
+      <button type="button" class="link-btn guide-back" id="guide-back">{{ ico("chevron-left") }} Outros tipos de ajuda</button>
+
+      <div class="guide-hero">
+        <span class="guide-hero-robot"><span class="robot-figure" data-my-robot data-image="4"><img src="{{ url_for('static', filename='img/4.png') }}" alt=""><span class="robot-acc"></span></span></span>
+        <div class="guide-hero-copy">
+          <strong>O robô percebeu:</strong>
+          <p id="guide-tip">Leia o guia e depois volte para o jogo!</p>
+        </div>
+      </div>
+
+      <div class="guide-tabs" role="tablist" aria-label="Partes do guia">
+        <button type="button" role="tab" id="tab-missao" aria-controls="panel-missao" aria-selected="true" data-tab="missao">{{ ico("flag") }} A missão</button>
+        <button type="button" role="tab" id="tab-blocos" aria-controls="panel-blocos" aria-selected="false" tabindex="-1" data-tab="blocos">{{ ico("puzzle") }} Os blocos</button>
+        <button type="button" role="tab" id="tab-logica" aria-controls="panel-logica" aria-selected="false" tabindex="-1" data-tab="logica">{{ ico("brain") }} Pense como o robô</button>
+        <button type="button" role="tab" id="tab-mapa" aria-controls="panel-mapa" aria-selected="false" tabindex="-1" data-tab="mapa">{{ ico("map") }} Dica do mapa</button>
+      </div>
+
+      <!-- como funciona a fase -->
+      <div class="guide-panel" role="tabpanel" id="panel-missao" aria-labelledby="tab-missao">
+        <h3 class="guide-h">Sua missão: me levar até a bandeira!</h3>
+        <div class="guide-facts" id="guide-facts"></div>
+        <ol class="guide-steps">
+          <li><span class="step-ico c-cyan">{{ ico("eye") }}</span><div><strong>1. Olhe o mapa</strong><p>Ache onde eu estou (no quadrado tracejado), as paredes roxas e a bandeira. A <b>setinha amarela</b> em cima de mim mostra para onde eu estou olhando.</p></div></li>
+          <li><span class="step-ico c-purple">{{ ico("puzzle") }}</span><div><strong>2. Monte o programa</strong><p>Clique nos blocos para colocá-los no seu programa. Eu faço um bloco de cada vez, <b>de cima para baixo</b>, na ordem que você montou.</p></div></li>
+          <li><span class="step-ico c-green">{{ ico("play", "ico-fill") }}</span><div><strong>3. Aperte Executar</strong><p>Eu sigo exatamente o que os blocos mandam: nem mais, nem menos! Se os blocos acabarem antes da bandeira, eu paro no meio do caminho.</p></div></li>
+          <li><span class="step-ico c-pink">{{ ico("rotate-ccw") }}</span><div><strong>4. Deu errado? Tudo bem!</strong><p>Se eu bater numa parede, o bloco do erro fica vermelho. Arrume o programa e tente de novo. Errar e consertar faz parte de programar!</p></div></li>
+        </ol>
+        <div class="guide-note">
+          <span class="step-ico c-yellow">{{ ico("users") }}</span>
+          <p><strong>Jogo em equipe:</strong> cada pessoa programa o próprio robô no seu computador. O tempo de todos é somado: a equipe com mais pessoas na bandeira e menos tempo fica em primeiro lugar.</p>
+        </div>
+        <div class="guide-stars">
+          <strong>Como ganhar estrelas</strong>
+          <span><i class="stars-row">{{ ico("star", "ico-fill") }}{{ ico("star", "ico-fill") }}{{ ico("star", "ico-fill") }}</i> chegar em até 2 tentativas, sem dica do mapa</span>
+          <span><i class="stars-row">{{ ico("star", "ico-fill") }}{{ ico("star", "ico-fill") }}</i> chegar em até 5 tentativas, com no máximo 1 dica</span>
+          <span><i class="stars-row">{{ ico("star", "ico-fill") }}</i> chegar à bandeira do seu jeito!</span>
+        </div>
+      </div>
+
+      <!-- o que cada bloco faz -->
+      <div class="guide-panel" role="tabpanel" id="panel-blocos" aria-labelledby="tab-blocos" hidden>
+        <h3 class="guide-h">Cada bloco é uma ordem para mim</h3>
+        <div class="guide-blocks">
+          <article class="gblock">
+            <div class="demo demo-avancar" aria-hidden="true">
+              <div class="demo-track" style="--cols:3"><i></i><i></i><i></i>
+                <span class="demo-bot"><span class="demo-face" style="--angle:90deg"></span>{{ ico("bot") }}</span>
+              </div>
+            </div>
+            <div class="gblock-copy">
+              <span class="chip-block b-avancar">{{ ico("arrow-up") }} Avançar</span>
+              <p>Eu ando <b>1 casinha para a frente</b>, para onde a setinha amarela aponta.</p>
+              <p class="gblock-tip">{{ ico("triangle-alert") }} Se tiver parede na minha frente, eu bato!</p>
+            </div>
+          </article>
+          <article class="gblock">
+            <div class="demo demo-esquerda" aria-hidden="true">
+              <div class="demo-track" style="--cols:1"><i></i>
+                <span class="demo-bot"><span class="demo-face"></span>{{ ico("bot") }}</span>
+              </div>
+            </div>
+            <div class="gblock-copy">
+              <span class="chip-block b-esquerda">{{ ico("corner-up-left") }} Virar à esquerda</span>
+              <p>Eu <b>giro para o meu lado esquerdo</b>, sem sair da casinha.</p>
+              <p class="gblock-tip">{{ ico("lightbulb") }} Virar não anda! Depois de virar, use Avançar.</p>
+            </div>
+          </article>
+          <article class="gblock">
+            <div class="demo demo-direita" aria-hidden="true">
+              <div class="demo-track" style="--cols:1"><i></i>
+                <span class="demo-bot"><span class="demo-face"></span>{{ ico("bot") }}</span>
+              </div>
+            </div>
+            <div class="gblock-copy">
+              <span class="chip-block b-direita">{{ ico("corner-up-right") }} Virar à direita</span>
+              <p>Eu <b>giro para o meu lado direito</b>, sem sair da casinha.</p>
+              <p class="gblock-tip">{{ ico("lightbulb") }} Dois giros para o mesmo lado me deixam de costas.</p>
+            </div>
+          </article>
+          <article class="gblock">
+            <div class="demo demo-repetir" aria-hidden="true">
+              <div class="demo-track" style="--cols:4"><i></i><i></i><i></i><i></i>
+                <span class="demo-bot"><span class="demo-face" style="--angle:90deg"></span>{{ ico("bot") }}</span>
+              </div>
+            </div>
+            <div class="gblock-copy">
+              <span class="chip-block b-repetir">{{ ico("repeat") }} Repetir</span>
+              <p>Faz os <b>blocos de dentro dele várias vezes</b>. Use os botões − e + para escolher quantas.</p>
+              <p class="gblock-tip">{{ ico("lightbulb") }} Avançar, Avançar, Avançar é igual a um Avançar dentro do Repetir 3 vezes. Menos blocos!</p>
+            </div>
+          </article>
+        </div>
+        <p class="guide-howto">{{ ico("info") }} <span>Para usar o Repetir: clique nele, depois clique nos blocos que vão ficar dentro dele e, no fim, toque em <b>Pronto</b>. Também dá para arrastar os blocos para dentro.</span></p>
+      </div>
+
+      <!-- lógica de programação -->
+      <div class="guide-panel" role="tabpanel" id="panel-logica" aria-labelledby="tab-logica" hidden>
+        <h3 class="guide-h">Truques de quem programa robôs</h3>
+        <article class="gtip gtip-demo">
+          <div class="demo demo-pense" aria-hidden="true">
+            <div class="demo-track" style="--cols:1"><i></i>
+              <span class="demo-bot"><span class="demo-face"></span>{{ ico("bot") }}</span>
+            </div>
+            <span class="demo-caption c1">olhando para baixo</span>
+            <span class="demo-caption c2">virei à esquerda!</span>
+          </div>
+          <div>
+            <strong>Esquerda e direita são do robô!</strong>
+            <p>Imagine que você é o robô. Se eu estou olhando <b>para baixo</b> e viro à esquerda, eu passo a olhar para a <b>direita da tela</b>. Dica: gire o corpo junto comigo!</p>
+          </div>
+        </article>
+        <div class="guide-tips">
+          <article class="gtip"><span class="step-ico c-cyan">{{ ico("list-ordered") }}</span><div><strong>A ordem importa</strong><p>Um programa é como uma receita de bolo: cada passo tem a sua vez. Avançar e depois virar é diferente de virar e depois avançar.</p></div></article>
+          <article class="gtip"><span class="step-ico c-yellow">{{ ico("footprints") }}</span><div><strong>Conte as casinhas</strong><p>Antes de montar, conte quantas casinhas eu ando em linha reta até precisar virar. Divida o caminho em pedacinhos.</p></div></article>
+          <article class="gtip"><span class="step-ico c-orange">{{ ico("repeat") }}</span><div><strong>Achou uma repetição? Use o Repetir</strong><p>Quando o mesmo bloco aparece várias vezes seguidas, o Repetir deixa o programa mais curto.</p></div></article>
+          <article class="gtip"><span class="step-ico c-green">{{ ico("scan-search") }}</span><div><strong>Teste aos pouquinhos</strong><p>Monte só o começo do caminho e aperte Executar. Deu certo? Continue de onde parou. Assim fica fácil achar o erro.</p></div></article>
+        </div>
+        <div class="guide-words">
+          <strong>{{ ico("book-open") }} Palavras de programador</strong>
+          <dl>
+            <div><dt>Algoritmo</dt><dd>a lista de passos para resolver um problema.</dd></div>
+            <div><dt>Programa</dt><dd>o algoritmo escrito para o robô entender (aqui, com blocos).</dd></div>
+            <div><dt>Laço</dt><dd>um pedaço do programa que se repete, como o bloco Repetir.</dd></div>
+            <div><dt>Bug</dt><dd>um errinho no programa.</dd></div>
+            <div><dt>Depurar</dt><dd>encontrar o bug e consertar.</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <!-- dica do mapa (revela o caminho aos poucos) -->
+      <div class="guide-panel" role="tabpanel" id="panel-mapa" aria-labelledby="tab-mapa" hidden>
+        <h3 class="guide-h">Ainda travou? Eu mostro um pedacinho!</h3>
+        <p class="guide-lead">Tente pensar sozinho primeiro: cada dica do mapa pode diminuir suas estrelas. Se precisar, eu mostro o caminho aos poucos.</p>
+        <ol class="hint-levels" id="hint-levels">
+          <li data-level="1"><span class="step-ico c-cyan">{{ ico("compass") }}</span><div><strong>Dica 1 · Para onde ir</strong><span>Eu conto onde a bandeira está.</span></div><span class="hint-check">{{ ico("check") }}</span></li>
+          <li data-level="2"><span class="step-ico c-yellow">{{ ico("footprints") }}</span><div><strong>Dica 2 · Primeiras pegadas</strong><span>Mostro o começo do caminho e os primeiros blocos.</span></div><span class="hint-check">{{ ico("check") }}</span></li>
+          <li data-level="3"><span class="step-ico c-pink">{{ ico("route") }}</span><div><strong>Dica 3 · Caminho todo</strong><span>Mostro todas as pegadas até a bandeira.</span></div><span class="hint-check">{{ ico("check") }}</span></li>
+        </ol>
+        <button type="button" class="btn-candy primary wide" id="help-hint">{{ ico("lightbulb") }} <span id="help-hint-label">Ver dica 1</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: A EQUIPE TODA ESTÁ COM DÚVIDA? ===================== -->
+<div class="modal" id="escalate-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel escalate-panel" role="dialog" aria-modal="true" aria-labelledby="escalate-title" aria-describedby="escalate-text">
+    <div class="escalate-stage galaxy-bg">
+      <span class="escalate-badge">{{ ico("users") }}</span>
+      <div class="escalate-robot"><span class="robot-figure" data-my-robot data-image="2"><img src="{{ url_for('static', filename='img/2.png') }}" alt=""><span class="robot-acc"></span></span></div>
+    </div>
+    <div class="escalate-body">
+      <p class="escalate-kicker">{{ ico("timer") }} O tempo de ajuda da equipe acabou</p>
+      <h2 id="escalate-title">A equipe toda está com dúvida?</h2>
+      <p id="escalate-text">Vocês tentaram juntos e a dúvida continua? Tudo bem! Chame o professor que ele vem até aqui.</p>
+      <div class="escalate-actions">
+        <button type="button" class="btn-candy primary" id="escalate-call">{{ ico("presentation") }} Chamar o professor</button>
+        <button type="button" class="btn-candy go" id="escalate-solved">{{ ico("circle-check") }} Já resolvemos!</button>
+        <button type="button" class="btn-soft" data-close>Ainda estamos tentando</button>
       </div>
     </div>
   </div>
@@ -289,14 +470,14 @@
   <div class="modal-backdrop" data-close></div>
   <div class="modal-panel win-panel" role="dialog" aria-modal="true" aria-labelledby="win-title">
     <div class="win-stage galaxy-bg">
-      <span class="win-spark s1" aria-hidden="true">✦</span>
-      <span class="win-spark s2" aria-hidden="true">✦</span>
-      <span class="win-spark s3" aria-hidden="true">✦</span>
+      <span class="win-spark s1">{{ ico("sparkle", "ico-fill") }}</span>
+      <span class="win-spark s2">{{ ico("sparkle", "ico-fill") }}</span>
+      <span class="win-spark s3">{{ ico("sparkle", "ico-fill") }}</span>
       <div class="win-robot robot-bounce"><span class="robot-figure" data-my-robot data-image="3"><img src="{{ url_for('static', filename='img/3.png') }}" alt="Seu robô comemorando"><span class="robot-acc"></span></span></div>
     </div>
     <div class="win-body">
       <p class="win-kicker">Missão cumprida!</p>
-      <h2 id="win-title">Você chegou à bandeira! 🏁</h2>
+      <h2 id="win-title">Você chegou à bandeira!</h2>
       <div class="win-stars" id="win-stars" aria-label="Estrelas"></div>
       <div class="win-stats">
         <div><strong id="win-time">00:00</strong><span>seu tempo</span></div>
@@ -305,7 +486,7 @@
       </div>
       <p class="win-team" id="win-team"></p>
       <div class="win-actions">
-        <button type="button" class="btn-candy primary" data-close><span aria-hidden="true">🏆</span> Ver ranking</button>
+        <button type="button" class="btn-candy primary" data-close>{{ ico("trophy") }} Ver ranking</button>
       </div>
     </div>
   </div>

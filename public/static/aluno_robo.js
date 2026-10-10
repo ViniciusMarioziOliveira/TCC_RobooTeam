@@ -5,7 +5,7 @@
   const studentId = page.dataset.studentId;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const {
-    POSES, COLORS, ACCESSORIES, DEFAULT_ROBOT, findPose, findColor, findAcc, sanitize, replayClass,
+    POSES, COLORS, ACCESSORIES, DEFAULT_ROBOT, findPose, findColor, findAcc, sanitize, replayClass, accessoryHtml,
   } = window.RobooRobo;
   const storageKey = window.RobooRobo.storageKey(studentId);
   const loadRobot = () => window.RobooRobo.load(studentId);
@@ -14,13 +14,13 @@
   const randomItem = (list) => list[Math.floor(Math.random() * list.length)];
 
   const PHRASES = [
-    (name) => `Oi! Eu sou o ${name}! 🤖`,
+    (name) => `Oi! Eu sou o ${name}!`,
     () => "Bip bop! Vamos aprender juntos?",
-    () => "Você está indo muito bem! ⭐",
+    () => "Você está indo muito bem!",
     () => "Sabia que robôs usam sensores para “enxergar”?",
     () => "Mais uma missão? Eu topo!",
     () => "Hihi, isso faz cócegas nos meus circuitos!",
-    () => "Cada etapa concluída me deixa mais forte! 💪",
+    () => "Cada etapa concluída me deixa mais forte!",
     () => "A IA aprende com exemplos, igualzinho a você!",
   ];
 
@@ -49,8 +49,8 @@
     stageGlow?.style.setProperty("--robot-glow", color.glow);
     traitDot?.style.setProperty("--dot", color.swatch);
     if (traitColor) traitColor.textContent = color.label;
-    if (traitAccWrap) traitAccWrap.hidden = !acc.emoji;
-    if (traitAcc) traitAcc.textContent = `${acc.emoji} ${acc.label}`;
+    if (traitAccWrap) traitAccWrap.hidden = !acc.icon;
+    if (traitAcc) traitAcc.innerHTML = `<span class="trait-acc">${accessoryHtml(acc)}</span>${acc.label}`;
   }
 
   let bubbleTimer = null;
@@ -103,7 +103,7 @@
 
   document.querySelector("#robot-dance")?.addEventListener("click", () => {
     replayClass(showcase, "is-dancing", 1800);
-    say("🎵 Bip-bop-dança! 🎵");
+    say("Bip-bop-dança! Olha o meu passinho!");
     confetti(showcase);
   });
 
@@ -140,7 +140,7 @@
   colorOptions.innerHTML = COLORS.map((color) => `
     <button type="button" class="swatch" data-color="${color.id}" style="--swatch:${color.swatch}" title="${color.label}" aria-label="Cor ${color.label}" aria-pressed="false"></button>`).join("");
   accOptions.innerHTML = ACCESSORIES.map((acc) => `
-    <button type="button" class="option-tile" data-acc="${acc.id}" title="${acc.label}" aria-label="${acc.label}" aria-pressed="false">${acc.emoji || '<span class="acc-none">Nada</span>'}</button>`).join("");
+    <button type="button" class="option-tile" data-acc="${acc.id}" title="${acc.label}" aria-label="${acc.label}" aria-pressed="false">${accessoryHtml(acc) || '<span class="acc-none">Nada</span>'}</button>`).join("");
 
   function renderDraft(options) {
     paintFigure(draftFigure, draft, options);
@@ -232,7 +232,7 @@
     storeRobot(current);
     renderCurrent({ animateAcc: true });
     closeWorkshop();
-    say(`Uau! Fiquei incrível! Valeu! 💙`);
+    say("Uau! Fiquei incrível! Valeu!");
     replayClass(showcase, "is-jumping", 700);
     confetti(showcase);
   });

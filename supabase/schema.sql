@@ -113,7 +113,7 @@ create table if not exists public.arena_equipes (
     chave      text not null,
     nome       text not null,
     cor        text not null,
-    emoji      text not null,
+    emoji      text not null,                -- nome do ícone da equipe (ex.: rocket)
     criada_em  timestamptz not null default now(),
     primary key (arena_id, chave)
 );

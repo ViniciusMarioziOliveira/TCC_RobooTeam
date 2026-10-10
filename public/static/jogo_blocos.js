@@ -54,10 +54,22 @@
     elements.description ||= document.querySelector("#phase-objective");
     elements.hint ||= document.querySelector("#mascot-message");
 
+    // ícones em SVG (mesmos desenhos dos blocos da paleta)
+    function svgIcon(paths, { filled = false, width = 2.4 } = {}) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="${filled ? "currentColor" : "none"}" stroke="${filled ? "none" : "currentColor"}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+    }
+    const ICONS = {
+      check: svgIcon('<path d="M20 6 9 17l-5-5"></path>', { width: 3 }),
+      remove: svgIcon('<path d="M18 6 6 18M6 6l12 12"></path>', { width: 2.6 }),
+      bot: svgIcon('<path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2M20 14h2M15 13v2M9 13v2"></path>', { width: 2 }),
+      pointer: svgIcon('<path d="M12 4 20 19H4Z"></path>', { filled: true }),
+      star: svgIcon('<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>', { filled: true }),
+    };
+
     const commandDetails = {
-      avancar: { label: "Avançar", symbol: "↑" },
-      virar_esquerda: { label: "Virar à esquerda", symbol: "↶" },
-      virar_direita: { label: "Virar à direita", symbol: "↷" },
+      avancar: { label: "Avançar", icon: svgIcon('<path d="M12 20V5M6 11l6-6 6 6"></path>') },
+      virar_esquerda: { label: "Virar à esquerda", icon: svgIcon('<path d="M9 7 4 12l5 5"></path><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>') },
+      virar_direita: { label: "Virar à direita", icon: svgIcon('<path d="m15 7 5 5-5 5"></path><path d="M4 18v-2a4 4 0 0 1 4-4h12"></path>') },
     };
 
     const commandAliases = new Map([
@@ -85,11 +97,11 @@
       sul: "sul",
       oeste: "oeste",
     };
-    const directionSymbols = {
-      norte: "▲",
-      leste: "▶",
-      sul: "▼",
-      oeste: "◀",
+    const directionAngles = {
+      norte: 0,
+      leste: 90,
+      sul: 180,
+      oeste: 270,
     };
     const directionDelta = {
       norte: [-1, 0],
@@ -457,7 +469,8 @@
         const number = document.createElement("span");
         number.className = "phase-status";
         const numberValue = document.createElement("span");
-        numberValue.textContent = phase.state === "concluida" ? "✓" : String(index + 1);
+        // fase concluída: o CSS desenha o ícone de check sobre o círculo verde
+        numberValue.textContent = phase.state === "concluida" ? "" : String(index + 1);
         number.append(numberValue);
 
         const copy = document.createElement("span");
@@ -608,13 +621,14 @@
       } else {
         const fallback = document.createElement("span");
         fallback.className = "robot-fallback";
-        fallback.textContent = "🤖";
+        fallback.innerHTML = ICONS.bot;
         fallback.setAttribute("aria-hidden", "true");
         token.append(fallback);
       }
       const pointer = document.createElement("span");
       pointer.className = "robot-direction";
-      pointer.textContent = directionSymbols[robot.direction];
+      pointer.innerHTML = ICONS.pointer;
+      pointer.style.setProperty("--pointer-angle", `${directionAngles[robot.direction]}deg`);
       pointer.setAttribute("aria-hidden", "true");
       token.append(pointer);
       cell.append(token);
@@ -645,7 +659,7 @@
 
       const symbol = document.createElement("span");
       symbol.className = "program-block-symbol block-icon";
-      symbol.textContent = detail.symbol;
+      symbol.innerHTML = detail.icon;
       symbol.setAttribute("aria-hidden", "true");
 
       const copy = document.createElement("span");
@@ -662,7 +676,7 @@
       remove.dataset.removeBlock = String(item.id);
       remove.disabled = running;
       remove.setAttribute("aria-label", `Remover bloco ${index + 1}: ${detail.label}`);
-      remove.textContent = "×";
+      remove.innerHTML = ICONS.remove;
 
       block.append(dragDots, symbol, copy, remove);
       return block;
@@ -1091,7 +1105,12 @@
         );
       }
       const efficiency = currentPhase ? Number(movements) / currentPhase.limit : 1;
-      setText(elements.successStars, efficiency <= 0.6 ? "★★★" : efficiency <= 0.85 ? "★★☆" : "★☆☆");
+      const stars = efficiency <= 0.6 ? 3 : efficiency <= 0.85 ? 2 : 1;
+      if (elements.successStars) {
+        elements.successStars.innerHTML = [1, 2, 3]
+          .map((n) => `<span class="success-star${n <= stars ? "" : " is-off"}">${ICONS.star}</span>`).join("");
+        elements.successStars.setAttribute("aria-label", `${stars} de 3 estrelas`);
+      }
       if (elements.successMascot && mascotImageAt(2)) elements.successMascot.src = mascotImageAt(2);
       if (elements.nextLevel) {
         elements.nextLevel.hidden = nextPhaseId === null;

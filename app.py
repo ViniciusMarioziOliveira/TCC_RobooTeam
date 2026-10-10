@@ -1092,7 +1092,7 @@ def entrar_equipe_arena(codigo):
         return erro
     dados = request.get_json(silent=True) or {}
     try:
-        sala = arena_store.entrar_na_equipe(codigo, aluno, dados.get("nome"), dados.get("cor"), dados.get("emoji"))
+        sala = arena_store.entrar_na_equipe(codigo, aluno, dados.get("nome"), dados.get("cor"), dados.get("icone"))
     except arena_store.ErroArena as falha:
         return erro_arena(falha)
     except db.ERROS_DE_BANCO:
@@ -1167,7 +1167,11 @@ def listar_arenas_professor():
     if erro:
         return erro
     salas = arena_store.listar_do_professor(professor["id"])
-    return jsonify({"arenas": [arena_store.resumo_professor(sala) for sala in salas]})
+    return jsonify({
+        "arenas": [arena_store.resumo_professor(sala) for sala in salas],
+        "agora": arena_store.agora_iso(),
+        "segundos_ajuda": arena_store.SEGUNDOS_AJUDA,
+    })
 
 
 @app.get("/api/professor/arenas/mapa-aleatorio")

@@ -18,13 +18,14 @@
     { id: "floresta", label: "Floresta", hue: 240, sat: 1.05, swatch: "#33D17A", glow: "rgba(51,209,122,0.5)" },
     { id: "oceano", label: "Oceano", hue: 310, sat: 1.05, swatch: "#22C3E6", glow: "rgba(34,195,230,0.55)" },
   ];
+  // icon: desenho colorido do sprite (templates/_icones.html)
   const ACCESSORIES = [
-    { id: "nenhum", label: "Nenhum", emoji: "" },
-    { id: "coroa", label: "Coroa", emoji: "👑" },
-    { id: "cartola", label: "Cartola", emoji: "🎩" },
-    { id: "laco", label: "Laço", emoji: "🎀" },
-    { id: "capelo", label: "Capelo", emoji: "🎓" },
-    { id: "bone", label: "Boné", emoji: "🧢" },
+    { id: "nenhum", label: "Nenhum", icon: "" },
+    { id: "coroa", label: "Coroa", icon: "acc-coroa" },
+    { id: "cartola", label: "Cartola", icon: "acc-cartola" },
+    { id: "laco", label: "Laço", icon: "acc-laco" },
+    { id: "capelo", label: "Capelo", icon: "acc-capelo" },
+    { id: "bone", label: "Boné", icon: "acc-bone" },
   ];
   const DEFAULT_ROBOT = { name: "Robo-01", pose: 1, color: "galaxia", acc: "nenhum" };
 
@@ -60,6 +61,10 @@
     }
   }
 
+  function accessoryHtml(acc) {
+    return acc.icon ? `<svg aria-hidden="true" focusable="false"><use href="#i-${acc.icon}"></use></svg>` : "";
+  }
+
   function replayClass(element, className, duration) {
     if (!element) return;
     element.classList.remove(className);
@@ -86,9 +91,10 @@
     figure.style.setProperty("--acc-rot", `${pose.acc.rot}deg`);
 
     const accElement = figure.querySelector(".robot-acc");
-    if (accElement && accElement.textContent !== acc.emoji) {
-      accElement.textContent = acc.emoji;
-      if (animateAcc && acc.emoji) replayClass(accElement, "pop", 450);
+    if (accElement && accElement.dataset.acc !== acc.id) {
+      accElement.dataset.acc = acc.id;
+      accElement.innerHTML = accessoryHtml(acc);
+      if (animateAcc && acc.icon) replayClass(accElement, "pop", 450);
     }
   }
 
@@ -104,6 +110,7 @@
     sanitize,
     load,
     store,
+    accessoryHtml,
     replayClass,
     paintFigure,
   };

@@ -91,9 +91,9 @@
           <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${escapeHtml(atividade.description)}</p>
           <div class="flex flex-wrap items-center gap-1.5 mt-2">
             <span class="activity-chip">${atividade.total_secoes} blocos de leitura</span>
-            ${imagens ? `<span class="activity-chip">🖼️ ${imagens} ${imagens === 1 ? "imagem" : "imagens"}</span>` : ""}
+            ${imagens ? `<span class="activity-chip inline-flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i>${imagens} ${imagens === 1 ? "imagem" : "imagens"}</span>` : ""}
             <span class="activity-chip">${atividade.total_perguntas} perguntas</span>
-            <span class="activity-chip">🎮 ${escapeHtml(atividade.minijogo_label)}</span>
+            <span class="activity-chip inline-flex items-center gap-1"><i data-lucide="gamepad-2" class="w-3 h-3"></i>${escapeHtml(atividade.minijogo_label)}</span>
             <span class="activity-chip">${atividade.conclusoes} aluno(s) concluíram</span>
           </div>
         </div>

@@ -1459,8 +1459,9 @@ h2 {
     color: #34d399;
     background: #071b12;
     border-radius: 50%;
-    font-size: 0.6rem;
 }
+
+.mission-complete span svg { width: 10px; height: 10px; }
 
 .journey-section.landed .mission-complete {
     opacity: 1;
@@ -1679,12 +1680,9 @@ h2 {
     width: 21px;
     height: 21px;
     place-items: center;
-    color: var(--navy);
-    background: #8db6ff;
+    background: #8db6ff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000080' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 13px no-repeat;
     border-radius: 7px;
-    content: "✓";
-    font-size: 0.7rem;
-    font-weight: 900;
+    content: "";
 }
 
 .teacher-panel-stats {
@@ -2087,7 +2085,7 @@ h2 {
 
 .auth-header .header-inner { justify-content: space-between; }
 .auth-back-link { gap: 8px; }
-.auth-back-link span { font-size: 1.15rem; line-height: 1; }
+.auth-back-link svg { width: 17px; height: 17px; flex-shrink: 0; }
 
 .auth-section {
     position: relative;
@@ -2422,7 +2420,7 @@ h2 {
 
 @media (max-width: 390px) {
     .auth-back-link { width: 43px; min-height: 43px; padding: 0; }
-    .auth-back-link span { font-size: 1.35rem; }
+    .auth-back-link svg { width: 20px; height: 20px; }
     .auth-back-link { font-size: 0; }
 }
 

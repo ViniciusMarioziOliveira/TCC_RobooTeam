@@ -133,6 +133,8 @@
   z-index: 1;
 }
 
+.ai-timeline-marker .ico { font-size: 17px; stroke-width: 3; }
+
 .ai-timeline-card.atual .ai-timeline-marker {
   background: #2f5de0;
   box-shadow: 0 0 0 5px rgba(47, 93, 224, 0.16), 0 0 0 2px #2f5de0;
@@ -238,7 +240,7 @@
   text-transform: uppercase;
 }
 
-.ai-game-badge span { font-size: 12px; }
+.ai-game-badge .ico { font-size: 12px; }
 .ai-game-badge.snake { background: #e3fbee; border-color: #b6f0d2; color: #158552; }
 .ai-game-badge.maze { background: #f2ecff; border-color: #ddd0ff; color: #6b3fd1; }
 .ai-game-badge.word_search { background: #fff6d9; border-color: #ffe6a3; color: #8a5a06; }

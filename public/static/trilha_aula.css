@@ -90,6 +90,7 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .back-link { margin-left: auto; }
@@ -102,7 +103,8 @@ button { font-family: inherit; cursor: pointer; }
   padding: 30px 24px 90px;
 }
 
-.lesson-back { display: inline-flex; margin-bottom: 18px; }
+.lesson-back { align-items: center; display: inline-flex; gap: 6px; margin-bottom: 18px; }
+.lesson-back svg { height: 16px; width: 16px; }
 
 /* CABEÇALHO COM MASCOTE */
 .lesson-header {
@@ -176,7 +178,17 @@ button { font-family: inherit; cursor: pointer; }
   color: #06301c;
 }
 
-.lesson-step-chip.concluido::after { content: " ✓"; }
+.lesson-step-chip.concluido::after {
+  background: currentColor;
+  content: "";
+  display: inline-block;
+  height: 11px;
+  margin-left: 5px;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+  vertical-align: -1px;
+  width: 11px;
+}
 
 .lesson-header-mascot { position: relative; z-index: 1; }
 
@@ -458,6 +470,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .dpad-btn:active { background: var(--primary); color: #fff; transform: scale(0.94); }
+.dpad-btn svg { display: block; height: 22px; margin: auto; width: 22px; }
 
 /* BOTÕES DOS JOGOS */
 .game-button {
@@ -975,8 +988,12 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 @media (max-width: 480px) {
+  .brand-sub { display: none; }
   .memory-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; }
   .memory-card { min-height: 106px; }
   .memory-card-back .card-text { font-size: 11.5px; }
-  .ws-cell { font-size: 11.5px; height: 26px; width: 26px; }
+  /* caça-palavras: as casas encolhem junto com a tela */
+  .wordsearch-grid-wrapper { padding: 8px; }
+  .wordsearch-grid { gap: 3px; max-width: 360px; width: 100%; }
+  .ws-cell { aspect-ratio: 1; border-radius: 6px; font-size: clamp(10px, 3.4vw, 13px); height: auto; width: auto; }
 }

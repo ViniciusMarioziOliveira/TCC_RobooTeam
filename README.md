@@ -56,7 +56,7 @@ O objetivo é estimular a curiosidade, o raciocínio lógico e a colaboração e
 - **Resumo da turma**: total de alunos, média de progresso e situação de cada aluno.
 - **Código da sala** (`RBT-XXXX`), válido por 24 horas, para os alunos entrarem na turma.
 - **Editor da trilha**: criar, editar, reordenar e remover etapas, escolher perguntas e minijogos, anexar imagens (até 4 MB) e restaurar a trilha original quando quiser.
-- **Arena RobooTeam**: criar partidas, desenhar ou sortear o mapa, iniciar e encerrar o jogo e responder aos pedidos de ajuda dos alunos.
+- **Arena RobooTeam**: criar partidas, desenhar ou sortear o mapa, iniciar e encerrar o jogo e atender os pedidos de ajuda dos alunos (fila com cronômetro e botões **Estou indo** e **Resolvido** direto no painel).
 
 ### 🗺️ Trilha padrão: "Conhecendo a inteligência artificial"
 
@@ -92,7 +92,11 @@ Partidas em sala criadas pela professora:
 2. Os alunos digitam o código no campo **Entrar na sala** e escolhem uma equipe (até 4 jogadores por equipe).
 3. Cada aluno programa o robô com blocos (**avançar**, **virar** e **repetir**).
 4. O tempo de cada jogador é somado no **ranking da equipe**.
-5. Se travar, o aluno pode pedir uma **dica**, pedir ajuda a um **colega de equipe** ou chamar a **professora**.
+5. Se travar, o aluno toca em **Preciso de ajuda** e pode:
+   - abrir o **Guia do robô**, que explica como a fase funciona, o que cada bloco faz (com animações) e truques de lógica, além das **dicas do mapa**, que revelam o caminho aos poucos;
+   - chamar a **equipe**: os colegas veem o nome de quem precisa e vão até o computador dele;
+   - chamar a **professora**, que vê o pedido no painel, vai até o aluno e marca a ajuda como resolvida.
+6. Todo pedido tem **30 segundos de chamada**. Se a equipe não resolver nesse tempo, aparece **"A equipe toda está com dúvida?"** com o botão para chamar a professora. No painel, os pedidos sem resposta há mais de 30 segundos ficam em destaque e tocam um aviso.
 
 ---
 
@@ -306,6 +310,7 @@ TCC_RobooTeam/
 ├── jogo_conteudo.py        # Fases e regras do jogo de blocos
 │
 ├── templates/              # Páginas HTML
+│   ├── _icones.html        # Ícones do site (sprite SVG, base Lucide)
 │   ├── index.html          # Página inicial
 │   ├── login.html          # Login e cadastro
 │   ├── aluno.html          # Painel do aluno

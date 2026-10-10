@@ -15,25 +15,29 @@
   const DELTA = { N: [-1, 0], E: [0, 1], S: [1, 0], W: [0, -1] };
   const DIRS = ["N", "E", "S", "W"];
   const ANGLE = { N: 0, E: 90, S: 180, W: 270 };
-  const DIR_NAME = { N: "para cima ⬆️", E: "para a direita ➡️", S: "para baixo ⬇️", W: "para a esquerda ⬅️" };
+  const DIR_NAME = { N: "para cima", E: "para a direita", S: "para baixo", W: "para a esquerda" };
+  // ícones do sprite (templates/_icones.html)
   const BLOCKS = {
-    avancar: { label: "Avançar", ico: "⬆️", cls: "b-avancar" },
-    virar_esquerda: { label: "Virar à esquerda", ico: "↩️", cls: "b-esquerda" },
-    virar_direita: { label: "Virar à direita", ico: "↪️", cls: "b-direita" },
-    repetir: { label: "Repetir", ico: "🔁", cls: "b-repetir" },
+    avancar: { label: "Avançar", ico: "arrow-up", cls: "b-avancar" },
+    virar_esquerda: { label: "Virar à esquerda", ico: "corner-up-left", cls: "b-esquerda" },
+    virar_direita: { label: "Virar à direita", ico: "corner-up-right", cls: "b-direita" },
+    repetir: { label: "Repetir", ico: "repeat", cls: "b-repetir" },
   };
   const TEAM_COLORS = ["cyan", "purple", "pink", "orange", "green", "yellow"];
-  const TEAM_EMOJIS = ["🚀", "⚡", "🌟", "🦖", "🐙", "🦊", "🐝", "🌈", "🔥", "🍀", "🎯", "🛸"];
+  const TEAM_ICONS = {
+    rocket: "Foguete", zap: "Raio", star: "Estrela", turtle: "Tartaruga", fish: "Peixe", cat: "Gato",
+    bug: "Joaninha", rainbow: "Arco-íris", flame: "Fogo", clover: "Trevo", target: "Alvo", satellite: "Satélite",
+  };
   const TEAM_NAMES = ["Foguetes", "Robôs Turbo", "Estrelas Cadentes", "Dinobots", "Raios Azuis", "Astronautas", "Chips Malucos", "Galáxia Kids"];
   const STATUS_LABEL = { aguardando: "Aguardando", em_jogo: "Valendo!", finalizada: "Encerrada" };
   const WAIT_TIPS = [
-    "💡 O bloco Avançar anda uma casa na direção em que o robô está olhando.",
-    "🔁 Repetir economiza blocos: 3 × Avançar vira um Repetir 3 vezes!",
-    "🧱 As paredes roxas não deixam o robô passar. Desvie delas!",
-    "🤝 O tempo da equipe é somado. Ajude seus colegas!",
-    "🙋 Travou? Use o botão Preciso de ajuda — o robô tem dicas!",
+    { ico: "arrow-up", text: "O bloco Avançar anda uma casa na direção em que o robô está olhando." },
+    { ico: "repeat", text: "Repetir economiza blocos: 3 blocos Avançar viram um Repetir 3 vezes!" },
+    { ico: "brick-wall", text: "As paredes roxas não deixam o robô passar. Desvie delas!" },
+    { ico: "users", text: "O tempo da equipe é somado. Ajude seus colegas!" },
+    { ico: "hand", text: "Travou? Use o botão Preciso de ajuda: o robô tem dicas!" },
   ];
-  const MEDALS = ["🥇", "🥈", "🥉"];
+  const ESCALATE_REASON = "equipe_toda";
 
   let state = null;
   let serverOffset = 0;
@@ -48,7 +52,8 @@
   let token = null;
   let fast = false;
   let soundOn = readSetting("robooteam-som", "1") === "1";
-  let selectedEmoji = TEAM_EMOJIS[Math.floor(Math.random() * TEAM_EMOJIS.length)];
+  const teamIconKeys = Object.keys(TEAM_ICONS);
+  let selectedIcon = teamIconKeys[Math.floor(Math.random() * teamIconKeys.length)];
   let selectedColor = TEAM_COLORS[Math.floor(Math.random() * TEAM_COLORS.length)];
   let selectedReason = null;
   let cancellingHelp = false;
@@ -56,7 +61,9 @@
   let tipTimer = null;
   let tipIndex = 0;
   let finalCelebrated = false;
+  let guideTab = "missao";
   const seenMateHelp = new Set();
+  const escalateShown = new Set();
 
   /* ---------------------------------------------------------------- utilidades */
   function readSetting(key, fallback) {
@@ -84,10 +91,32 @@
       .replaceAll("'", "&#039;");
   }
 
+  function icon(name, extra = "") {
+    return `<svg class="ico${extra ? ` ${extra}` : ""}" aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
+  }
+
+  function starsHtml(count) {
+    return `<i class="stars-row" aria-label="${count} ${count === 1 ? "estrela" : "estrelas"}">${icon("star", "ico-fill").repeat(count)}</i>`;
+  }
+
+  function medal(index, fallback) {
+    return index < 3
+      ? `<span class="medal m${index + 1}" aria-label="${index + 1}º lugar">${icon("medal")}</span>`
+      : String(fallback);
+  }
+
+  function firstNameOf(name) {
+    return String(name || "").split(" ")[0];
+  }
+
   function formatTime(seconds) {
     if (seconds === null || seconds === undefined) return "--:--";
     const total = Math.max(0, Math.round(seconds));
     return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  }
+
+  function serverNow() {
+    return Date.now() + serverOffset;
   }
 
   function initials(name) {
@@ -160,10 +189,10 @@
   };
 
   /* ---------------------------------------------------------------- feedback */
-  function toast(text, tone = "") {
+  function toast(text, tone = "", iconName = "") {
     const element = document.createElement("div");
     element.className = `toast${tone ? ` ${tone}` : ""}`;
-    element.textContent = text;
+    element.innerHTML = `${iconName ? icon(iconName) : ""}<span>${escapeHtml(text)}</span>`;
     $("#toasts").append(element);
     setTimeout(() => {
       element.classList.add("leaving");
@@ -217,6 +246,7 @@
     ["loading", "lobby", "waiting", "game", "final"].forEach((view) => {
       $(`#view-${view}`).hidden = view !== name;
     });
+    page.dataset.view = name;
   }
 
   function render(data) {
@@ -248,7 +278,12 @@
       renderFinal();
     }
 
-    if (previous && eu) notifyChanges(previous, data);
+    if (previous && eu) {
+      notifyChanges(previous, data);
+    } else {
+      // pedidos que já existiam ao abrir a página aparecem nos cards, sem novo aviso sonoro
+      data.colegas_pedindo_ajuda.forEach((mate) => seenMateHelp.add(`${mate.id}:${mate.ajuda.pedida_em}`));
+    }
   }
 
   function renderHeader() {
@@ -257,7 +292,7 @@
     teamChip.hidden = !team;
     if (team) {
       teamChip.className = `chip chip-team c-${team.cor}`;
-      teamChip.textContent = `${team.emoji} ${team.nome}`;
+      teamChip.innerHTML = `${icon(team.icone)}<span>${escapeHtml(team.nome)}</span>`;
     }
 
     const helpButton = $("#open-help");
@@ -290,47 +325,46 @@
   function renderLobby() {
     showView("lobby");
     const { equipes, eu } = state;
-    const list = $("#team-list");
-    list.innerHTML = equipes.length
+    setHtml($("#team-list"), equipes.length
       ? equipes.map((team) => {
         const seats = Array.from({ length: 4 }, (_, i) => `<i class="${i < team.membros.length ? "on" : ""}"></i>`).join("");
         const mine = eu && eu.equipe === team.chave;
         return `
           <button type="button" class="team-tile c-${team.cor}" data-team="${escapeHtml(team.nome)}" ${team.lotada && !mine ? "disabled" : ""}>
-            <span class="team-emoji" aria-hidden="true">${team.emoji}</span>
+            <span class="team-icon">${icon(team.icone)}</span>
             <span class="team-info">
               <strong>${escapeHtml(team.nome)}</strong>
               <span>${escapeHtml(team.membros.join(", "))}</span>
             </span>
             <span class="team-seats" aria-label="${team.membros.length} de 4 lugares">${seats}</span>
-            <span class="team-join">${mine ? "Sua equipe" : team.lotada ? "Lotada" : "Entrar →"}</span>
+            <span class="team-join">${mine ? "Sua equipe" : team.lotada ? "Lotada" : `Entrar ${icon("arrow-right")}`}</span>
           </button>`;
       }).join("")
-      : '<p class="empty-note">Nenhuma equipe ainda. Seja o primeiro a criar uma! 🚀</p>';
+      : `<p class="empty-note">${icon("rocket")} Nenhuma equipe ainda. Seja o primeiro a criar uma!</p>`);
 
     const used = new Set(equipes.map((team) => team.nome.toLowerCase()));
-    $("#team-suggestions").innerHTML = TEAM_NAMES
+    setHtml($("#team-suggestions"), TEAM_NAMES
       .filter((name) => !used.has(name.toLowerCase()))
       .slice(0, 5)
       .map((name) => `<button type="button" class="suggestion" data-suggestion="${escapeHtml(name)}">${escapeHtml(name)}</button>`)
-      .join("");
+      .join(""));
     renderTeamPickers();
   }
 
   function renderTeamPickers() {
-    $("#team-emojis").innerHTML = TEAM_EMOJIS.map((emoji) =>
-      `<button type="button" class="emoji-opt" data-emoji="${emoji}" aria-pressed="${emoji === selectedEmoji}">${emoji}</button>`).join("");
-    $("#team-colors").innerHTML = TEAM_COLORS.map((color) =>
-      `<button type="button" class="color-opt c-${color}" data-color="${color}" aria-label="Cor ${color}" aria-pressed="${color === selectedColor}"></button>`).join("");
+    setHtml($("#team-icons"), Object.entries(TEAM_ICONS).map(([name, label]) =>
+      `<button type="button" class="icon-opt" data-icon="${name}" title="${label}" aria-label="Mascote ${label}" aria-pressed="${name === selectedIcon}">${icon(name)}</button>`).join(""));
+    setHtml($("#team-colors"), TEAM_COLORS.map((color) =>
+      `<button type="button" class="color-opt c-${color}" data-color="${color}" aria-label="Cor ${color}" aria-pressed="${color === selectedColor}"></button>`).join(""));
   }
 
-  async function joinTeam(nome, cor, emoji) {
+  async function joinTeam(nome, cor, icone) {
     $("#team-error").textContent = "";
     try {
-      const data = await api(page.dataset.teamUrl, { method: "POST", body: JSON.stringify({ nome, cor, emoji }) });
+      const data = await api(page.dataset.teamUrl, { method: "POST", body: JSON.stringify({ nome, cor, icone }) });
       choosingTeam = false;
       sfx.add();
-      toast(`Você entrou na equipe ${data.minha_equipe.emoji} ${data.minha_equipe.nome}!`, "good");
+      toast(`Você entrou na equipe ${data.minha_equipe.nome}!`, "good", data.minha_equipe.icone);
       render(data);
     } catch (error) {
       $("#team-error").textContent = error.message;
@@ -343,13 +377,13 @@
     showView("waiting");
     const { minha_equipe: team, equipes } = state;
     $("#waiting-name").textContent = firstName;
-    $("#waiting-team-title").textContent = `${team.emoji} ${team.nome}`;
-    $("#waiting-members").innerHTML = renderMembers(team.membros, false);
+    setHtml($("#waiting-team-title"), `<span class="title-ico">${icon(team.icone)}${escapeHtml(team.nome)}</span>`);
+    setHtml($("#waiting-members"), renderMembers(team.membros, false));
     $("#waiting-count").textContent = `${equipes.length} ${equipes.length === 1 ? "equipe" : "equipes"}`;
-    $("#waiting-teams").innerHTML = equipes.map((item, i) => `
+    setHtml($("#waiting-teams"), equipes.map((item, i) => `
       <span class="team-pill c-${item.cor}" style="animation-delay:${i * 0.05}s">
-        <span class="pill-emoji" aria-hidden="true">${item.emoji}</span>${escapeHtml(item.nome)} · ${item.membros.length}
-      </span>`).join("");
+        <span class="pill-icon">${icon(item.icone)}</span>${escapeHtml(item.nome)} · ${item.membros.length}
+      </span>`).join(""));
     if (!tipTimer) {
       rotateTip();
       tipTimer = setInterval(rotateTip, 5000);
@@ -358,7 +392,8 @@
 
   function rotateTip() {
     const tip = $("#waiting-tip");
-    tip.textContent = WAIT_TIPS[tipIndex % WAIT_TIPS.length];
+    const { ico, text } = WAIT_TIPS[tipIndex % WAIT_TIPS.length];
+    tip.innerHTML = `${icon(ico)}<span>${text}</span>`;
     restartAnimation(tip);
     tipIndex += 1;
   }
@@ -366,21 +401,21 @@
   function renderMembers(members, detailed) {
     return members.map((member) => {
       const me = String(member.id) === studentId;
-      let badge = '<span class="member-badge playing">🤖 programando</span>';
+      let badge = `<span class="member-badge playing">${icon("bot")} programando</span>`;
       let info = me ? "Você" : "Explorador";
       if (member.concluiu) {
-        badge = `<span class="member-badge done">✅ ${formatTime(member.tempo)}</span>`;
-        info = `${"⭐".repeat(member.estrelas || 1)} · ${member.blocos} blocos`;
+        badge = `<span class="member-badge done">${icon("circle-check")} ${formatTime(member.tempo)}</span>`;
+        info = `${starsHtml(member.estrelas || 1)} · ${member.blocos} blocos`;
       } else if (member.ajuda) {
-        badge = '<span class="member-badge help">🙋 ajuda</span>';
-        info = member.ajuda.ajudante ? `${member.ajuda.ajudante} está ajudando` : member.ajuda.motivo_texto;
+        badge = `<span class="member-badge help">${icon("hand")} ajuda</span>`;
+        info = escapeHtml(member.ajuda.ajudante ? `${member.ajuda.ajudante} está ajudando` : member.ajuda.motivo_texto);
       } else if (!detailed) {
         badge = '<span class="member-badge playing">pronto!</span>';
       }
       return `
         <div class="member${me ? " me" : ""}${member.ajuda && !member.concluiu ? " needs-help" : ""}">
           <span class="member-avatar${member.online ? " online" : ""}" aria-hidden="true">${escapeHtml(initials(member.nome))}</span>
-          <span class="member-info"><strong>${escapeHtml(member.nome)}${me ? " (você)" : ""}</strong><span>${escapeHtml(info)}</span></span>
+          <span class="member-info"><strong>${escapeHtml(member.nome)}${me ? " (você)" : ""}</strong><span>${info}</span></span>
           ${badge}
         </div>`;
     }).join("");
@@ -398,7 +433,7 @@
     if (signature !== mapSignature && !running) {
       mapSignature = signature;
       buildBoard();
-      say(`Oi, ${firstName}! Eu começo olhando ${DIR_NAME[sala.direcao]}. Me leve até a bandeira 🏁`);
+      say(`Oi, ${firstName}! Eu começo olhando ${DIR_NAME[sala.direcao]}. Me leve até a bandeira!`);
     }
 
     $("#says-name").textContent = myRobot.name;
@@ -406,65 +441,180 @@
     updateCounter();
     $("#train-note").hidden = !eu.concluiu;
 
-    $("#team-card-title").textContent = `${team.emoji} ${team.nome}`;
+    setHtml($("#team-card-title"), `<span class="title-ico">${icon(team.icone)}${escapeHtml(team.nome)}</span>`);
     const done = team.membros.filter((member) => member.concluiu).length;
     $("#team-card-sub").textContent = `${done}/${team.membros.length} na bandeira`;
-    $("#game-members").innerHTML = renderMembers(team.membros, true);
+    setHtml($("#game-members"), renderMembers(team.membros, true));
     renderRanking($("#rank-list"), ranking);
     renderHelpBanner();
-    renderMateBanner();
+    renderMateCards();
+  }
+
+  // só troca o HTML quando ele muda (evita reiniciar animações a cada atualização)
+  const lastHtml = new WeakMap();
+  function setHtml(element, html) {
+    if (lastHtml.get(element) === html) return;
+    lastHtml.set(element, html);
+    element.innerHTML = html;
   }
 
   function renderRanking(container, ranking) {
     const myTeam = state.minha_equipe?.chave;
-    container.innerHTML = ranking.length
+    setHtml(container, ranking.length
       ? ranking.map((item, i) => `
         <li class="rank-item c-${item.cor}${item.chave === myTeam ? " mine" : ""}" style="animation-delay:${i * 0.04}s">
-          <span class="rank-pos">${MEDALS[i] || item.posicao}</span>
-          <span class="rank-emoji" aria-hidden="true">${item.emoji}</span>
+          <span class="rank-pos">${medal(i, item.posicao)}</span>
+          <span class="rank-icon">${icon(item.icone)}</span>
           <span class="rank-name"><strong>${escapeHtml(item.nome)}</strong><span>${item.concluidos}/${item.jogadores} na bandeira</span></span>
           <span class="rank-time">${item.concluidos ? formatTime(item.tempo_total) : "--:--"}</span>
         </li>`).join("")
-      : '<li class="rank-empty">O ranking aparece quando as equipes entrarem.</li>';
+      : '<li class="rank-empty">O ranking aparece quando as equipes entrarem.</li>');
+  }
+
+  /* ---------------------------------------------------------------- pedido de ajuda
+     A ajuda é presencial. O pedido tem um tempo de chamada (segundos_ajuda): se a
+     equipe não resolver nesse tempo, aparece "A equipe toda está com dúvida?". */
+  function helpSeconds() {
+    return state?.segundos_ajuda || 30;
+  }
+
+  function helpElapsed(help) {
+    return Math.max(0, (serverNow() - Date.parse(help.pedida_em)) / 1000);
   }
 
   function renderHelpBanner() {
     const { eu } = state;
+    $("#help-status").hidden = !eu.ajuda || eu.concluiu;
+    updateHelpBanner();
+  }
+
+  // roda a cada segundo, contando a partir do horário do servidor
+  function updateHelpBanner() {
+    const eu = state?.eu;
+    const help = eu?.ajuda;
     const banner = $("#help-status");
-    const help = eu.ajuda;
-    banner.hidden = !help || eu.concluiu;
-    if (!help) return;
-    banner.classList.toggle("coming", help.status === "a_caminho");
-    if (help.status === "a_caminho") {
-      $("#help-status-icon").textContent = "🏃";
-      $("#help-status-title").textContent = `${help.ajudante} está vindo te ajudar!`;
-      $("#help-status-text").textContent = "Fique pertinho do seu computador 😉";
-    } else if (help.tipo === "professor") {
-      $("#help-status-icon").textContent = "⏳";
-      $("#help-status-title").textContent = "Professor chamado!";
-      $("#help-status-text").textContent = eu.posicao_fila
-        ? `Você é o ${eu.posicao_fila}º da fila. Enquanto espera, que tal uma dica do robô?`
-        : "O professor já vai te ajudar.";
+    if (!help || banner.hidden) return;
+
+    const total = helpSeconds();
+    const left = Math.max(0, Math.ceil(total - helpElapsed(help)));
+    const team = help.tipo === "equipe";
+    const coming = help.status === "a_caminho";
+    const expired = left === 0;
+    let tone = "prof";
+    let iconName = "presentation";
+    let title;
+    let text;
+    if (team && expired) {
+      tone = "alert";
+      iconName = "users";
+      title = coming ? `${help.ajudante} está te ajudando` : "Ainda com dúvida?";
+      text = "Conseguiram resolver? Se a equipe toda estiver com dúvida, chame o professor.";
+    } else if (coming) {
+      tone = "coming";
+      iconName = "footprints";
+      title = `${help.ajudante} está vindo te ajudar!`;
+      text = team
+        ? "Mostre o seu programa e descubram juntos o que o robô está fazendo."
+        : "Fique no seu lugar: a ajuda é pessoalmente!";
+    } else if (team) {
+      tone = "team";
+      iconName = "handshake";
+      title = "Sua equipe foi avisada!";
+      text = "Espere um colega vir até o seu computador para te ajudar.";
+    } else if (!expired) {
+      iconName = "megaphone";
+      title = "Chamando o professor...";
+      text = "Ele recebeu o seu pedido na tela dele e logo vem até você.";
     } else {
-      $("#help-status-icon").textContent = "📣";
-      $("#help-status-title").textContent = "Sua equipe foi avisada!";
-      $("#help-status-text").textContent = "Espere um colega vir te ajudar.";
+      title = "O professor já sabe que você precisa de ajuda!";
+      text = eu.posicao_fila
+        ? `Você é o ${eu.posicao_fila}º da fila. Fique no seu lugar: ele vai até você.`
+        : "Fique no seu lugar: ele vai até você.";
+    }
+
+    const counting = !expired && !(coming && !team);
+    banner.dataset.tone = tone;
+    banner.classList.toggle("is-done", !counting);
+    $("#help-ring-value").textContent = left;
+    $("#help-ring-bar").style.strokeDashoffset = counting ? String(100 - (left / total) * 100) : "0";
+    const ringIcon = $("#help-status-icon");
+    if (ringIcon.dataset.icon !== iconName) {
+      ringIcon.dataset.icon = iconName;
+      ringIcon.innerHTML = icon(iconName);
+    }
+    // só troca o texto quando ele muda (a região é lida por leitores de tela)
+    if ($("#help-status-title").textContent !== title) $("#help-status-title").textContent = title;
+    if ($("#help-status-text").textContent !== text) $("#help-status-text").textContent = text;
+    $("#help-escalate").hidden = !(team && expired);
+    $("#help-guide-btn").hidden = team || coming;
+
+    // acabou o tempo da equipe: pergunta uma vez se a equipe toda está com dúvida
+    const key = `${help.tipo}:${help.pedida_em}`;
+    const otherModalOpen = $$(".modal").some((modal) => !modal.hidden);
+    if (team && expired && !escalateShown.has(key) && !otherModalOpen) {
+      escalateShown.add(key);
+      openEscalate();
     }
   }
 
-  function renderMateBanner() {
-    const banner = $("#mate-help");
-    const mate = state.colegas_pedindo_ajuda[0];
-    banner.hidden = !mate;
-    if (!mate) return;
-    const name = mate.nome.split(" ")[0];
-    const coming = mate.ajuda.status === "a_caminho";
-    $("#mate-help-text").textContent = coming
-      ? `${mate.ajuda.ajudante} está ajudando ${name}. Valeu, equipe! 💙`
-      : `${name} precisa de ajuda! ${mate.ajuda.tipo === "professor" ? `(${mate.ajuda.motivo_texto})` : ""}`;
-    const button = $("#mate-help-btn");
-    button.hidden = coming;
-    button.dataset.mateId = mate.id;
+  /* colegas da equipe que pediram ajuda (vão até o computador deles) */
+  let mateSignature = "";
+  function renderMateCards() {
+    const mates = state?.colegas_pedindo_ajuda || [];
+    const signature = mates.map((mate) => [
+      mate.id, mate.ajuda.tipo, mate.ajuda.pedida_em, mate.ajuda.status, mate.ajuda.ajudante,
+      helpElapsed(mate.ajuda) >= helpSeconds(),
+    ].join("|")).join(";");
+    if (signature !== mateSignature) {
+      mateSignature = signature;
+      const list = $("#mate-help");
+      list.hidden = !mates.length;
+      list.innerHTML = mates.map(mateCardHtml).join("");
+    }
+    $$("#mate-help [data-since]").forEach((element) => {
+      const seconds = (serverNow() - Date.parse(element.dataset.since)) / 1000;
+      element.lastElementChild.textContent = `há ${formatTime(seconds)}`;
+    });
+  }
+
+  function mateCardHtml(mate) {
+    const name = firstNameOf(mate.nome);
+    const help = mate.ajuda;
+    const team = help.tipo === "equipe";
+    const coming = help.status === "a_caminho";
+    const mine = coming && String(help.ajudante_id) === studentId;
+    const expired = team && helpElapsed(help) >= helpSeconds();
+    let cls = "";
+    let title;
+    let text;
+    if (mine) {
+      cls = "is-coming";
+      title = `Você está ajudando ${name}!`;
+      text = `Vá até o computador de ${name} e expliquem juntos. Quando resolverem, ${name} toca em "Já resolvi".`;
+    } else if (coming) {
+      cls = "is-coming";
+      title = help.ajudante_professor ? `O professor está ajudando ${name}` : `${help.ajudante} está ajudando ${name}`;
+      text = "Valeu, equipe! Ajudar os colegas também conta pontos no ranking.";
+    } else if (expired) {
+      cls = "is-alert";
+      title = `${name} ainda está com dúvida`;
+      text = `Se a equipe toda também não souber, chamem o professor pelo computador de ${name}.`;
+    } else if (team) {
+      title = `${name} está precisando de ajuda!`;
+      text = `Vá até o computador de ${name} para ajudar pessoalmente.`;
+    } else {
+      title = `${name} chamou o professor`;
+      text = `Dúvida: ${help.motivo_texto}. Se você souber, pode ajudar também!`;
+    }
+    return `
+      <div class="mate-card ${cls}">
+        <span class="mate-avatar" aria-hidden="true">${escapeHtml(initials(mate.nome))}${icon(coming ? "footprints" : "hand")}</span>
+        <div class="mate-copy"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(text)}</span></div>
+        <div class="mate-actions">
+          <span class="mate-time" data-since="${escapeHtml(help.pedida_em)}" aria-hidden="true">${icon("clock")}<span>há 00:00</span></span>
+          ${coming ? "" : `<button type="button" class="btn-candy small" data-help-mate="${mate.id}">${icon("hand-heart")} Vou ajudar!</button>`}
+        </div>
+      </div>`;
   }
 
   function notifyChanges(previous, current) {
@@ -472,10 +622,15 @@
     const now = current.eu?.ajuda;
     if (now?.status === "a_caminho" && before?.status !== "a_caminho") {
       sfx.alert();
-      toast(`🏃 ${now.ajudante} está vindo te ajudar!`, "good");
+      toast(`${now.ajudante} está vindo te ajudar!`, "good", "footprints");
     }
     if (before && !now && !cancellingHelp && !current.eu.concluiu && current.sala.status === "em_jogo") {
-      toast("✅ Sua dúvida foi marcada como resolvida!", "good");
+      sfx.alert();
+      toast(before.tipo === "professor"
+        ? "O professor marcou a sua dúvida como resolvida!"
+        : "Sua dúvida foi marcada como resolvida!", "good", "circle-check");
+      say("Oba, dúvida resolvida! Agora é com você: monte os blocos e tente de novo!", "good");
+      closeModal($("#escalate-modal"));
     }
     cancellingHelp = false;
 
@@ -485,13 +640,15 @@
         seenMateHelp.add(key);
         if (mate.ajuda.status !== "a_caminho") {
           sfx.alert();
-          toast(`🙋 ${mate.nome.split(" ")[0]} da sua equipe precisa de ajuda!`);
+          const name = firstNameOf(mate.nome);
+          if (mate.ajuda.tipo === "professor") toast(`${name} chamou o professor.`, "", "presentation");
+          else toast(`${name} da sua equipe precisa de ajuda!`, "", "hand");
         }
       }
     });
 
     if (previous.sala.status === "em_jogo" && current.sala.status === "finalizada") {
-      toast("🏁 O professor encerrou a partida!", "good");
+      toast("O professor encerrou a partida!", "good", "flag");
     }
   }
 
@@ -528,7 +685,7 @@
       cell.dataset.index = index;
       cell.setAttribute("role", "gridcell");
       cell.setAttribute("aria-label", `Linha ${Math.floor(index / tamanho) + 1}, coluna ${(index % tamanho) + 1}: ${labels[type]}`);
-      if (type === "F") cell.innerHTML = '<span class="goal-flag" aria-hidden="true">🏁</span>';
+      if (type === "F") cell.innerHTML = `<span class="goal-flag">${icon("bandeira")}</span>`;
       board.append(cell);
     }
     token = document.createElement("div");
@@ -620,7 +777,7 @@
 
   function insertNode(node, listId, index) {
     if (countBlocks() >= blockLimit()) {
-      say(`Ops! Aqui o limite é de ${blockLimit()} blocos. Tente usar o Repetir para economizar! 🔁`, "hint");
+      say(`Ops! Aqui o limite é de ${blockLimit()} blocos. Tente usar o Repetir para economizar!`, "hint");
       RR.replayClass($("#block-counter"), "bump", 400);
       return false;
     }
@@ -646,7 +803,7 @@
     sfx.add();
     if (tipo === "repetir") {
       target = node.id;
-      say("Agora clique nos blocos para colocá-los dentro do Repetir! Quando terminar, clique em ✓ Pronto.", "hint");
+      say("Agora clique nos blocos para colocá-los dentro do Repetir! Quando terminar, clique em Pronto.", "hint");
     }
     renderProgram();
   }
@@ -673,8 +830,8 @@
       return `
         <li class="prog-block" data-id="${node.id}">
           <span class="prog-num">${number}</span>
-          <div class="block ${info.cls}" draggable="true" data-drag="${node.id}"><span class="b-ico">${info.ico}</span>${info.label}</div>
-          <button type="button" class="prog-remove" data-remove="${node.id}" aria-label="Remover ${info.label}">✕</button>
+          <div class="block ${info.cls}" draggable="true" data-drag="${node.id}"><span class="b-ico">${icon(info.ico)}</span>${info.label}</div>
+          <button type="button" class="prog-remove" data-remove="${node.id}" aria-label="Remover ${info.label}">${icon("x")}</button>
         </li>`;
     }
     const isTarget = target === node.id;
@@ -683,7 +840,7 @@
         <span class="prog-num">${number}</span>
         <div class="repeat${isTarget ? " target" : ""}" data-repeat="${node.id}">
           <div class="repeat-head" draggable="true" data-drag="${node.id}">
-            <span class="b-ico">🔁</span> Repetir
+            <span class="b-ico">${icon("repeat")}</span> Repetir
             <span class="stepper">
               <button type="button" data-step="-1" data-repeat-id="${node.id}" aria-label="Menos vezes">−</button>
               <output>${node.vezes}</output>
@@ -693,9 +850,9 @@
             <span class="repeat-lap" hidden></span>
           </div>
           <div class="repeat-body" data-lista="${node.id}">${listHtml(node.comandos, node.id)}</div>
-          ${isTarget ? `<button type="button" class="repeat-done" data-done="${node.id}">✓ Pronto</button>` : ""}
+          ${isTarget ? `<button type="button" class="repeat-done" data-done="${node.id}">${icon("check")} Pronto</button>` : ""}
         </div>
-        <button type="button" class="prog-remove" data-remove="${node.id}" aria-label="Remover Repetir">✕</button>
+        <button type="button" class="prog-remove" data-remove="${node.id}" aria-label="Remover Repetir">${icon("x")}</button>
       </li>`;
   }
 
@@ -733,7 +890,7 @@
     const body = event.target.closest(".repeat-body");
     if (body) {
       target = Number(body.dataset.lista);
-      say("Os próximos blocos vão para dentro deste Repetir 🔁", "hint");
+      say("Os próximos blocos vão para dentro deste Repetir.", "hint");
       renderProgram();
       return;
     }
@@ -876,9 +1033,9 @@
   function setRunning(value) {
     running = value;
     $("#run-btn").disabled = value;
-    $("#run-btn").innerHTML = value ? '<span aria-hidden="true">⏳</span> Executando...' : '<span aria-hidden="true">▶</span> Executar';
+    $("#run-btn").innerHTML = value ? `${icon("loader-circle", "spin")} Executando...` : `${icon("play", "ico-fill")} Executar`;
     $("#clear-btn").disabled = value;
-    $("#reset-btn").innerHTML = value ? '<span aria-hidden="true">⏹</span> Parar' : '<span aria-hidden="true">↺</span> Reiniciar';
+    $("#reset-btn").innerHTML = value ? `${icon("square", "ico-fill")} Parar` : `${icon("rotate-ccw")} Reiniciar`;
     $$("#palette .block").forEach((block) => { block.disabled = value; });
   }
 
@@ -933,17 +1090,21 @@
   async function run() {
     if (running || !state) return;
     if (!program.length) {
-      say("Coloque alguns blocos primeiro! 🧩", "hint");
+      say("Coloque alguns blocos primeiro! Eu só me mexo com os blocos do programa.", "hint");
       return;
     }
     if (program.some((node) => node.tipo === "repetir" && !node.comandos.length)) {
-      say("Tem um Repetir vazio! Coloque blocos dentro dele 🔁", "hint");
+      say("Tem um Repetir vazio! Coloque blocos dentro dele.", "hint");
       return;
     }
 
     const myToken = ++runToken;
     setRunning(true);
     resetRobot();
+    // no celular o tabuleiro fica acima dos blocos: mostra o robô andando
+    if (window.matchMedia("(max-width: 860px)").matches) {
+      $(".board-wrap").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+    }
     let result;
     try {
       result = await api(page.dataset.runUrl, { method: "POST", body: JSON.stringify({ programa: payload() }) });
@@ -954,7 +1115,7 @@
       return;
     }
 
-    say("Lá vou eu! 🤖");
+    say("Lá vou eu!");
     const outcome = await animate(flatten(), myToken);
     if (outcome.aborted) return;
     setRunning(false);
@@ -966,9 +1127,9 @@
       sfx.win();
       confetti(token);
       if (result.ja_concluiu) {
-        say(`Treino concluído! Você usou ${result.blocos} blocos. Dá para usar menos? 🤔`, "good");
+        say(`Treino concluído! Você usou ${result.blocos} blocos. Dá para usar menos com o Repetir?`, "good");
       } else {
-        say("Chegueeei! Você é demais! 🎉", "good");
+        say("Chegueeei! Você é demais!", "good");
         openWin(result);
       }
     } else {
@@ -978,9 +1139,9 @@
       if (outcome.step) programRoot.querySelector(`.prog-block[data-id="${outcome.step.id}"]`)?.classList.add("error");
       const number = outcome.step ? blockNumber(outcome.step) : 0;
       if (outcome.motivo === "parede") {
-        say(`Ops! Bati numa parede no bloco ${number}. Tente virar antes de avançar! 🧱`, "bad");
+        say(`Ops! Bati numa parede no bloco ${number}. Eu estava olhando ${DIR_NAME[robot.dir]}: talvez eu precise virar antes de avançar.`, "bad");
       } else if (outcome.motivo === "fora_do_mapa") {
-        say(`Epa! Quase caí para fora do mapa no bloco ${number}! 😵`, "bad");
+        say(`Epa! No bloco ${number} eu quase saí do mapa! Eu estava olhando ${DIR_NAME[robot.dir]}.`, "bad");
       } else {
         const { tamanho, mapa } = state.sala;
         const goal = mapa.indexOf("F");
@@ -988,7 +1149,7 @@
         say(`Os blocos acabaram e eu parei. A bandeira ainda está ${distance}. Faltam mais passos!`, "bad");
       }
       if (!result.ja_concluiu && result.tentativas >= 3 && !state.eu?.ajuda && (state.eu?.dicas || 0) === 0) {
-        setTimeout(() => toast("💡 Travou? Clique em 🙋 Preciso de ajuda e peça uma dica ao robô!"), 1200);
+        setTimeout(() => toast("Travou? Toque em Preciso de ajuda e veja as dicas do robô!", "", "lightbulb"), 1200);
       }
     }
     refresh();
@@ -1000,7 +1161,7 @@
     $("#win-tries").textContent = result.tentativas;
     const stars = result.estrelas || 1;
     $("#win-stars").innerHTML = [1, 2, 3]
-      .map((n) => `<span class="${n <= stars ? "" : "off"}" style="animation-delay:${0.2 + n * 0.15}s">⭐</span>`).join("");
+      .map((n) => `<span class="${n <= stars ? "" : "off"}" style="animation-delay:${0.2 + n * 0.15}s">${icon("star", "ico-fill")}</span>`).join("");
     const myTeam = state.minha_equipe?.chave;
     const position = result.ranking.find((item) => item.chave === myTeam)?.posicao;
     $("#win-team").textContent = position ? `Sua equipe está em ${position}º lugar no ranking!` : "";
@@ -1023,21 +1184,26 @@
     target = "raiz";
     renderProgram();
     resetRobot();
-    say("Programa apagado. Vamos recomeçar! 🧩");
+    say("Programa apagado. Vamos recomeçar!");
   });
   $("#speed-btn").addEventListener("click", (event) => {
     fast = !fast;
     event.currentTarget.setAttribute("aria-pressed", String(fast));
-    $("#speed-icon").textContent = fast ? "🐇" : "🐢";
+    $("#speed-icon").innerHTML = icon(fast ? "rabbit" : "turtle");
     $("#speed-label").textContent = fast ? "Rápido" : "Devagar";
     token?.style.setProperty("--step", `${(stepDuration() * 0.75) / 1000}s`);
   });
-  $("#sound-toggle").addEventListener("click", (event) => {
+  function paintSoundToggle() {
+    const button = $("#sound-toggle");
+    button.innerHTML = icon(soundOn ? "volume-2" : "volume-x");
+    button.setAttribute("aria-pressed", String(soundOn));
+    button.title = soundOn ? "Som ligado" : "Som desligado";
+  }
+
+  $("#sound-toggle").addEventListener("click", () => {
     soundOn = !soundOn;
     writeSetting("robooteam-som", soundOn ? "1" : "0");
-    event.currentTarget.textContent = soundOn ? "🔊" : "🔇";
-    event.currentTarget.setAttribute("aria-pressed", String(soundOn));
-    event.currentTarget.title = soundOn ? "Som ligado" : "Som desligado";
+    paintSoundToggle();
     sfx.add();
   });
 
@@ -1062,7 +1228,12 @@
     if (event.key === "Escape") $$(".modal").forEach((modal) => closeModal(modal));
   });
 
-  $("#open-help").addEventListener("click", () => {
+  function canAskForHelp() {
+    return Boolean(state?.eu && state.sala.status === "em_jogo" && !state.eu.concluiu);
+  }
+
+  // menu com os três tipos de ajuda
+  function prepareHelpMenu() {
     const { eu, minha_equipe: team, motivos_ajuda: reasons } = state;
     const used = Math.min(eu.dicas || 0, 3);
     $$("#hint-meter i").forEach((bar, index) => bar.classList.toggle("on", index < used));
@@ -1071,8 +1242,11 @@
     $("#help-team").disabled = alone || waiting;
     $("#help-team-text").textContent = alone
       ? "Você ainda está sozinho na equipe."
-      : waiting ? "Você já pediu ajuda. Aguarde!" : "Seus colegas recebem um aviso na tela.";
+      : waiting ? "Você já pediu ajuda. Aguarde!" : "Um colega vem até o seu computador.";
     $("#help-prof").disabled = waiting;
+    $("#help-prof-text").textContent = waiting
+      ? "Você já pediu ajuda. Aguarde!"
+      : "Conte qual é a dúvida e ele vem até você.";
     $("#help-prof").classList.remove("selected");
     $("#reason-box").hidden = true;
     selectedReason = null;
@@ -1080,7 +1254,114 @@
     $("#reason-chips").innerHTML = Object.entries(reasons)
       .map(([key, text]) => `<button type="button" class="reason-chip" data-reason="${key}" aria-pressed="false">${escapeHtml(text)}</button>`)
       .join("");
+    $$("[data-help-seconds]").forEach((element) => { element.textContent = helpSeconds(); });
+  }
+
+  function setHelpView(view) {
+    const guide = view === "guia";
+    $("#help-menu").hidden = guide;
+    $("#help-guide").hidden = !guide;
+    $("#help-head-ico").innerHTML = icon(guide ? "lightbulb" : "hand");
+    $("#help-title").textContent = guide ? "Guia do robô" : "Precisa de uma forcinha?";
+    $("#help-subtitle").textContent = guide
+      ? "Aprenda como a fase funciona e o que cada bloco faz."
+      : "Escolha o tipo de ajuda. Pedir ajuda é coisa de quem quer aprender!";
+    $("#guide-back").hidden = !canAskForHelp();
+    if (guide) renderGuide();
+    helpModal.querySelector(".modal-panel").scrollTop = 0;
+  }
+
+  function openHelp(view = "menu", tab = null) {
+    if (view === "menu") prepareHelpMenu();
+    if (tab) guideTab = tab;
+    setHelpView(view);
     openModal(helpModal);
+  }
+
+  $("#open-help").addEventListener("click", () => openHelp(canAskForHelp() ? "menu" : "guia"));
+  $$("[data-open-guide]").forEach((button) => {
+    button.addEventListener("click", () => openHelp("guia", button.dataset.openGuide));
+  });
+  $("#help-guide-btn").addEventListener("click", () => openHelp("guia", "blocos"));
+  $("#help-open-guide").addEventListener("click", () => setHelpView("guia"));
+  $("#guide-back").addEventListener("click", () => {
+    prepareHelpMenu();
+    setHelpView("menu");
+  });
+
+  /* guia do robô: como a fase funciona, o que cada bloco faz, lógica e dicas do mapa */
+  function robotTip() {
+    const { sala, eu } = state;
+    const facing = DIR_NAME[sala.direcao];
+    if (!eu || sala.status === "aguardando") {
+      return `Quando o jogo começar, eu vou estar olhando ${facing}. Leia o guia para chegar preparado!`;
+    }
+    if (eu.concluiu) return "Você já chegou à bandeira! Agora tente chegar usando menos blocos com o Repetir.";
+    if (eu.ultimo_erro === "parede") {
+      return "Na última tentativa eu bati numa parede. Veja o bloco que ficou vermelho: antes dele, talvez eu precise virar.";
+    }
+    if (eu.ultimo_erro === "fora_do_mapa") {
+      return "Na última tentativa eu quase saí do mapa! Antes de avançar, confira para onde a setinha amarela aponta.";
+    }
+    if (eu.ultimo_erro === "nao_chegou") {
+      return "Na última tentativa os blocos acabaram antes da bandeira. Continue o programa de onde eu parei!";
+    }
+    if (!program.length) {
+      return `Comece devagar: eu estou olhando ${facing}. Quantas casinhas consigo andar antes de precisar virar?`;
+    }
+    return "Aperte Executar para testar o que você já montou. Testar aos pouquinhos ajuda a achar os erros!";
+  }
+
+  function renderGuide() {
+    const { sala, eu, minha_equipe: team } = state;
+    $("#guide-tip").textContent = robotTip();
+    const facts = [
+      `${icon("map")} Mapa ${sala.tamanho} × ${sala.tamanho}`,
+      `<span class="dir-arrow" style="--angle:${ANGLE[sala.direcao]}deg">${icon("arrow-up")}</span> Eu começo olhando ${DIR_NAME[sala.direcao]}`,
+      `${icon("puzzle")} Até ${blockLimit()} blocos`,
+    ];
+    if (team) facts.push(`${icon(team.icone)} Equipe ${escapeHtml(team.nome)}`);
+    $("#guide-facts").innerHTML = facts.map((fact) => `<span class="fact">${fact}</span>`).join("");
+
+    // a dica do mapa só existe durante a partida
+    const mapAllowed = Boolean(eu && sala.status === "em_jogo");
+    $("#tab-mapa").hidden = !mapAllowed;
+    if (!mapAllowed && guideTab === "mapa") guideTab = "missao";
+    const used = Math.min(eu?.dicas || 0, 3);
+    $$("#hint-levels li").forEach((item) => {
+      const level = Number(item.dataset.level);
+      item.classList.toggle("done", level <= used);
+      item.classList.toggle("next", level === used + 1);
+    });
+    $("#help-hint-label").textContent = used < 3 ? `Ver dica ${used + 1}` : "Ver o caminho de novo";
+    selectTab(guideTab, false);
+    paintMyRobots($("#help-guide"));
+  }
+
+  function selectTab(name, focus = true) {
+    guideTab = name;
+    $$(".guide-tabs [role='tab']").forEach((tab) => {
+      const selected = tab.dataset.tab === name;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focus) tab.focus();
+    });
+    $$(".guide-panel").forEach((panel) => { panel.hidden = panel.id !== `panel-${name}`; });
+  }
+
+  $(".guide-tabs").addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-tab]");
+    if (tab) selectTab(tab.dataset.tab);
+  });
+  $(".guide-tabs").addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tabs = $$(".guide-tabs [role='tab']").filter((tab) => !tab.hidden);
+    const index = tabs.findIndex((tab) => tab.dataset.tab === guideTab);
+    let next = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = tabs.length - 1;
+    event.preventDefault();
+    selectTab(tabs[next].dataset.tab);
   });
 
   $("#help-hint").addEventListener("click", async () => {
@@ -1114,26 +1395,52 @@
         }
       });
       $("#hint-toggle").hidden = false;
-      const first = hint.primeiros_comandos.map((command) => `${BLOCKS[command].ico} ${BLOCKS[command].label}`).join(", ");
+      const first = hint.primeiros_comandos.map((command) => BLOCKS[command].label).join(", ");
       text = hint.nivel === 2
-        ? `Dica 2: siga as pegadas 👣! Comece com: ${first}.`
-        : `Dica 3: aqui está o caminho todinho 👣! São ${hint.total_comandos} comandos — dá para economizar com o Repetir?`;
+        ? `Dica 2: siga as pegadas amarelas no mapa! Comece com: ${first}.`
+        : `Dica 3: as pegadas mostram o caminho todinho! São ${hint.total_comandos} comandos. Dá para economizar com o Repetir?`;
     }
     say(text, "hint");
     sfx.alert();
+    if (window.matchMedia("(max-width: 860px)").matches) {
+      $(".board-card").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    }
   }
 
   $("#hint-toggle").addEventListener("click", clearHint);
 
-  $("#help-team").addEventListener("click", async () => {
+  /* pedidos de ajuda: a equipe ou o professor vão até o computador do aluno */
+  async function askForHelp(body, message, iconName) {
     try {
-      render(await api(page.dataset.helpUrl, { method: "POST", body: JSON.stringify({ tipo: "equipe" }) }));
+      render(await api(page.dataset.helpUrl, { method: "POST", body: JSON.stringify(body) }));
       closeModal(helpModal);
-      toast("📣 Avisei sua equipe! Um colega já vem.", "good");
+      closeModal($("#escalate-modal"));
+      toast(message, "good", iconName);
     } catch (error) {
       toast(error.message, "bad");
     }
-  });
+  }
+
+  async function resolveHelp() {
+    try {
+      cancellingHelp = true;
+      render(await api(page.dataset.helpUrl, { method: "DELETE" }));
+      closeModal($("#escalate-modal"));
+      toast("Que bom que deu certo!", "good", "party-popper");
+    } catch (error) {
+      cancellingHelp = false;
+      toast(error.message, "bad");
+    }
+  }
+
+  function openEscalate() {
+    paintMyRobots($("#escalate-modal"));
+    openModal($("#escalate-modal"));
+    sfx.alert();
+  }
+
+  $("#help-team").addEventListener("click", () => askForHelp(
+    { tipo: "equipe" }, "Avisei sua equipe! Um colega vai até você.", "megaphone"));
 
   $("#help-prof").addEventListener("click", (event) => {
     event.currentTarget.classList.add("selected");
@@ -1149,34 +1456,27 @@
     $("#send-prof-help").disabled = false;
   });
 
-  $("#send-prof-help").addEventListener("click", async () => {
+  $("#send-prof-help").addEventListener("click", () => {
     if (!selectedReason) return;
-    try {
-      render(await api(page.dataset.helpUrl, { method: "POST", body: JSON.stringify({ tipo: "professor", motivo: selectedReason }) }));
-      closeModal(helpModal);
-      toast("🧑‍🏫 Professor chamado! Você entrou na fila.", "good");
-    } catch (error) {
-      toast(error.message, "bad");
-    }
+    askForHelp({ tipo: "professor", motivo: selectedReason }, "Professor chamado! Você entrou na fila.", "presentation");
   });
 
-  $("#help-cancel").addEventListener("click", async () => {
-    try {
-      cancellingHelp = true;
-      render(await api(page.dataset.helpUrl, { method: "DELETE" }));
-      toast("Que bom que deu certo! 🎉", "good");
-    } catch (error) {
-      cancellingHelp = false;
-      toast(error.message, "bad");
-    }
-  });
+  $("#help-cancel").addEventListener("click", resolveHelp);
+  $("#help-escalate").addEventListener("click", openEscalate);
+  $("#escalate-solved").addEventListener("click", resolveHelp);
+  $("#escalate-call").addEventListener("click", () => askForHelp(
+    { tipo: "professor", motivo: ESCALATE_REASON }, "Professor chamado! Ele vai até vocês.", "presentation"));
 
-  $("#mate-help-btn").addEventListener("click", async (event) => {
-    const url = page.dataset.helpMateUrl.replace(/0$/, event.currentTarget.dataset.mateId);
+  $("#mate-help").addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-help-mate]");
+    if (!button) return;
+    const url = page.dataset.helpMateUrl.replace(/0$/, button.dataset.helpMate);
+    button.disabled = true;
     try {
       render(await api(url, { method: "POST" }));
-      toast("Obrigado por ajudar! Você é demais 💙", "good");
+      toast("Obrigado por ajudar! Agora vá até o computador do seu colega.", "good", "heart");
     } catch (error) {
+      button.disabled = false;
       toast(error.message, "bad");
     }
   });
@@ -1192,10 +1492,10 @@
     $("#team-name").value = chip.dataset.suggestion;
     $("#team-name").focus();
   });
-  $("#team-emojis").addEventListener("click", (event) => {
-    const option = event.target.closest("[data-emoji]");
+  $("#team-icons").addEventListener("click", (event) => {
+    const option = event.target.closest("[data-icon]");
     if (!option) return;
-    selectedEmoji = option.dataset.emoji;
+    selectedIcon = option.dataset.icon;
     renderTeamPickers();
   });
   $("#team-colors").addEventListener("click", (event) => {
@@ -1212,7 +1512,7 @@
       $("#team-name").focus();
       return;
     }
-    joinTeam(name, selectedColor, selectedEmoji);
+    joinTeam(name, selectedColor, selectedIcon);
   });
   $("#change-team").addEventListener("click", () => {
     choosingTeam = true;
@@ -1226,7 +1526,7 @@
     const myTeam = state.minha_equipe?.chave;
     const winner = ranking[0];
     $("#final-title").textContent = winner && winner.chave === myTeam
-      ? "Sua equipe venceu! 🏆"
+      ? "Sua equipe venceu!"
       : "Parabéns, exploradores!";
     $("#final-text").textContent = state.eu?.concluiu
       ? `Você levou o robô até a bandeira em ${formatTime(state.eu.tempo)}. Mandou muito bem!`
@@ -1234,13 +1534,13 @@
 
     const order = [ranking[1], ranking[0], ranking[2]];
     const classes = ["p2", "p1", "p3"];
-    $("#podium").innerHTML = order.map((item, i) => (item ? `
+    setHtml($("#podium"), order.map((item, i) => (item ? `
       <div class="podium-step ${classes[i]} c-${item.cor}">
-        <span class="podium-emoji" aria-hidden="true">${item.emoji}</span>
+        <span class="podium-icon">${icon(item.icone)}</span>
         <strong>${escapeHtml(item.nome)}</strong>
         <span>${item.concluidos}/${item.jogadores} · ${item.concluidos ? formatTime(item.tempo_total) : "--:--"}</span>
-        <div class="podium-block">${MEDALS[item.posicao - 1] || item.posicao}</div>
-      </div>` : "")).join("");
+        <div class="podium-block">${medal(item.posicao - 1, item.posicao)}</div>
+      </div>` : "")).join(""));
     renderRanking($("#final-rank"), ranking);
     paintMyRobots($("#view-final"));
     if (!finalCelebrated && winner && winner.chave === myTeam) {
@@ -1277,10 +1577,15 @@
     if (!document.hidden) refresh();
   });
 
-  $("#sound-toggle").textContent = soundOn ? "🔊" : "🔇";
-  $("#sound-toggle").setAttribute("aria-pressed", String(soundOn));
+  paintSoundToggle();
   paintMyRobots();
   renderProgram();
-  setInterval(updateTimer, 1000);
+  setInterval(() => {
+    updateTimer();
+    if (page.dataset.view === "game") {
+      updateHelpBanner();
+      renderMateCards();
+    }
+  }, 1000);
   refresh().then(schedule);
 })();

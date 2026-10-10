@@ -44,6 +44,19 @@
   button{ font-family:inherit; cursor:pointer; border:none; }
   a{ text-decoration:none; color:inherit; }
   img,svg{ display:block; }
+  /* ícones do sprite (templates/_icones.html) */
+  .ico{
+    width:1.15em; height:1.15em;
+    display:inline-block;
+    flex-shrink:0;
+    vertical-align:-0.2em;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .ico-fill{ fill:currentColor; }
 
   html{ scroll-behavior:smooth; scroll-padding-top:104px; }
 
@@ -119,7 +132,7 @@
     font-size:10.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
     padding:4px 11px;
   }
-  .role-badge .rocket{ display:inline-block; animation:bob 2.2s ease-in-out infinite; }
+  .role-badge .rocket{ display:inline-flex; font-size:13px; animation:bob 2.2s ease-in-out infinite; }
 
   .profile-card{
     background:linear-gradient(135deg, rgba(26,42,86,0.95), rgba(26,42,86,0.5));
@@ -147,15 +160,17 @@
     background:var(--yellow); color:#5A3A00;
     border:2px solid #1A2A56;
     display:flex; align-items:center; justify-content:center;
-    font-size:10px;
+    font-size:11px;
     pointer-events:none;
   }
+  .avatar-edit .ico{ stroke-width:2.6; }
   .profile-info{ min-width:0; }
   .profile-info .name{
     font-family:'Poppins',sans-serif; font-weight:600; font-size:14.5px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .profile-info .title{ font-size:11px; color:#9AA6CC; margin-top:2px; }
+  .profile-info .title{ display:flex; align-items:center; gap:4px; font-size:11px; color:#9AA6CC; margin-top:2px; }
+  .profile-info .title .ico{ color:var(--yellow); font-size:12px; }
   .profile-stats{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
   .profile-stat{
     background:rgba(255,255,255,0.05);
@@ -164,7 +179,9 @@
     padding:7px 10px;
     display:flex; align-items:center; gap:8px;
   }
-  .profile-stat-emoji{ font-size:17px; display:inline-block; animation:bob 2.4s ease-in-out infinite; }
+  .profile-stat-emoji{ font-size:18px; display:inline-flex; animation:bob 2.4s ease-in-out infinite; }
+  .profile-stat-emoji.trophy{ color:var(--cyan); }
+  .profile-stat-emoji.star{ color:var(--yellow); }
   .profile-stat:nth-child(2) .profile-stat-emoji{ animation-delay:-1.2s; }
   .profile-stats .stat-label{ font-size:9.5px; color:#8892BD; text-transform:uppercase; letter-spacing:0.6px; }
   .profile-stats .stat-value{ font-family:'Poppins',sans-serif; font-weight:700; font-size:15px; line-height:1.15; }
@@ -304,7 +321,7 @@
   .greeting h1{ font-size:24px; font-weight:700; letter-spacing:-0.3px; }
   .greeting h1 .hl{ color:var(--primary); }
   .greeting p{ margin-top:2px; font-size:13.5px; color:var(--text-muted); }
-  .wave{ display:inline-block; transform-origin:70% 70%; animation:wave 2.8s ease-in-out infinite; }
+  .wave{ display:inline-flex; vertical-align:-0.1em; color:var(--yellow); font-size:0.95em; transform-origin:70% 70%; animation:wave 2.8s ease-in-out infinite; }
 
   .header-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .header-chip{
@@ -315,7 +332,7 @@
     color:#9A6200;
     font-size:12.5px; font-weight:700;
   }
-  .header-chip .spin-star{ display:inline-block; animation:star-spin 6s linear infinite; }
+  .header-chip .spin-star{ display:inline-flex; font-size:15px; color:var(--yellow); animation:star-spin 6s linear infinite; }
   .header-icon-btn{
     width:40px; height:40px;
     border-radius:12px;
@@ -368,13 +385,14 @@
     position:absolute;
     left:var(--acc-x, 50%);
     top:var(--acc-y, 19%);
-    font-size:2.4em;
-    font-size:26cqw;
-    line-height:1;
+    width:30%;
+    aspect-ratio:1;
+    line-height:0;
     transform:translate(-50%, -80%) rotate(var(--acc-rot, 0deg));
     pointer-events:none;
     filter:drop-shadow(0 3px 3px rgba(0,0,0,0.28));
   }
+  .robot-acc svg{ width:100%; height:100%; display:block; }
   .robot-acc:empty{ display:none; }
   .robot-acc.pop{ animation:acc-pop 0.45s cubic-bezier(.34,1.56,.64,1); }
 
@@ -432,8 +450,11 @@
     padding:4px 10px;
   }
   .trait[hidden]{ display:none; }
+  .trait-acc{ display:inline-flex; width:16px; height:16px; }
+  .trait-acc svg{ width:100%; height:100%; }
   .trait-dot{ width:10px; height:10px; border-radius:50%; background:var(--dot, #6D5DFC); box-shadow:0 0 8px var(--dot, #6D5DFC); }
   .showcase-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+  .btn-candy .ico{ font-size:16px; }
   .btn-candy{
     display:inline-flex; align-items:center; gap:8px;
     background:var(--cyan);
@@ -516,6 +537,7 @@
   .stage-arrow.next{ right:0; }
   .stage-spark{
     position:absolute;
+    display:inline-flex;
     color:#fff;
     font-size:14px;
     pointer-events:none;
@@ -619,9 +641,11 @@
     font-size:18px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .robot-card-cta{ color:var(--primary); font-weight:700; }
+  .robot-card-cta{ display:inline-flex; align-items:center; gap:4px; color:var(--primary); font-weight:700; }
   .robot-card-sticker{
     position:absolute; top:10px; right:62px; z-index:1;
+    display:inline-flex;
+    color:var(--pink);
     font-size:15px;
     animation:sparkle 2.2s ease-in-out infinite;
   }
@@ -716,7 +740,7 @@
   .room-feedback.success{ color:#A7F3D0; }
   .room-feedback.error{ color:#FECACA; }
   .arena-quick{ margin-top:12px; }
-  .arena-quick-label{ display:block; color:var(--cyan); font-size:10px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:7px; }
+  .arena-quick-label{ display:flex; align-items:center; gap:5px; color:var(--cyan); font-size:10px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:7px; }
   .arena-quick-list{ display:flex; flex-wrap:wrap; gap:8px; }
   .arena-quick-item{
     display:flex; flex-direction:column; gap:1px;
@@ -728,7 +752,7 @@
   }
   .arena-quick-item:hover{ background:rgba(255,255,255,0.18); transform:translateY(-2px); }
   .arena-quick-item strong{ font-size:12.5px; }
-  .arena-quick-item span{ font-size:11px; color:#C6D1F2; }
+  .arena-quick-item span{ display:flex; align-items:center; gap:4px; font-size:11px; color:#C6D1F2; }
   .arena-quick-item.live span{ color:#A7F3D0; font-weight:700; }
   .room-join-robot{
     filter:drop-shadow(0 15px 13px rgba(2,10,40,0.32));
@@ -765,6 +789,7 @@
   .mission-tag{ font-size:12.5px; color:#B9C6EF; margin-top:10px; }
   .mission-name{ font-family:'Poppins',sans-serif; font-weight:700; font-size:17px; margin-top:3px; color:#fff; }
   .mission-desc{ font-size:13.5px; color:#C6D1F2; margin-top:8px; line-height:1.55; }
+  .mission-btn .ico{ font-size:15px; }
   .mission-btn{
     margin-top:20px;
     display:inline-flex; align-items:center; gap:8px;
@@ -985,7 +1010,7 @@
 
   /* ===================== OFICINA DO ROBÔ ===================== */
   .app-modal-panel.workshop-panel{ max-width:800px; max-height:min(740px, 92vh); }
-  .app-modal-head-ico.workshop{ background:#FFF0F7; font-size:20px; }
+  .app-modal-head-ico.workshop{ background:#FFF0F7; color:#D9508F; font-size:22px; }
   .workshop-body{
     display:grid;
     grid-template-columns:250px minmax(0,1fr);
@@ -1028,7 +1053,7 @@
     transition:background 0.15s ease;
   }
   .workshop-random:hover{ background:rgba(255,255,255,0.22); }
-  .workshop-random .dice{ display:inline-block; }
+  .workshop-random .dice{ display:inline-flex; font-size:16px; }
   .workshop-random.rolling .dice{ animation:star-spin 0.5s ease; }
   .workshop-options{ display:flex; flex-direction:column; gap:18px; min-width:0; }
   .workshop-group{ border:none; min-width:0; }
@@ -1082,13 +1107,15 @@
   .swatch:hover{ transform:scale(1.12); }
   .swatch[aria-pressed="true"]{ box-shadow:0 0 0 3px var(--swatch); transform:scale(1.08); }
   .swatch[aria-pressed="true"]::after{
-    content:"✓";
-    position:absolute; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    color:#fff; font-size:16px; font-weight:900;
-    text-shadow:0 1px 2px rgba(0,0,0,0.35);
+    content:"";
+    position:absolute; inset:26%;
+    background:#fff;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,0.35));
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
   }
   .acc-row .option-tile{ width:54px; height:54px; justify-content:center; font-size:24px; padding:0; }
+  .acc-row .option-tile svg{ width:34px; height:34px; }
   .acc-row .option-tile .acc-none{ font-size:11px; font-weight:800; }
   .workshop-foot{
     display:flex; align-items:center; justify-content:flex-end; gap:10px;
@@ -1244,7 +1271,9 @@
     .trail-track{ overflow-x:auto; }
     .room-join-card{ grid-template-columns:minmax(0,1fr) 105px; padding:22px 24px; }
     .room-join-robot{ height:142px; width:112px; }
-    .workshop-body{ grid-template-columns:1fr; }
+    /* linhas no tamanho do conteúdo: com o modal de altura limitada, a grade
+       espremia o palco (overflow:hidden) e as poses ficavam por cima dele */
+    .workshop-body{ grid-template-columns:minmax(0,1fr); grid-auto-rows:max-content; }
     .workshop-stage{ position:relative; }
     .workshop-stage .robot-float{ width:140px; }
     .pose-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); }
@@ -1270,12 +1299,14 @@
     }
   }
 </style>
-<link rel="stylesheet" href="{{ url_for('static', filename='aluno_trilha.css') }}">
-<script src="{{ url_for('static', filename='aluno.js', v='6') }}" defer></script>
-<script src="{{ url_for('static', filename='robo_perfil.js', v='1') }}" defer></script>
-<script src="{{ url_for('static', filename='aluno_robo.js', v='2') }}" defer></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='aluno_trilha.css', v='2') }}">
+<script src="{{ url_for('static', filename='aluno.js', v='7') }}" defer></script>
+<script src="{{ url_for('static', filename='robo_perfil.js', v='2') }}" defer></script>
+<script src="{{ url_for('static', filename='aluno_robo.js', v='3') }}" defer></script>
 </head>
+{% from "_icones.html" import ico %}
 <body data-trail-url="{{ url_for('obter_trilha_aluno') }}" data-join-room-url="{{ url_for('entrar_sala_aluno') }}" data-arenas-url="{{ url_for('listar_arenas_aluno') }}" data-logout-url="{{ url_for('logout') }}" data-login-url="{{ url_for('pagina_login') }}" data-student-id="{{ usuario.id }}" data-robot-img-base="{{ url_for('static', filename='img/') }}">
+{% include "_icones.html" %}
 
 <div class="app">
 
@@ -1294,7 +1325,7 @@
       </button>
     </div>
     <div class="role-badge-wrap">
-      <span class="role-badge"><span class="rocket" aria-hidden="true">🚀</span> Área do explorador</span>
+      <span class="role-badge"><span class="rocket">{{ ico("rocket") }}</span> Área do explorador</span>
     </div>
 
     <div class="profile-card">
@@ -1303,23 +1334,23 @@
           <span class="avatar">
             <span class="robot-figure" data-robot-figure><img src="{{ url_for('static', filename='img/1.png') }}" alt=""><span class="robot-acc"></span></span>
           </span>
-          <span class="avatar-edit" aria-hidden="true">✏️</span>
+          <span class="avatar-edit">{{ ico("pencil") }}</span>
         </button>
         <div class="profile-info">
           <div class="name" id="student-name">{{ usuario.nome }}</div>
-          <div class="title">⭐ Explorador Iniciante</div>
+          <div class="title">{{ ico("star", "ico-fill") }} Explorador Iniciante</div>
         </div>
       </div>
       <div class="profile-stats">
         <div class="profile-stat">
-          <span class="profile-stat-emoji" aria-hidden="true">🏆</span>
+          <span class="profile-stat-emoji trophy">{{ ico("trophy") }}</span>
           <div>
             <div class="stat-label">Nível</div>
             <div class="stat-value level" id="sidebar-level">01</div>
           </div>
         </div>
         <div class="profile-stat">
-          <span class="profile-stat-emoji" aria-hidden="true">⭐</span>
+          <span class="profile-stat-emoji star">{{ ico("star", "ico-fill") }}</span>
           <div>
             <div class="stat-label">Pontos</div>
             <div class="stat-value points" id="sidebar-points">0</div>
@@ -1368,13 +1399,13 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
         <div class="greeting">
-          <h1>Olá, <span class="hl" id="greeting-name">{{ usuario.nome.split()[0] }}</span>! <span class="wave" aria-hidden="true">👋</span></h1>
+          <h1>Olá, <span class="hl" id="greeting-name">{{ usuario.nome.split()[0] }}</span>! <span class="wave">{{ ico("hand") }}</span></h1>
           <p>Pronto para continuar sua aventura e aprender muito sobre robótica?</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <span class="header-chip" title="Seus pontos"><span class="spin-star" aria-hidden="true">⭐</span><strong id="header-points">0</strong> pontos</span>
+        <span class="header-chip" title="Seus pontos"><span class="spin-star">{{ ico("star", "ico-fill") }}</span><strong id="header-points">0</strong> pontos</span>
         <button type="button" class="header-icon-btn" data-open-modal="how-to-modal" title="Como aprender" aria-label="Como aprender">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Z"/><path d="M19 17.5H6a2 2 0 0 0-2 2"/></svg>
         </button>
@@ -1397,7 +1428,7 @@
       <section class="hero-grid" id="progresso">
         <div class="robot-showcase" id="meu-robo">
           <div class="showcase-info">
-            <span class="showcase-kicker"><span aria-hidden="true">✨</span> Seu robô</span>
+            <span class="showcase-kicker">{{ ico("sparkles") }} Seu robô</span>
             <h2 class="showcase-name" data-robot-name>Robo-01</h2>
             <p class="showcase-mood" id="robot-mood">Acenando para você!</p>
             <div class="showcase-traits">
@@ -1405,8 +1436,8 @@
               <span class="trait" id="robot-trait-acc-wrap" hidden><span id="robot-trait-acc"></span></span>
             </div>
             <div class="showcase-actions">
-              <button type="button" class="btn-candy" data-open-workshop><span aria-hidden="true">🎨</span> Personalizar</button>
-              <button type="button" class="btn-candy ghost" id="robot-dance"><span aria-hidden="true">🕺</span> Dançar!</button>
+              <button type="button" class="btn-candy" data-open-workshop>{{ ico("palette") }} Personalizar</button>
+              <button type="button" class="btn-candy ghost" id="robot-dance">{{ ico("music") }} Dançar!</button>
             </div>
             <p class="showcase-hint">Dica: clique no seu robô para ele falar com você!</p>
           </div>
@@ -1414,10 +1445,10 @@
           <div class="showcase-stage">
             <div class="stage-glow" id="robot-stage-glow"></div>
             <div class="stage-ring" aria-hidden="true"></div>
-            <span class="stage-spark s1" aria-hidden="true">✦</span>
-            <span class="stage-spark s2" aria-hidden="true">✦</span>
-            <span class="stage-spark s3" aria-hidden="true">✦</span>
-            <span class="stage-spark s4" aria-hidden="true">✦</span>
+            <span class="stage-spark s1">{{ ico("sparkle", "ico-fill") }}</span>
+            <span class="stage-spark s2">{{ ico("sparkle", "ico-fill") }}</span>
+            <span class="stage-spark s3">{{ ico("sparkle", "ico-fill") }}</span>
+            <span class="stage-spark s4">{{ ico("sparkle", "ico-fill") }}</span>
             <button type="button" class="stage-arrow prev" id="robot-prev-pose" aria-label="Pose anterior">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m15 18-6-6 6-6"/></svg>
             </button>
@@ -1462,14 +1493,14 @@
             <div class="stat-body"><div class="stat-value" id="student-missions">0 / 5</div><div class="stat-label">Concluídas na trilha</div></div>
           </div>
           <button type="button" class="stat-card robot-card" data-open-workshop aria-label="Abrir a oficina para personalizar seu robô">
-            <span class="robot-card-sticker" aria-hidden="true">🎨</span>
+            <span class="robot-card-sticker">{{ ico("palette") }}</span>
             <div class="stat-top">
               <span class="stat-title">Seu robô</span>
               <div class="stat-ico robot-avatar">
                 <span class="robot-figure" data-robot-figure><img src="{{ url_for('static', filename='img/1.png') }}" alt=""><span class="robot-acc"></span></span>
               </div>
             </div>
-            <div class="stat-body"><div class="stat-value" data-robot-name>Robo-01</div><div class="stat-label"><span class="robot-card-cta">✏️ Toque para personalizar</span></div></div>
+            <div class="stat-body"><div class="stat-value" data-robot-name>Robo-01</div><div class="stat-label"><span class="robot-card-cta">{{ ico("pencil") }} Toque para personalizar</span></div></div>
           </button>
         </div>
       </section>
@@ -1492,7 +1523,7 @@
           </form>
           <p class="room-feedback" id="room-join-feedback" aria-live="polite">O código fica disponível por 24 horas após ser gerado.</p>
           <div class="arena-quick" id="arena-quick" hidden>
-            <span class="arena-quick-label">🏟️ Suas partidas na Arena</span>
+            <span class="arena-quick-label">{{ ico("gamepad-2") }} Suas partidas na Arena</span>
             <div class="arena-quick-list" id="arena-quick-list"></div>
           </div>
         </div>
@@ -1508,7 +1539,7 @@
             <div class="mission-tag">Missão atual</div>
             <div class="mission-name" id="current-mission-name">Carregando trilha...</div>
             <p class="mission-desc" id="current-mission-description">Preparando sua próxima etapa.</p>
-            <button class="mission-btn" id="continue-mission" type="button" disabled>▶ Continuar Etapa</button>
+            <button class="mission-btn" id="continue-mission" type="button" disabled>{{ ico("play", "ico-fill") }} Continuar Etapa</button>
           </div>
 
           <div class="lab-scene ai-character"><img src="{{ url_for('static', filename='img/3.png') }}" alt="Mascote RobooTeam comemorando a missão atual"></div>
@@ -1659,7 +1690,7 @@
   <div class="app-modal-backdrop" data-workshop-close></div>
   <div class="app-modal-panel workshop-panel" role="dialog" aria-modal="true" aria-labelledby="workshop-title">
     <header class="app-modal-head">
-      <div class="app-modal-head-ico workshop" aria-hidden="true">🛠️</div>
+      <div class="app-modal-head-ico workshop">{{ ico("wrench") }}</div>
       <div>
         <h2 id="workshop-title">Oficina do Robô</h2>
         <p>Escolha o nome, a pose, a cor e um acessório para o seu robô!</p>
@@ -1675,7 +1706,7 @@
           <span class="robot-figure" data-robot-figure="draft"><img src="{{ url_for('static', filename='img/1.png') }}" alt="Prévia do seu robô"><span class="robot-acc"></span></span>
         </span>
         <span class="workshop-nametag" data-robot-name="draft">Robo-01</span>
-        <button type="button" class="workshop-random" id="robot-random"><span class="dice" aria-hidden="true">🎲</span> Surpresa!</button>
+        <button type="button" class="workshop-random" id="robot-random"><span class="dice">{{ ico("dice-5") }}</span> Surpresa!</button>
       </div>
 
       <div class="workshop-options">
@@ -1700,7 +1731,7 @@
     </div>
     <footer class="workshop-foot">
       <button type="button" class="btn-soft" data-workshop-close>Cancelar</button>
-      <button type="button" class="btn-candy primary" id="robot-save"><span aria-hidden="true">💾</span> Salvar meu robô</button>
+      <button type="button" class="btn-candy primary" id="robot-save">{{ ico("save") }} Salvar meu robô</button>
     </footer>
   </div>
 </div>
