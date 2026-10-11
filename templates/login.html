@@ -54,7 +54,7 @@
                             <form class="auth-form" id="login-form" novalidate>
                                 <div class="auth-field">
                                     <label for="login-email">E-mail</label>
-                                    <input id="login-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required>
+                                    <input id="login-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required maxlength="254">
                                     <span class="field-hint">Use o e-mail de aluno ou educador.</span>
                                 </div>
 
@@ -81,22 +81,22 @@
                             <form class="auth-form" id="register-form" novalidate>
                                 <div class="auth-field">
                                     <label for="register-name">Nome completo</label>
-                                    <input id="register-name" name="name" type="text" autocomplete="name" placeholder="Como devemos chamar você?" required minlength="3">
+                                    <input id="register-name" name="name" type="text" autocomplete="name" placeholder="Como devemos chamar você?" required minlength="3" maxlength="100">
                                 </div>
 
                                 <div class="auth-field">
                                     <label for="register-email">E-mail</label>
-                                    <input id="register-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required>
+                                    <input id="register-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required maxlength="254">
                                 </div>
 
                                 <div class="auth-password-grid">
                                     <div class="auth-field">
                                         <label for="register-password">Senha</label>
-                                        <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo de 8 caracteres" required minlength="8">
+                                        <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="De 8 a 20 caracteres" required minlength="8" maxlength="20">
                                     </div>
                                     <div class="auth-field">
                                         <label for="register-password-confirm">Confirmar senha</label>
-                                        <input id="register-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" placeholder="Repita a senha" required minlength="8">
+                                        <input id="register-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" placeholder="Repita a senha" required minlength="8" maxlength="20">
                                     </div>
                                 </div>
 

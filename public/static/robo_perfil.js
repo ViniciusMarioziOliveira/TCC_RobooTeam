@@ -1,14 +1,13 @@
 /* Robô personalizado do aluno (Oficina do Robô): dados e desenho, compartilhados
    entre o painel do aluno e a Arena. A escolha fica salva neste navegador. */
 (() => {
-  // acc: ponto (em % da imagem) do topo da cabeça em cada pose, onde o acessório é encaixado
   const POSES = [
-    { id: 1, label: "Oi!", mood: "Acenando para você!", acc: { x: 47, y: 19, rot: 3 } },
-    { id: 3, label: "Feliz", mood: "Super feliz em te ver!", acc: { x: 51, y: 17.5, rot: -10 } },
-    { id: 4, label: "Aventura", mood: "Pronto para a aventura!", acc: { x: 57, y: 18.5, rot: -6 } },
-    { id: 5, label: "Zen", mood: "Calmo e concentrado...", acc: { x: 49, y: 23, rot: 0 } },
-    { id: 2, label: "Pensativo", mood: "Hmm... pensando numa ideia!", acc: { x: 49, y: 19.5, rot: -8 } },
-    { id: 6, label: "Focado", mood: "Focado na missão!", acc: { x: 55, y: 17, rot: 10 } },
+    { id: 1, label: "Oi!", mood: "Acenando para você!" },
+    { id: 3, label: "Feliz", mood: "Super feliz em te ver!" },
+    { id: 4, label: "Aventura", mood: "Pronto para a aventura!" },
+    { id: 5, label: "Zen", mood: "Calmo e concentrado..." },
+    { id: 2, label: "Pensativo", mood: "Hmm... pensando numa ideia!" },
+    { id: 6, label: "Focado", mood: "Focado na missão!" },
   ];
   const COLORS = [
     { id: "galaxia", label: "Galáxia", hue: 0, sat: 1, swatch: "#6D5DFC", glow: "rgba(109,93,252,0.6)" },
@@ -18,14 +17,17 @@
     { id: "floresta", label: "Floresta", hue: 240, sat: 1.05, swatch: "#33D17A", glow: "rgba(51,209,122,0.5)" },
     { id: "oceano", label: "Oceano", hue: 310, sat: 1.05, swatch: "#22C3E6", glow: "rgba(34,195,230,0.55)" },
   ];
-  // icon: desenho colorido do sprite (templates/_icones.html)
+  // icon: desenho do sprite (templates/_icones.html) usado nos botões da Oficina.
+  // file: o robô já vestindo o acessório, em img/<pose>_variantes/<pose>_<file>.webp.
+  // layer: tem também <pose>_<file>_cor.webp, só com as partes douradas/rosa, que vão
+  // por cima sem o filtro de cor (assim a coroa continua dourada num robô verde).
   const ACCESSORIES = [
     { id: "nenhum", label: "Nenhum", icon: "" },
-    { id: "coroa", label: "Coroa", icon: "acc-coroa" },
-    { id: "cartola", label: "Cartola", icon: "acc-cartola" },
-    { id: "laco", label: "Laço", icon: "acc-laco" },
-    { id: "capelo", label: "Capelo", icon: "acc-capelo" },
-    { id: "bone", label: "Boné", icon: "acc-bone" },
+    { id: "coroa", label: "Coroa", icon: "acc-coroa", file: "coroa", layer: true },
+    { id: "cartola", label: "Cartola", icon: "acc-cartola", file: "cartola" },
+    { id: "laco", label: "Laço", icon: "acc-laco", file: "laco", layer: true },
+    { id: "capelo", label: "Capelo", icon: "acc-capelo", file: "chapeu", layer: true },
+    { id: "bone", label: "Boné", icon: "acc-bone", file: "bone" },
   ];
   const DEFAULT_ROBOT = { name: "Robo-01", pose: 1, color: "galaxia", acc: "nenhum" };
 
@@ -73,7 +75,25 @@
     setTimeout(() => element.classList.remove(className), duration);
   }
 
-  /* Pinta um elemento .robot-figure (img + .robot-acc). `imageId` troca só a imagem
+  // imagem do robô na pose: a normal ou a variante já com o acessório
+  function imageSrc(poseId, acc, imgBase) {
+    return acc.file ? `${imgBase}${poseId}_variantes/${poseId}_${acc.file}.webp` : `${imgBase}${poseId}.png`;
+  }
+
+  function layerSrc(poseId, acc, imgBase) {
+    return acc.layer ? `${imgBase}${poseId}_variantes/${poseId}_${acc.file}_cor.webp` : "";
+  }
+
+  // baixa antes as variantes de uma pose (trocar de acessório na Oficina fica imediato)
+  function preloadPose(poseId, imgBase) {
+    ACCESSORIES.forEach((acc) => {
+      [imageSrc(poseId, acc, imgBase), layerSrc(poseId, acc, imgBase)].filter(Boolean).forEach((src) => {
+        new Image().src = src;
+      });
+    });
+  }
+
+  /* Pinta um elemento .robot-figure (img + .robot-acc). `imageId` troca só a pose
      (ex.: comemorando na Arena) mantendo cor e acessório do aluno. */
   function paintFigure(figure, robot, imgBase, { animateAcc = false, imageId = null } = {}) {
     if (!figure) return;
@@ -81,20 +101,22 @@
     const color = findColor(robot.color);
     const acc = findAcc(robot.acc);
     const img = figure.querySelector("img");
-    const src = `${imgBase}${pose.id}.png`;
+    const src = imageSrc(pose.id, acc, imgBase);
     if (img && img.getAttribute("src") !== src) img.setAttribute("src", src);
 
     figure.style.setProperty("--robot-hue", `${color.hue}deg`);
     figure.style.setProperty("--robot-sat", color.sat);
-    figure.style.setProperty("--acc-x", `${pose.acc.x}%`);
-    figure.style.setProperty("--acc-y", `${pose.acc.y}%`);
-    figure.style.setProperty("--acc-rot", `${pose.acc.rot}deg`);
 
     const accElement = figure.querySelector(".robot-acc");
-    if (accElement && accElement.dataset.acc !== acc.id) {
-      accElement.dataset.acc = acc.id;
-      accElement.innerHTML = accessoryHtml(acc);
-      if (animateAcc && acc.icon) replayClass(accElement, "pop", 450);
+    const layer = layerSrc(pose.id, acc, imgBase);
+    if (accElement && accElement.dataset.layer !== layer) {
+      accElement.dataset.layer = layer;
+      accElement.innerHTML = layer ? `<img src="${layer}" alt="">` : "";
+    }
+    if (figure.dataset.acc !== acc.id) {
+      const changed = Boolean(figure.dataset.acc);
+      figure.dataset.acc = acc.id;
+      if (animateAcc && changed && acc.file) replayClass(figure, "acc-pop", 450);
     }
   }
 
@@ -112,6 +134,8 @@
     store,
     accessoryHtml,
     replayClass,
+    imageSrc,
+    preloadPose,
     paintFigure,
   };
 })();

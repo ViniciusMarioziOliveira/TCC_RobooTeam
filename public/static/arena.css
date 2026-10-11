@@ -72,20 +72,12 @@ img{ display:block; max-width:100%; }
   object-fit:contain;
   filter:hue-rotate(var(--robot-hue, 0deg)) saturate(var(--robot-sat, 1));
 }
-.robot-acc{
-  position:absolute;
-  left:var(--acc-x, 50%);
-  top:var(--acc-y, 19%);
-  width:30%;
-  aspect-ratio:1;
-  line-height:0;
-  transform:translate(-50%, -80%) rotate(var(--acc-rot, 0deg));
-  pointer-events:none;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,0.28));
-}
-.robot-acc svg{ width:100%; height:100%; display:block; }
+/* partes do acessório que mantêm a cor (coroa dourada, laço rosa): por cima da
+   imagem do robô, do mesmo tamanho, sem o filtro de cor */
+.robot-acc{ position:absolute; inset:0; pointer-events:none; }
 .robot-acc:empty{ display:none; }
-.robot-acc.pop{ animation:acc-pop 0.45s cubic-bezier(.34,1.56,.64,1); }
+.robot-figure .robot-acc img{ display:block; filter:none; }
+.robot-figure.acc-pop{ animation:acc-pop 0.45s cubic-bezier(.34,1.56,.64,1); }
 .robot-float{ animation:float 4s ease-in-out infinite; }
 .robot-bounce{ animation:bounce 1.6s cubic-bezier(.3,.7,.4,1) infinite; }
 
@@ -1196,7 +1188,7 @@ body.modal-open{ overflow:hidden; }
 @keyframes count-pop{ 0%{ opacity:0; transform:scale(2.2); } 30%{ opacity:1; transform:scale(1); } 100%{ opacity:0.9; transform:scale(0.9); } }
 @keyframes toast-in{ from{ opacity:0; transform:translateY(16px) scale(0.9); } to{ opacity:1; transform:none; } }
 @keyframes toast-out{ to{ opacity:0; transform:translateX(30px); } }
-@keyframes acc-pop{ from{ scale:0; } to{ scale:1; } }
+@keyframes acc-pop{ from{ scale:0.88; } to{ scale:1; } }
 @keyframes confetti-burst{
   0%{ transform:translate(0,0) rotate(0) scale(0.6); opacity:1; }
   35%{ transform:translate(calc(var(--dx) * 0.6), var(--up)) rotate(calc(var(--r) * 0.4)) scale(1); opacity:1; }

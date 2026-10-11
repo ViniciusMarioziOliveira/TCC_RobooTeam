@@ -1,11 +1,13 @@
 const studentPage = document.body;
 const timelineElement = document.querySelector("#ai-timeline");
 const continueButton = document.querySelector("#continue-mission");
+// campos de código da turma (RBT) e da Arena (ARN): o começo já vem fixo na tela
+const codeForms = [...document.querySelectorAll("form[data-code-prefix]")];
 const roomJoinForm = document.querySelector("#join-room-form");
-const roomCodeInput = document.querySelector("#room-code-input");
-const roomJoinButton = document.querySelector("#join-room-button");
-const roomFeedback = document.querySelector("#room-join-feedback");
+const arenaJoinForm = document.querySelector("#join-arena-form");
 const roomStatus = document.querySelector("#student-room-status");
+const CODE_LENGTH = 4;
+const ARENA_LOCKED_MESSAGE = "Primeiro entre na turma com o código RBT. Depois a Arena fica liberada.";
 let nextLessonUrl = null;
 
 function getStoredToken() {
@@ -69,19 +71,31 @@ function renderTimeline(items) {
   }).join("");
 }
 
-function setRoomFeedback(message, type = "") {
-  roomFeedback.textContent = message;
-  roomFeedback.className = `room-feedback${type ? ` ${type}` : ""}`;
+function setCodeFeedback(form, message, type = "") {
+  const feedback = form.querySelector(".room-feedback");
+  feedback.textContent = message;
+  feedback.className = `room-feedback${type ? ` ${type}` : ""}`;
+}
+
+// volta o campo ao normal depois de um erro
+function resetCodeFeedback(form) {
+  form.querySelector(".code-field").classList.remove("is-error");
+  setCodeFeedback(form, form.dataset.idleMessage, form.dataset.idleType);
 }
 
 function renderRoomState(room) {
+  // a Arena só fica liberada para quem já está na turma do professor
+  arenaJoinForm.dataset.idleMessage = room ? arenaJoinForm.dataset.defaultMessage : ARENA_LOCKED_MESSAGE;
+  resetCodeFeedback(arenaJoinForm);
   if (!room) {
     roomStatus.hidden = true;
     return;
   }
   roomStatus.hidden = false;
   roomStatus.textContent = room.turma;
-  setRoomFeedback(`Sala conectada · Responsável: ${room.professor}`, "success");
+  roomJoinForm.dataset.idleMessage = `Sala conectada · Responsável: ${room.professor}`;
+  roomJoinForm.dataset.idleType = "success";
+  resetCodeFeedback(roomJoinForm);
 }
 
 function animateNumber(element, target) {
@@ -170,41 +184,104 @@ continueButton?.addEventListener("click", () => {
   if (nextLessonUrl) window.location.href = nextLessonUrl;
 });
 
-roomCodeInput?.addEventListener("input", () => {
-  roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/\s/g, "");
-  if (roomFeedback.classList.contains("error")) {
-    setRoomFeedback("O código fica disponível por 24 horas após ser gerado.");
-  }
-});
+/* ---- CÓDIGOS DA TURMA E DA ARENA (8 quadradinhos, 4 para digitar) ---- */
 
-roomJoinForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const codigo = roomCodeInput.value.trim().toUpperCase();
-  if (!codigo) {
-    setRoomFeedback("Digite o código enviado pelo professor.", "error");
-    roomCodeInput.focus();
+// Lê o que foi digitado ou colado: "rbt-a1b2", "RBTA1B2" e "A1B2" viram "A1B2".
+// Se for o código do outro campo (ARN no da turma, RBT no da Arena), devolve o dono dele.
+function readCode(form, value) {
+  let letters = String(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (letters.length > CODE_LENGTH) {
+    const owner = codeForms.find((item) => letters.startsWith(item.dataset.codePrefix));
+    if (owner && owner !== form) return { code: "", owner };
+    if (owner) letters = letters.slice(owner.dataset.codePrefix.length);
+  }
+  return { code: letters.slice(0, CODE_LENGTH) };
+}
+
+function paintCode(form) {
+  const input = form.querySelector(".code-input");
+  const { code } = readCode(form, input.value);
+  const active = document.activeElement === input ? Math.min(code.length, CODE_LENGTH - 1) : -1;
+  form.querySelectorAll("[data-code-slot]").forEach((slot, index) => {
+    slot.textContent = code[index] || "";
+    slot.classList.toggle("is-filled", index < code.length);
+    slot.classList.toggle("is-active", index === active);
+  });
+}
+
+// deixa no campo só os 4 caracteres e redesenha os quadradinhos
+function normalizeCode(form) {
+  const input = form.querySelector(".code-input");
+  const { code, owner } = readCode(form, input.value);
+  if (input.value !== code) input.value = code;
+  paintCode(form);
+  return owner;
+}
+
+function shakeCodeField(form) {
+  const field = form.querySelector(".code-field");
+  field.classList.remove("is-error");
+  void field.offsetWidth;
+  field.classList.add("is-error");
+}
+
+function handleCodeInput(form) {
+  const owner = normalizeCode(form);
+  if (owner) {
+    setCodeFeedback(form, owner.dataset.wrongField, "error");
+    shakeCodeField(form);
+  } else if (form.querySelector(".room-feedback").classList.contains("error")) {
+    resetCodeFeedback(form);
+  }
+}
+
+// o texto do campo é invisível: o cursor fica sempre no fim, no próximo quadradinho
+function caretToEnd(input) {
+  requestAnimationFrame(() => {
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  });
+}
+
+async function submitCode(form) {
+  const input = form.querySelector(".code-input");
+  const button = form.querySelector(".room-join-button");
+  const label = button.querySelector("span");
+  normalizeCode(form);
+  const code = input.value;
+  if (code.length < CODE_LENGTH) {
+    const missing = CODE_LENGTH - code.length;
+    setCodeFeedback(form, code
+      ? `Falta${missing > 1 ? "m" : ""} ${missing} caractere${missing > 1 ? "s" : ""} do código.`
+      : `Digite os ${CODE_LENGTH} caracteres que vêm depois do tracinho.`, "error");
+    shakeCodeField(form);
+    input.focus();
     return;
   }
 
-  roomJoinButton.disabled = true;
-  roomJoinButton.querySelector("span").textContent = "Entrando...";
-  setRoomFeedback("Validando o código da sala...");
+  const idleLabel = label.textContent;
+  button.disabled = true;
+  label.textContent = "Entrando...";
+  form.querySelector(".code-field").classList.remove("is-error");
+  setCodeFeedback(form, "Conferindo o código...");
 
   try {
     const response = await fetch(studentPage.dataset.joinRoomUrl, {
       method: "POST",
       headers: authHeaders(true),
-      body: JSON.stringify({ codigo }),
+      body: JSON.stringify({ codigo: `${form.dataset.codePrefix}-${code}` }),
     });
-    if (response.status === 401 || response.status === 403) {
+    // 403 aqui é "fora da turma": a mensagem aparece no campo, sem sair do painel
+    if (response.status === 401) {
       window.location.href = studentPage.dataset.loginUrl;
       return;
     }
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Não foi possível entrar na sala");
-    roomCodeInput.value = "";
+    if (!response.ok) throw new Error(result.error || "Não foi possível entrar com esse código");
+    input.value = "";
+    paintCode(form);
     if (result.redirect_url) {
-      setRoomFeedback(result.message, "success");
+      setCodeFeedback(form, result.message, "success");
       window.setTimeout(() => {
         window.location.href = result.redirect_url;
       }, 650);
@@ -213,13 +290,41 @@ roomJoinForm?.addEventListener("submit", async (event) => {
     // sala da turma: fica no painel e recarrega a trilha/arenas do professor
     await Promise.all([loadStudentJourney(), loadArenaShortcuts()]);
     if (result.sala) renderRoomState(result.sala);
-    setRoomFeedback(result.message, "success");
+    setCodeFeedback(form, result.message, "success");
   } catch (error) {
-    setRoomFeedback(error.message, "error");
+    setCodeFeedback(form, error.message, "error");
+    shakeCodeField(form);
   } finally {
-    roomJoinButton.disabled = false;
-    roomJoinButton.querySelector("span").textContent = "Entrar na sala";
+    button.disabled = false;
+    label.textContent = idleLabel;
   }
+}
+
+codeForms.forEach((form) => {
+  const input = form.querySelector(".code-input");
+  form.dataset.defaultMessage = form.querySelector(".room-feedback").textContent;
+  form.dataset.idleMessage = form.dataset.defaultMessage;
+
+  input.addEventListener("input", (event) => {
+    // no celular o teclado ainda pode estar "montando" a palavra: só desenha
+    if (event.isComposing) paintCode(form);
+    else handleCodeInput(form);
+  });
+  input.addEventListener("compositionend", () => handleCodeInput(form));
+  input.addEventListener("focus", () => {
+    caretToEnd(input);
+    paintCode(form);
+  });
+  input.addEventListener("blur", () => normalizeCode(form));
+  input.addEventListener("click", () => caretToEnd(input));
+  input.addEventListener("keydown", (event) => {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) event.preventDefault();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitCode(form);
+  });
+  normalizeCode(form);
 });
 
 document.querySelector("#student-logout")?.addEventListener("click", async (event) => {

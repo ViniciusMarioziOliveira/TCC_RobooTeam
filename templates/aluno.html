@@ -381,20 +381,12 @@
     filter:hue-rotate(var(--robot-hue, 0deg)) saturate(var(--robot-sat, 1));
     transition:filter 0.35s ease;
   }
-  .robot-acc{
-    position:absolute;
-    left:var(--acc-x, 50%);
-    top:var(--acc-y, 19%);
-    width:30%;
-    aspect-ratio:1;
-    line-height:0;
-    transform:translate(-50%, -80%) rotate(var(--acc-rot, 0deg));
-    pointer-events:none;
-    filter:drop-shadow(0 3px 3px rgba(0,0,0,0.28));
-  }
-  .robot-acc svg{ width:100%; height:100%; display:block; }
+  /* partes do acessório que mantêm a cor (coroa dourada, laço rosa): por cima da
+     imagem do robô, do mesmo tamanho, sem o filtro de cor */
+  .robot-acc{ position:absolute; inset:0; pointer-events:none; }
   .robot-acc:empty{ display:none; }
-  .robot-acc.pop{ animation:acc-pop 0.45s cubic-bezier(.34,1.56,.64,1); }
+  .robot-figure .robot-acc img{ display:block; filter:none; }
+  .robot-figure.acc-pop{ animation:acc-pop 0.45s cubic-bezier(.34,1.56,.64,1); }
 
   /* ===================== HERO: SEU ROBÔ + STATS ===================== */
   .hero-grid{
@@ -703,35 +695,70 @@
   }
   .room-current::before{ background:#34D399; border-radius:50%; content:""; height:7px; width:7px; }
   .room-current[hidden]{ display:none; }
-  .room-join-form{ align-items:stretch; display:flex; gap:9px; margin-top:16px; max-width:510px; }
-  .room-code-input{
+  .room-join-form{ margin-top:14px; max-width:560px; }
+  .code-label{ align-items:center; color:#E3EAFF; display:flex; font-size:12px; font-weight:700; gap:6px; margin-bottom:7px; }
+  .code-label .ico{ color:var(--cyan); }
+  .code-row{ align-items:stretch; display:flex; gap:9px; }
+  /* 8 quadradinhos: RBT/ARN e o tracinho fixos + 4 para digitar. O <input> fica
+     invisível por cima de todos e o aluno.js desenha as letras nos quadradinhos */
+  .code-field{
+    display:grid;
+    flex:0 1 auto;
+    gap:6px;
+    grid-template-columns:repeat(8, minmax(0,42px));
+    min-width:0;
+    position:relative;
+  }
+  .code-box{
+    align-items:center;
     background:#fff;
     border:2px solid transparent;
-    border-radius:11px;
+    border-radius:10px;
     color:var(--navy);
-    flex:1;
+    display:flex;
     font-family:'Poppins',sans-serif;
-    font-size:14px;
-    font-weight:700;
-    letter-spacing:1.5px;
-    min-width:0;
-    outline:none;
-    padding:11px 14px;
-    text-transform:uppercase;
+    font-size:clamp(15px, 4.8vw, 18px);
+    font-weight:800;
+    height:clamp(40px, 11vw, 46px);
+    justify-content:center;
+    transition:border-color 150ms ease,box-shadow 150ms ease;
   }
-  .room-code-input:focus{ border-color:var(--cyan); box-shadow:0 0 0 4px rgba(45,212,232,0.18); }
-  .room-code-input::placeholder{ color:#98A2B3; font-weight:600; }
+  .code-box.is-fixed{ background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); color:#E3EAFF; }
+  .code-box.is-dash{ background:none; color:var(--cyan); }
+  .code-box.is-filled{ animation:code-pop 160ms ease; }
+  .code-box.is-active{ border-color:var(--cyan); box-shadow:0 0 0 4px rgba(45,212,232,0.22); }
+  .code-box.is-active:empty::after{ animation:code-caret 1s step-end infinite; background:var(--cyan); content:""; height:45%; width:2px; }
+  .code-field.is-error{ animation:code-shake 360ms ease; }
+  .code-field.is-error .code-box[data-code-slot]{ border-color:#F87171; }
+  .code-input{
+    border:0;
+    cursor:text;
+    font-size:16px; /* 16px evita o zoom automático do iPhone ao tocar no campo */
+    height:100%;
+    inset:0;
+    opacity:0;
+    padding:0;
+    position:absolute;
+    width:100%;
+  }
+  @keyframes code-caret{ 50%{ opacity:0; } }
+  @keyframes code-pop{ from{ transform:scale(0.86); } }
+  @keyframes code-shake{ 20%,60%{ transform:translateX(-5px); } 40%,80%{ transform:translateX(5px); } }
+  .sr-only{ border:0; clip:rect(0 0 0 0); height:1px; margin:-1px; overflow:hidden; padding:0; position:absolute; white-space:nowrap; width:1px; }
   .room-join-button{
     align-items:center;
     background:var(--cyan);
     border-radius:11px;
     color:#06283A;
     display:inline-flex;
+    flex:none;
     font-size:13px;
     font-weight:800;
     gap:8px;
     justify-content:center;
+    min-width:164px;
     padding:11px 19px;
+    white-space:nowrap;
     transition:transform 150ms ease,box-shadow 150ms ease,opacity 150ms ease;
   }
   .room-join-button:hover:not(:disabled){ box-shadow:0 8px 20px rgba(45,212,232,0.3); transform:translateY(-1px); }
@@ -1217,7 +1244,7 @@
     40%{ transform:scale(1.22); }
     100%{ transform:scale(1); }
   }
-  @keyframes acc-pop{ from{ scale:0; } to{ scale:1; } }
+  @keyframes acc-pop{ from{ scale:0.88; } to{ scale:1; } }
   @keyframes confetti-burst{
     0%{ transform:translate(0,0) rotate(0) scale(0.6); opacity:1; }
     35%{ transform:translate(calc(var(--dx) * 0.6), var(--up)) rotate(calc(var(--r) * 0.4)) scale(1); opacity:1; }
@@ -1285,7 +1312,8 @@
     .header-profile{ padding-right:4px; }
     .header-profile-name{ display:none; }
     .room-join-card{ display:block; padding:22px 20px; }
-    .room-join-form{ flex-direction:column; }
+    .code-row{ flex-direction:column; }
+    .code-field{ gap:5px; grid-template-columns:repeat(8, minmax(0,1fr)); }
     .room-join-button{ width:100%; }
     .room-join-robot{ display:none; }
     .workshop-foot{ padding:12px 16px; }
@@ -1300,11 +1328,31 @@
   }
 </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='aluno_trilha.css', v='2') }}">
-<script src="{{ url_for('static', filename='aluno.js', v='7') }}" defer></script>
-<script src="{{ url_for('static', filename='robo_perfil.js', v='2') }}" defer></script>
-<script src="{{ url_for('static', filename='aluno_robo.js', v='3') }}" defer></script>
+<script src="{{ url_for('static', filename='aluno.js', v='9') }}" defer></script>
+<script src="{{ url_for('static', filename='robo_perfil.js', v='3') }}" defer></script>
+<script src="{{ url_for('static', filename='aluno_robo.js', v='4') }}" defer></script>
 </head>
 {% from "_icones.html" import ico %}
+{# Campo de código em 8 quadradinhos: o começo (RBT/ARN) e o tracinho já vêm
+   preenchidos e o aluno digita só os 4 últimos (a lógica fica no aluno.js). #}
+{% macro campo_codigo(nome, prefixo, rotulo, icone, botao, aviso, campo_errado) %}
+<form class="room-join-form" id="join-{{ nome }}-form" data-code-prefix="{{ prefixo }}" data-wrong-field="{{ campo_errado }}" novalidate>
+  <label class="code-label" for="{{ nome }}-code-input">{{ ico(icone) }} {{ rotulo }}<span class="sr-only">: já começa com {{ prefixo }}-, digite os 4 caracteres seguintes</span></label>
+  <div class="code-row">
+    <div class="code-field">
+      {% for letra in prefixo %}<span class="code-box is-fixed" aria-hidden="true">{{ letra }}</span>{% endfor %}
+      <span class="code-box is-dash" aria-hidden="true">-</span>
+      {% for _ in range(4) %}<span class="code-box" data-code-slot aria-hidden="true"></span>{% endfor %}
+      <input class="code-input" id="{{ nome }}-code-input" name="codigo" type="text" inputmode="text" maxlength="12" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-describedby="{{ nome }}-join-feedback">
+    </div>
+    <button class="room-join-button" type="submit">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/></svg>
+      <span>{{ botao }}</span>
+    </button>
+  </div>
+  <p class="room-feedback" id="{{ nome }}-join-feedback" aria-live="polite">{{ aviso }}</p>
+</form>
+{% endmacro %}
 <body data-trail-url="{{ url_for('obter_trilha_aluno') }}" data-join-room-url="{{ url_for('entrar_sala_aluno') }}" data-arenas-url="{{ url_for('listar_arenas_aluno') }}" data-logout-url="{{ url_for('logout') }}" data-login-url="{{ url_for('pagina_login') }}" data-student-id="{{ usuario.id }}" data-robot-img-base="{{ url_for('static', filename='img/') }}">
 {% include "_icones.html" %}
 
@@ -1508,26 +1556,24 @@
       <!-- ENTRAR NA SALA -->
       <section class="room-join-card" id="sala" aria-labelledby="room-join-title">
         <div class="room-join-content">
-          <span class="room-kicker">Código da turma</span>
+          <span class="room-kicker">Códigos do professor</span>
           <div class="room-join-heading">
             <h2 id="room-join-title">Entre na sala do seu professor</h2>
             <span class="room-current" id="student-room-status" hidden></span>
           </div>
-          <p class="room-description">Digite o código que o professor passar: da turma (<strong>RBT-…</strong>) ou de uma partida da Arena (<strong>ARN-…</strong>).</p>
-          <form class="room-join-form" id="join-room-form" novalidate>
-            <input class="room-code-input" id="room-code-input" name="codigo" type="text" inputmode="text" maxlength="12" placeholder="RBT-AB12" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código da sala" aria-describedby="room-join-feedback" required>
-            <button class="room-join-button" id="join-room-button" type="submit">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/></svg>
-              <span>Entrar na sala</span>
-            </button>
-          </form>
-          <p class="room-feedback" id="room-join-feedback" aria-live="polite">O código fica disponível por 24 horas após ser gerado.</p>
+          <p class="room-description">O começo do código já está preenchido: digite só as <strong>4 letras ou números</strong> que vêm depois do tracinho.</p>
+          {{ campo_codigo("room", "RBT", rotulo="Código da turma", icone="users", botao="Entrar na turma",
+                          aviso="O código fica disponível por 24 horas após ser gerado.",
+                          campo_errado="Esse é o código da turma (RBT). Use o campo “Código da turma”, logo acima.") }}
+          {{ campo_codigo("arena", "ARN", rotulo="Código da Arena", icone="gamepad-2", botao="Entrar na Arena",
+                          aviso="O professor mostra esse código quando abre uma partida.",
+                          campo_errado="Esse é o código de uma partida da Arena (ARN). Use o campo “Código da Arena”, logo abaixo.") }}
           <div class="arena-quick" id="arena-quick" hidden>
             <span class="arena-quick-label">{{ ico("gamepad-2") }} Suas partidas na Arena</span>
             <div class="arena-quick-list" id="arena-quick-list"></div>
           </div>
         </div>
-        <img class="room-join-robot" src="{{ url_for('static', filename='img/4.png') }}" alt="Mascote RobooTeam apontando para o campo do código">
+        <img class="room-join-robot" src="{{ url_for('static', filename='img/4.png') }}" alt="Mascote RobooTeam apontando para os campos de código">
       </section>
 
       <!-- MISSION + TIP -->
@@ -1605,7 +1651,7 @@
           <span class="how-to-num">1</span>
           <div>
             <h3>Entre na sua sala</h3>
-            <p>Peça o código de 24 horas para o seu professor e digite-o em "Entrar na sala" para liberar as atividades da sua turma.</p>
+            <p>Peça o código da turma para o seu professor e digite os 4 últimos caracteres em "Código da turma" para liberar as atividades da sua turma.</p>
           </div>
         </li>
         <li>

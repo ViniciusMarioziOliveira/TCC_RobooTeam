@@ -5,12 +5,13 @@
   const studentId = page.dataset.studentId;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const {
-    POSES, COLORS, ACCESSORIES, DEFAULT_ROBOT, findPose, findColor, findAcc, sanitize, replayClass, accessoryHtml,
+    POSES, COLORS, ACCESSORIES, DEFAULT_ROBOT, findPose, findColor, findAcc, sanitize, replayClass, accessoryHtml, imageSrc,
   } = window.RobooRobo;
   const storageKey = window.RobooRobo.storageKey(studentId);
   const loadRobot = () => window.RobooRobo.load(studentId);
   const storeRobot = (robot) => window.RobooRobo.store(studentId, robot);
   const paintFigure = (figure, robot, options) => window.RobooRobo.paintFigure(figure, robot, imgBase, options);
+  const preloadPose = (poseId) => window.RobooRobo.preloadPose(poseId, imgBase);
   const randomItem = (list) => list[Math.floor(Math.random() * list.length)];
 
   const PHRASES = [
@@ -132,9 +133,10 @@
   let draft = { ...current };
   let lastFocus = null;
 
+  // lazy: as miniaturas só baixam quando a Oficina abre
   poseOptions.innerHTML = POSES.map((pose) => `
     <button type="button" class="option-tile" data-pose="${pose.id}" aria-pressed="false">
-      <span class="robot-figure"><img src="${imgBase}${pose.id}.png" alt=""><span class="robot-acc"></span></span>
+      <span class="robot-figure"><img src="${imageSrc(pose.id, findAcc(current.acc), imgBase)}" alt="" loading="lazy"><span class="robot-acc"></span></span>
       ${pose.label}
     </button>`).join("");
   colorOptions.innerHTML = COLORS.map((color) => `
@@ -164,6 +166,7 @@
     draft = { ...current };
     nameInput.value = draft.name;
     renderDraft();
+    preloadPose(draft.pose);
     workshop.hidden = false;
     document.body.classList.add("modal-open");
     nameInput.focus();
@@ -207,6 +210,7 @@
     if (!button) return;
     draft.pose = Number(button.dataset.pose);
     renderDraft({ animateAcc: true });
+    preloadPose(draft.pose);
   });
   colorOptions.addEventListener("click", (event) => {
     const button = event.target.closest("[data-color]");

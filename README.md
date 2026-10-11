@@ -48,8 +48,8 @@ O objetivo é estimular a curiosidade, o raciocínio lógico e a colaboração e
 - **Cadastro e login** com e-mail e senha.
 - **Trilha da IA**: etapas que vão sendo liberadas uma de cada vez. Para concluir uma etapa, o aluno lê o conteúdo, acerta todas as perguntas do quiz e completa o minijogo.
 - **Pontos e níveis**: cada etapa concluída vale 100 pontos, e o nível sobe a cada duas etapas.
-- **Entrar na sala** da professora com um código, para ver a trilha personalizada da turma.
-- **Oficina do Robô**: o aluno personaliza o próprio robô (pose, cor e acessório).
+- **Entrar na turma** da professora pelo campo **Código da turma** (`RBT-` já vem preenchido; o aluno digita só os 4 últimos caracteres), para ver a trilha personalizada da turma.
+- **Oficina do Robô**: o aluno personaliza o próprio robô (pose, cor e acessório). Cada pose tem uma imagem do robô já vestindo cada acessório (coroa, cartola, laço, capelo e boné).
 
 ### 👩‍🏫 Painel da professora
 
@@ -89,7 +89,7 @@ Jogo com **5 fases** em um mapa 6×6. O aluno monta uma sequência de comandos (
 Partidas em sala criadas pela professora:
 
 1. A professora desenha (ou sorteia) um mapa de 6×6, 8×8 ou 10×10 e recebe um código `ARN-XXXX`.
-2. Os alunos digitam o código no campo **Entrar na sala** e escolhem uma equipe (até 4 jogadores por equipe).
+2. Os alunos digitam os 4 últimos caracteres do código no campo **Código da Arena** (o `ARN-` já vem preenchido) e escolhem uma equipe (até 4 jogadores por equipe). Só joga quem já está na **turma da professora** (entrou com o código `RBT`); sem turma, o painel pede para entrar nela primeiro.
 3. Cada aluno programa o robô com blocos (**avançar**, **virar** e **repetir**).
 4. O tempo de cada jogador é somado no **ranking da equipe**.
 5. Se travar, o aluno toca em **Preciso de ajuda** e pode:
@@ -236,9 +236,9 @@ No painel, clique em **Gerar novo código** para criar o código da sala (`RBT-X
 ### Como aluno
 
 1. Na página inicial, clique em **Cadastre-se**.
-2. Preencha nome (mínimo de 3 letras), e-mail e senha (mínimo de 8 caracteres).
+2. Preencha nome (de 3 a 100 caracteres), e-mail (até 254 caracteres) e senha (de 8 a 20 caracteres).
 3. Entre com o e-mail e a senha cadastrados.
-4. No painel, digite o código da sala que a professora gerou.
+4. No painel, digite no campo **Código da turma** os 4 últimos caracteres do código que a professora gerou.
 
 > Alunos **sem sala** veem a trilha padrão. Alunos **com sala** veem a trilha montada pela professora.
 
@@ -320,6 +320,10 @@ TCC_RobooTeam/
 │   └── professor.html      # Painel da professora
 │
 ├── public/static/          # CSS, JavaScript e imagens
+│   └── img/
+│       ├── 1.png … 6.png   # Poses do robô (fundo transparente)
+│       └── 1_variantes/ …  # A mesma pose com cada acessório (1_coroa.webp…);
+│                           # 1_coroa_cor.webp guarda só o dourado/rosa, que não muda com a cor do robô
 │
 ├── supabase/
 │   ├── schema.sql              # Tabelas, segurança e bucket de imagens

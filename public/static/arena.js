@@ -691,7 +691,7 @@
     token = document.createElement("div");
     token.className = "robot-token";
     token.innerHTML = `
-      <div class="token-body"><span class="robot-figure" data-my-robot><img src="${imgBase}${myRobot.pose}.png" alt=""><span class="robot-acc"></span></span></div>
+      <div class="token-body"><span class="robot-figure" data-my-robot><img src="${RR.imageSrc(myRobot.pose, RR.findAcc(myRobot.acc), imgBase)}" alt=""><span class="robot-acc"></span></span></div>
       <span class="token-arrow" aria-hidden="true"></span>`;
     board.append(token);
     paintMyRobots(token);
@@ -1555,8 +1555,9 @@
     try {
       render(await api(page.dataset.stateUrl));
     } catch (error) {
-      if (error.status === 404) {
-        toast("Esta arena foi removida pelo professor.", "bad");
+      // 404: arena apagada; 403: o aluno não está mais na turma do professor
+      if (error.status === 404 || error.status === 403) {
+        toast(error.status === 404 ? "Esta arena foi removida pelo professor." : error.message, "bad");
         clearTimeout(pollTimer);
         setTimeout(() => { window.location.href = page.dataset.dashboardUrl; }, 2500);
         return false;

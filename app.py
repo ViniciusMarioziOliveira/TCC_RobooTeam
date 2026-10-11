@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import re
 import secrets
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
@@ -303,7 +304,8 @@ def pagina_arena_aluno(codigo):
         return redirect(url_for("pagina_login", next=request.path))
 
     arena = arena_store.buscar_por_codigo(codigo)
-    if not arena:
+    # fora da turma do professor, volta para o painel (o campo da Arena explica o motivo)
+    if not arena or not arena_store.aluno_da_turma(arena, usuario):
         return redirect(url_for("pagina_aluno", _anchor="sala"))
 
     return render_template("arena.html", usuario=usuario, codigo=arena["codigo"])
@@ -401,6 +403,25 @@ def logout():
 # CADASTRO (SEMPRE DE ALUNO)
 # ============================================
 
+# Limites dos campos (os mesmos do formulário em templates/login.html). O banco
+# confere de novo o nome e o e-mail; a senha só é conferida aqui, porque o banco
+# guarda apenas o hash dela, que tem sempre o mesmo tamanho.
+NOME_MIN, NOME_MAX = 3, 100
+EMAIL_MAX = 254
+SENHA_MIN, SENHA_MAX = 8, 20
+
+
+def erro_no_cadastro(nome, email, senha):
+    """Mensagem do primeiro campo inválido (ou None se estiver tudo certo)."""
+    if not NOME_MIN <= len(nome) <= NOME_MAX:
+        return f"O nome precisa ter de {NOME_MIN} a {NOME_MAX} caracteres"
+    if "@" not in email or len(email) > EMAIL_MAX:
+        return f"Digite um e-mail válido (até {EMAIL_MAX} caracteres)"
+    if not SENHA_MIN <= len(senha) <= SENHA_MAX:
+        return f"A senha precisa ter de {SENHA_MIN} a {SENHA_MAX} caracteres"
+    return None
+
+
 @app.post("/api/cadastro")
 def cadastrar_usuario_json():
     # A conta de professor (Beatriz) é criada direto no banco; pelo site
@@ -410,8 +431,9 @@ def cadastrar_usuario_json():
     email = str(dados.get("email", "")).strip().lower()
     senha = str(dados.get("senha", ""))
 
-    if not 3 <= len(nome) <= 80 or "@" not in email or len(email) > 254 or len(senha) < 8:
-        return jsonify({"error": "Dados de cadastro inválidos"}), 400
+    mensagem = erro_no_cadastro(nome, email, senha)
+    if mensagem:
+        return jsonify({"error": mensagem}), 400
 
     try:
         usuarios_store.criar_aluno(nome, email, generate_password_hash(senha))
@@ -733,6 +755,11 @@ def concluir_fase_jogo_blocos(phase_id):
     })
 
 
+# Códigos que o professor passa: RBT-A1B2 (turma) e ARN-C3D4 (partida da Arena).
+# No painel do aluno cada um tem o seu campo, com o começo (RBT-/ARN-) já preenchido.
+FORMATO_CODIGO = re.compile(r"(RBT|ARN)-[A-Z0-9]{4}")
+
+
 @app.post("/api/aluno/entrar-sala")
 def entrar_sala_aluno():
     aluno, erro = obter_usuario_autenticado("ALUNO")
@@ -743,20 +770,27 @@ def entrar_sala_aluno():
     codigo = str(dados.get("codigo", "")).strip().upper()
     if not codigo:
         return jsonify({"error": "Digite o código da sala"}), 400
+    if not FORMATO_CODIGO.fullmatch(codigo):
+        return jsonify({"error": "Código inválido. Ele tem 4 letras ou números depois do tracinho (ex.: RBT-A1B2)"}), 400
+
+    if codigo.startswith("ARN-"):
+        # codigos ARN-XXXX levam para uma partida da Arena RobooTeam
+        arena = arena_store.buscar_por_codigo(codigo)
+        if not arena:
+            return jsonify({"error": "Arena não encontrada. Confira o código com o professor"}), 404
+        if not arena_store.aluno_da_turma(arena, aluno):
+            return jsonify({"error": arena_store.FORA_DA_TURMA}), 403
+        if arena["status"] == "finalizada":
+            return jsonify({"error": "Esta partida da Arena já terminou"}), 410
+        return jsonify({
+            "message": f"Arena \"{arena['nome']}\" encontrada! Preparando o robô...",
+            "redirect_url": url_for("pagina_arena_aluno", codigo=arena["codigo"]),
+            "arena": {"codigo": arena["codigo"], "nome": arena["nome"]},
+        }), 200
 
     professor = usuarios_store.buscar_professor_por_codigo(codigo)
     if not professor:
-        # codigos ARN-XXXX levam para uma partida da Arena RobooTeam
-        arena = arena_store.buscar_por_codigo(codigo)
-        if arena:
-            if arena["status"] == "finalizada":
-                return jsonify({"error": "Esta partida da Arena já terminou"}), 410
-            return jsonify({
-                "message": f"Arena \"{arena['nome']}\" encontrada! Preparando o robô...",
-                "redirect_url": url_for("pagina_arena_aluno", codigo=arena["codigo"]),
-                "arena": {"codigo": arena["codigo"], "nome": arena["nome"]},
-            }), 200
-        return jsonify({"error": "Código de sala inválido"}), 404
+        return jsonify({"error": "Código da turma não encontrado. Confira com o professor"}), 404
 
     try:
         validade = datetime.fromisoformat(str(professor.get("codigo_validade", "")).replace("Z", "+00:00"))
@@ -1066,7 +1100,7 @@ def listar_arenas_aluno():
     aluno, erro = obter_usuario_autenticado("ALUNO")
     if erro:
         return erro
-    arenas = arena_store.arenas_do_aluno(aluno["id"])
+    arenas = arena_store.arenas_do_aluno(aluno["id"], aluno.get("professor_id"))
     for arena in arenas:
         arena["url"] = url_for("pagina_arena_aluno", codigo=arena["codigo"])
     return jsonify({"arenas": arenas})
@@ -1080,6 +1114,8 @@ def estado_arena_aluno(codigo):
     sala = arena_store.buscar_por_codigo(codigo)
     if not sala:
         return jsonify({"error": "Arena não encontrada"}), 404
+    if not arena_store.aluno_da_turma(sala, aluno):
+        return jsonify({"error": arena_store.FORA_DA_TURMA}), 403
     if str(aluno["id"]) in sala.get("jogadores", {}):
         arena_store.registrar_visita(sala, aluno["id"])
     return jsonify(arena_store.visao_aluno(sala, aluno["id"]))
@@ -1108,7 +1144,7 @@ def executar_programa_arena(codigo):
         return erro
     dados = request.get_json(silent=True) or {}
     try:
-        resultado = arena_store.executar_programa(codigo, aluno["id"], dados.get("programa"))
+        resultado = arena_store.executar_programa(codigo, aluno, dados.get("programa"))
     except arena_store.ErroArena as falha:
         return erro_arena(falha)
     except db.ERROS_DE_BANCO:
@@ -1122,7 +1158,7 @@ def dica_arena(codigo):
     if erro:
         return erro
     try:
-        return jsonify(arena_store.pedir_dica(codigo, aluno["id"]))
+        return jsonify(arena_store.pedir_dica(codigo, aluno))
     except arena_store.ErroArena as falha:
         return erro_arena(falha)
     except db.ERROS_DE_BANCO:
@@ -1137,9 +1173,9 @@ def ajuda_arena(codigo):
     dados = request.get_json(silent=True) or {}
     try:
         if request.method == "DELETE":
-            sala = arena_store.cancelar_ajuda(codigo, aluno["id"])
+            sala = arena_store.cancelar_ajuda(codigo, aluno)
         else:
-            sala = arena_store.pedir_ajuda(codigo, aluno["id"], dados.get("tipo"), dados.get("motivo"))
+            sala = arena_store.pedir_ajuda(codigo, aluno, dados.get("tipo"), dados.get("motivo"))
     except arena_store.ErroArena as falha:
         return erro_arena(falha)
     except db.ERROS_DE_BANCO:

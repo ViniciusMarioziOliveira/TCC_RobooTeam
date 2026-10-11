@@ -10,3 +10,5 @@ __pycache__/
 *.tmp
 arena_salas.json
 trilha_atividades.json
+# originais das variantes de acessório (fundo branco, ~1,5 MB cada): o site usa as .webp
+public/static/img/*_variantes/*.png

@@ -2,9 +2,10 @@
 """Arena RobooTeam: partidas em sala criadas pelo professor.
 
 O professor desenha (ou sorteia) um mapa, recebe um codigo ``ARN-XXXX`` e os
-alunos entram com esse codigo no mesmo campo "Entrar na sala" do painel. Cada
-aluno escolhe uma equipe (ate 4 jogadores), programa o robo com blocos
-(avancar, virar e repetir) e o tempo de cada um e somado no ranking da equipe.
+alunos da turma dele (so quem ja entrou com o codigo RBT) usam esse codigo no
+campo "Codigo da Arena" do painel. Cada aluno escolhe uma equipe (ate 4
+jogadores), programa o robo com blocos (avancar, virar e repetir) e o tempo de
+cada um e somado no ranking da equipe.
 
 Os dados ficam no Supabase, nas tabelas ``arenas``, ``arena_equipes`` e
 ``arena_jogadores``. Ao carregar, cada arena vira um dicionario::
@@ -838,8 +839,24 @@ def _sala_por_codigo(cursor, codigo):
     return sala
 
 
-def _jogador(sala, aluno_id):
-    jogador = sala["jogadores"].get(str(aluno_id))
+# So joga na Arena quem esta na turma do professor que a criou (entrou com o
+# codigo RBT no painel). Vale para abrir a arena, entrar em equipe e jogar.
+FORA_DA_TURMA = "Para jogar na Arena, primeiro entre na turma do professor com o código RBT"
+
+
+def aluno_da_turma(sala, aluno):
+    """O aluno esta na turma do professor que criou esta arena?"""
+    return str(aluno.get("professor_id")) == str(sala["professor_id"])
+
+
+def _conferir_turma(sala, aluno):
+    if not aluno_da_turma(sala, aluno):
+        raise ErroArena(FORA_DA_TURMA, 403)
+
+
+def _jogador(sala, aluno):
+    _conferir_turma(sala, aluno)
+    jogador = sala["jogadores"].get(str(aluno["id"]))
     if not jogador:
         raise ErroArena("Escolha uma equipe para entrar na arena", 403)
     return jogador
@@ -858,18 +875,21 @@ def registrar_visita(sala, aluno_id):
         jogador["visto_em"] = visto.isoformat()
 
 
-def arenas_do_aluno(aluno_id):
+def arenas_do_aluno(aluno_id, professor_id):
+    """Ultimas arenas em que o aluno jogou, so as do professor da turma dele."""
+    if not professor_id:
+        return []
     with db.transacao() as cursor:
         cursor.execute(
             """
             select a.codigo, a.nome, a.status, a.professor_nome, j.concluiu
               from public.arena_jogadores j
               join public.arenas a on a.id = j.arena_id
-             where j.aluno_id = %s
+             where j.aluno_id = %s and a.professor_id = %s
              order by j.entrou_em desc
              limit 5
             """,
-            (int(aluno_id),),
+            (int(aluno_id), int(professor_id)),
         )
         return [dict(linha) for linha in cursor.fetchall()]
 
@@ -882,6 +902,7 @@ def entrar_na_equipe(codigo, aluno, nome_equipe, cor=None, icone=None):
 
     with db.transacao() as cursor:
         sala = _sala_por_codigo(cursor, codigo)
+        _conferir_turma(sala, aluno)
         if sala["status"] == "finalizada":
             raise ErroArena("Esta partida já terminou", 410)
 
@@ -926,11 +947,12 @@ def entrar_na_equipe(codigo, aluno, nome_equipe, cor=None, icone=None):
         return sala
 
 
-def executar_programa(codigo, aluno_id, programa):
+def executar_programa(codigo, aluno, programa):
+    aluno_id = aluno["id"]
     comandos, total_blocos = expandir_programa(programa)
     with db.transacao() as cursor:
         sala = _sala_por_codigo(cursor, codigo)
-        jogador = _jogador(sala, aluno_id)
+        jogador = _jogador(sala, aluno)
         if sala["status"] != "em_jogo":
             raise ErroArena("A partida ainda não começou" if sala["status"] == "aguardando"
                             else "Esta partida já terminou", 409)
@@ -968,11 +990,12 @@ def executar_programa(codigo, aluno_id, programa):
         return resultado
 
 
-def pedir_dica(codigo, aluno_id):
+def pedir_dica(codigo, aluno):
     """Cada pedido revela um pouco mais do caminho (3 niveis)."""
+    aluno_id = aluno["id"]
     with db.transacao() as cursor:
         sala = _sala_por_codigo(cursor, codigo)
-        jogador = _jogador(sala, aluno_id)
+        jogador = _jogador(sala, aluno)
         solucao = solucao_minima(sala["tamanho"], sala["mapa"], sala["direcao"]) or []
         nivel = min(jogador.get("dicas", 0) + 1, 3)
         if not jogador.get("concluiu") and jogador.get("dicas", 0) < 3:
@@ -989,7 +1012,7 @@ def pedir_dica(codigo, aluno_id):
     }
 
 
-def pedir_ajuda(codigo, aluno_id, tipo, motivo=None):
+def pedir_ajuda(codigo, aluno, tipo, motivo=None):
     """Abre (ou renova) o pedido de ajuda do aluno.
 
     A ajuda e presencial: a equipe ou o professor vao ate o computador do aluno.
@@ -1000,9 +1023,10 @@ def pedir_ajuda(codigo, aluno_id, tipo, motivo=None):
         raise ErroArena("Tipo de ajuda inválido")
     if tipo == "professor" and motivo not in MOTIVOS_AJUDA and motivo != MOTIVO_EQUIPE_TODA:
         raise ErroArena("Conte para o professor qual é a dúvida")
+    aluno_id = aluno["id"]
     with db.transacao() as cursor:
         sala = _sala_por_codigo(cursor, codigo)
-        jogador = _jogador(sala, aluno_id)
+        jogador = _jogador(sala, aluno)
         if sala["status"] != "em_jogo":
             raise ErroArena("A partida não está em andamento", 409)
         if tipo == "equipe":
@@ -1027,10 +1051,11 @@ def pedir_ajuda(codigo, aluno_id, tipo, motivo=None):
         return sala
 
 
-def cancelar_ajuda(codigo, aluno_id):
+def cancelar_ajuda(codigo, aluno):
+    aluno_id = aluno["id"]
     with db.transacao() as cursor:
         sala = _sala_por_codigo(cursor, codigo)
-        jogador = _jogador(sala, aluno_id)
+        jogador = _jogador(sala, aluno)
         if jogador.get("ajuda") and jogador["ajuda"].get("ajudante"):
             jogador["ajudas_recebidas"] = jogador.get("ajudas_recebidas", 0) + 1
         jogador["ajuda"] = None
@@ -1041,7 +1066,7 @@ def cancelar_ajuda(codigo, aluno_id):
 def oferecer_ajuda(codigo, ajudante, colega_id):
     with db.transacao() as cursor:
         sala = _sala_por_codigo(cursor, codigo)
-        eu = _jogador(sala, ajudante["id"])
+        eu = _jogador(sala, ajudante)
         colega = sala["jogadores"].get(str(colega_id))
         if not colega or colega.get("equipe") != eu.get("equipe") or not colega.get("ajuda"):
             raise ErroArena("Esse pedido de ajuda já foi resolvido", 404)
