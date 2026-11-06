@@ -244,17 +244,102 @@ if ('IntersectionObserver' in window) {
 const currentYear = document.querySelector('#current-year');
 if (currentYear) currentYear.textContent = new Date().getFullYear();
 
-const authCard = document.querySelector('.auth-card');
+// Tela de acesso: login e cadastro na mesma página, com o Zion reagindo ao formulário
+const authShell = document.querySelector('[data-auth-shell]');
 
-if (authCard) {
-    const authStage = authCard.querySelector('.auth-form-stage');
-    const authTabs = [...authCard.querySelectorAll('[role="tab"]')];
-    const authPanels = [...authCard.querySelectorAll('[data-auth-panel]')];
-    const authSwitches = [...authCard.querySelectorAll('[data-auth-target]')];
+if (authShell) {
+    const authStage = authShell.querySelector('.auth-form-stage');
+    const authTabs = [...authShell.querySelectorAll('[role="tab"]')];
+    const authPanels = [...authShell.querySelectorAll('[data-auth-panel]')];
+    const authSwitches = [...authShell.querySelectorAll('[data-auth-target]')];
+    const loginForm = authShell.querySelector('#login-form');
+    const registerForm = authShell.querySelector('#register-form');
+    const registerName = authShell.querySelector('#register-name');
+    const registerPassword = authShell.querySelector('#register-password');
+    const passwordConfirmation = authShell.querySelector('#register-password-confirm');
+    const confirmationBox = passwordConfirmation.closest('.auth-input');
     const feedbackTimers = new WeakMap();
     const authTransitionDuration = prefersReducedMotion ? 220 : 680;
     let panelTransitionTimer;
 
+    // ---------- Zion ----------
+    // Acena no login, faz joinha no cadastro, fecha os olhos enquanto a senha é
+    // digitada e fica triste quando algo dá errado.
+    const mascot = authShell.querySelector('[data-mascot]');
+    const mascotPoses = mascot ? [...mascot.querySelectorAll('img[data-mood]')] : [];
+    // Decodifica todas as poses já no carregamento, para a troca não piscar
+    mascotPoses.forEach((pose) => pose.decode().catch(() => {}));
+    const mascotSpeech = authShell.querySelector('[data-mascot-speech]');
+    const mascotBubble = mascotSpeech?.closest('.auth-bubble');
+    const MASCOT_IDLE = {
+        login: { mood: 'acenando', text: 'Que bom te ver de novo!' },
+        register: { mood: 'joinha', text: 'Bora montar sua equipe?' }
+    };
+    const MASCOT_SHY = { mood: 'olhos-fechados', text: 'Pode digitar, não estou olhando.' };
+    let mascotMood = 'acenando';
+    let mascotReacting = false;
+    let mascotTimer;
+    let warpTimer;
+    let greetingTimer;
+
+    function showMascot(mood, text) {
+        mascotMood = mood;
+        mascotPoses.forEach((pose) => pose.classList.toggle('is-active', pose.dataset.mood === mood));
+        if (!mascotSpeech || mascotSpeech.textContent === text) return;
+
+        mascotSpeech.textContent = text;
+        mascotBubble.classList.remove('is-popping');
+        void mascotBubble.offsetWidth; // reinicia a animação do balão
+        mascotBubble.classList.add('is-popping');
+    }
+
+    function isTypingPassword() {
+        const field = document.activeElement;
+        return Boolean(field && authShell.contains(field) && field.matches('[data-password]'));
+    }
+
+    function mascotGreeting() {
+        if (authShell.dataset.authMode !== 'register') return '';
+        const firstName = registerName.value.trim().split(/\s+/)[0].slice(0, 16);
+        if (firstName.length < 2) return '';
+        return `Prazer, ${firstName.charAt(0).toUpperCase()}${firstName.slice(1)}!`;
+    }
+
+    // Volta à pose do momento. Uma reação em andamento (erro, sucesso) só é
+    // interrompida com force = true.
+    function settleMascot(force = false) {
+        if (mascotReacting && !force) return;
+        clearTimeout(mascotTimer);
+        mascotReacting = false;
+
+        if (isTypingPassword()) {
+            showMascot(MASCOT_SHY.mood, MASCOT_SHY.text);
+            return;
+        }
+
+        const idle = MASCOT_IDLE[authShell.dataset.authMode] || MASCOT_IDLE.login;
+        showMascot(idle.mood, mascotGreeting() || idle.text);
+    }
+
+    // Reação passageira; sem duration, fica até a próxima troca (ex.: redirecionamento).
+    function reactMascot(mood, text, duration = 0) {
+        clearTimeout(mascotTimer);
+        mascotReacting = true;
+        showMascot(mood, text);
+        if (duration) mascotTimer = setTimeout(() => settleMascot(true), duration);
+    }
+
+    // Efeito de teletransporte usado na troca entre Entrar e Criar conta
+    function warpMascot() {
+        if (!mascot || prefersReducedMotion) return;
+        clearTimeout(warpTimer);
+        mascot.classList.remove('is-warping');
+        void mascot.offsetWidth;
+        mascot.classList.add('is-warping');
+        warpTimer = setTimeout(() => mascot.classList.remove('is-warping'), 950);
+    }
+
+    // ---------- Troca entre Entrar e Criar conta ----------
     function getModeFromHash() {
         return window.location.hash === '#cadastro' ? 'register' : 'login';
     }
@@ -262,6 +347,7 @@ if (authCard) {
     function syncAuthStage(panel) {
         if (!panel || panel.hidden) return;
         authStage.style.height = `${panel.scrollHeight}px`;
+        authStage.scrollLeft = 0; // o palco não rola; isso desfaz rolagens causadas por foco
     }
 
     function setAuthMode(mode, options = {}) {
@@ -269,10 +355,11 @@ if (authCard) {
         const nextPanel = authPanels.find((panel) => panel.dataset.authPanel === mode);
         const currentPanel = authPanels.find((panel) => panel.classList.contains('active'));
         if (!nextPanel) return;
+        const modeChanged = authShell.dataset.authMode !== mode;
 
         clearTimeout(panelTransitionTimer);
         nextPanel.hidden = false;
-        authCard.setAttribute('data-auth-mode', mode);
+        authShell.dataset.authMode = mode;
 
         authTabs.forEach((tab) => {
             const isActive = tab.dataset.authTarget === mode;
@@ -293,6 +380,8 @@ if (authCard) {
         } else if (currentPanel !== nextPanel) {
             currentPanel?.classList.remove('active');
             currentPanel?.setAttribute('aria-hidden', 'true');
+            // Ler a altura força o navegador a desenhar o painel novo ainda escondido;
+            // assim os campos dele conseguem animar a entrada em sequência.
             syncAuthStage(nextPanel);
             requestAnimationFrame(() => nextPanel.classList.add('active'));
             nextPanel.setAttribute('aria-hidden', 'false');
@@ -302,6 +391,11 @@ if (authCard) {
                     if (panel !== nextPanel) panel.hidden = true;
                 });
             }, authTransitionDuration);
+        }
+
+        if (modeChanged) {
+            if (animate) warpMascot();
+            settleMascot(true);
         }
 
         if (updateHash) {
@@ -315,7 +409,8 @@ if (authCard) {
         if (!feedback) return;
 
         clearTimeout(feedbackTimers.get(feedback));
-        feedback.textContent = message;
+        feedback.querySelector('.auth-feedback-text').textContent = message;
+        feedback.querySelector('use')?.setAttribute('href', type === 'error' ? '#i-circle-alert' : '#i-circle-check');
         feedback.classList.toggle('error', type === 'error');
         feedback.classList.add('visible');
         syncAuthStage(form.closest('.auth-panel'));
@@ -327,12 +422,24 @@ if (authCard) {
         feedbackTimers.set(feedback, timer);
     }
 
+    function setSubmitting(button, busy, busyLabel = '') {
+        const label = button.querySelector('.auth-submit-label');
+        if (busy) {
+            button.dataset.label = label.textContent;
+            label.textContent = busyLabel;
+        } else if (button.dataset.label) {
+            label.textContent = button.dataset.label;
+        }
+        button.disabled = busy;
+        button.classList.toggle('is-loading', busy);
+        button.form?.setAttribute('aria-busy', String(busy));
+    }
+
     setAuthMode(getModeFromHash(), { animate: false, updateHash: false });
+    settleMascot(true);
 
     authSwitches.forEach((control) => {
-        control.addEventListener('click', () => {
-            setAuthMode(control.dataset.authTarget, { focusTab: control.getAttribute('role') === 'tab' });
-        });
+        control.addEventListener('click', () => setAuthMode(control.dataset.authTarget, { focusTab: true }));
     });
 
     authTabs.forEach((tab, index) => {
@@ -349,37 +456,116 @@ if (authCard) {
         });
     });
 
-    authCard.querySelectorAll('[data-auth-notice]').forEach((button) => {
-        button.addEventListener('click', () => {
-            showAuthFeedback(button.closest('.auth-panel').querySelector('form'), button.dataset.authNotice);
-        });
+    // ---------- Campos de senha: mostrar/ocultar e aviso de Caps Lock ----------
+    function setPasswordVisible(button, visible) {
+        const input = document.getElementById(button.getAttribute('aria-controls'));
+        if (!input) return;
+        input.type = visible ? 'text' : 'password';
+        button.setAttribute('aria-pressed', String(visible));
+        button.setAttribute('aria-label', visible ? 'Ocultar senha' : 'Mostrar senha');
+    }
+
+    authShell.querySelectorAll('[data-password-toggle]').forEach((button) => {
+        // Com o mouse, o foco continua no campo (e o Zion segue de olhos fechados)
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', () => setPasswordVisible(button, button.getAttribute('aria-pressed') !== 'true'));
     });
 
-    const registerForm = authCard.querySelector('#register-form');
-    const registerPassword = authCard.querySelector('#register-password');
-    const passwordConfirmation = authCard.querySelector('#register-password-confirm');
+    authShell.querySelectorAll('[data-password]').forEach((input) => {
+        const warning = input.closest('.auth-field')?.querySelector('[data-caps-warning]');
+        if (!warning) return;
+
+        const updateCapsWarning = (event) => {
+            if (typeof event.getModifierState === 'function') warning.hidden = !event.getModifierState('CapsLock');
+        };
+        input.addEventListener('keydown', updateCapsWarning);
+        input.addEventListener('keyup', updateCapsWarning);
+        input.addEventListener('blur', () => { warning.hidden = true; });
+    });
+
+    // ---------- Cadastro: energia da senha e confirmação ----------
+    const energyMeter = authShell.querySelector('[data-energy]');
+    const energyText = authShell.querySelector('[data-energy-text]');
+    const ENERGY_NAMES = ['', 'Energia baixa', 'Energia média', 'Energia alta', 'Energia máxima'];
+    const ENERGY_TIPS = [
+        [(password) => /[a-z]/i.test(password) && /\d/.test(password), 'misture letras e números'],
+        [(password) => /[a-z]/.test(password) && /[A-Z]/.test(password), 'use maiúsculas e minúsculas'],
+        [(password) => /[^a-z0-9]/i.test(password) || password.length >= 12, 'um símbolo deixa ainda mais forte']
+    ];
+
+    // Só orienta: a regra que vale é a do servidor (de 8 a 20 caracteres).
+    function updatePasswordEnergy() {
+        if (!energyMeter) return;
+        const password = registerPassword.value;
+        let level = 0;
+        let text = 'Use de 8 a 20 caracteres.';
+
+        if (password && password.length < 8) {
+            const missing = 8 - password.length;
+            text = missing === 1 ? 'Falta 1 caractere.' : `Faltam ${missing} caracteres.`;
+        } else if (password) {
+            const tips = ENERGY_TIPS.filter(([passes]) => !passes(password)).map(([, tip]) => tip);
+            level = ENERGY_NAMES.length - 1 - tips.length;
+            text = tips.length ? `${ENERGY_NAMES[level]}: ${tips[0]}.` : `${ENERGY_NAMES[level]}!`;
+        }
+
+        energyMeter.dataset.energy = String(level);
+        energyText.textContent = text;
+    }
 
     function validatePasswordMatch() {
         const matches = registerPassword.value === passwordConfirmation.value;
         passwordConfirmation.setCustomValidity(matches ? '' : 'As senhas não coincidem.');
         passwordConfirmation.setAttribute('aria-invalid', String(!matches && passwordConfirmation.value.length > 0));
+        // O "check" só aparece quando as senhas batem e já têm o tamanho mínimo
+        confirmationBox.toggleAttribute('data-match', matches && registerPassword.value.length >= 8);
         return matches;
+    }
+
+    function resetRegisterExtras() {
+        registerForm.querySelectorAll('[data-password-toggle]').forEach((button) => setPasswordVisible(button, false));
+        confirmationBox.removeAttribute('data-match');
+        updatePasswordEnergy();
     }
 
     passwordConfirmation.addEventListener('input', validatePasswordMatch);
     registerPassword.addEventListener('input', () => {
+        updatePasswordEnergy();
         if (passwordConfirmation.value) validatePasswordMatch();
     });
 
-    const loginForm = authCard.querySelector('#login-form');
+    // ---------- Reações do Zion aos campos ----------
+    authShell.addEventListener('focusin', (event) => {
+        if (event.target.matches('[data-password]')) settleMascot(true);
+    });
 
+    authShell.addEventListener('focusout', (event) => {
+        if (event.target.matches('[data-password]')) setTimeout(() => settleMascot(), 120);
+    });
+
+    authShell.addEventListener('input', (event) => {
+        const field = event.target;
+        if (field !== passwordConfirmation && field.getAttribute('aria-invalid') === 'true') {
+            field.removeAttribute('aria-invalid');
+        }
+        // A pessoa já está corrigindo: o Zion para de ficar triste
+        if (mascotReacting && mascotMood === 'triste') settleMascot(true);
+
+        if (field === registerName) {
+            clearTimeout(greetingTimer);
+            greetingTimer = setTimeout(() => settleMascot(), 250);
+        }
+    });
+
+    // ---------- Envio ----------
     function validateForm(form) {
         form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute('aria-invalid'));
 
         if (!form.checkValidity()) {
             form.querySelectorAll(':invalid').forEach((field) => field.setAttribute('aria-invalid', 'true'));
             form.reportValidity();
-            showAuthFeedback(form, 'Revise os campos destacados antes de continuar.', 'error');
+            showAuthFeedback(form, 'Revise os campos destacados.', 'error');
+            reactMascot('triste', 'Opa! Confere os campos em destaque.', 4200);
             return false;
         }
 
@@ -394,10 +580,10 @@ if (authCard) {
         const formData = new FormData(registerForm);
         const email = String(formData.get('email')).trim().toLowerCase();
         const submitButton = registerForm.querySelector('[type="submit"]');
-        submitButton.disabled = true;
+        setSubmitting(submitButton, true, 'Criando sua conta...');
 
         try {
-            const response = await fetch(authCard.dataset.registerUrl, {
+            const response = await fetch(authShell.dataset.registerUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -410,21 +596,26 @@ if (authCard) {
 
             if (!response.ok) {
                 showAuthFeedback(registerForm, result.error || 'Não foi possível realizar o cadastro.', 'error');
+                reactMascot('triste', 'Hmm, não deu certo dessa vez.', 4200);
                 return;
             }
 
             registerForm.reset();
-            showAuthFeedback(registerForm, 'Cadastro realizado! Agora entre com seu e-mail e senha.');
+            resetRegisterExtras();
+            showAuthFeedback(registerForm, 'Cadastro realizado! Agora é só entrar.');
+            reactMascot('joinha', 'Conta criada! Agora é só entrar.');
 
             setTimeout(() => {
                 setAuthMode('login');
-                authCard.querySelector('#login-email').value = email;
-                authCard.querySelector('#login-password').focus();
-            }, 900);
+                authShell.querySelector('#login-email').value = email;
+                authShell.querySelector('#login-password').focus({ preventScroll: true });
+                showAuthFeedback(loginForm, 'Conta criada! Digite sua senha.');
+            }, 1500);
         } catch {
             showAuthFeedback(registerForm, 'Não foi possível conectar ao servidor.', 'error');
+            reactMascot('triste', 'Perdi o sinal com o servidor...', 4200);
         } finally {
-            submitButton.disabled = false;
+            setSubmitting(submitButton, false);
         }
     });
 
@@ -437,10 +628,11 @@ if (authCard) {
         const password = String(formData.get('password'));
         const rememberUser = formData.get('remember') === 'on';
         const submitButton = loginForm.querySelector('[type="submit"]');
-        submitButton.disabled = true;
+        let redirecting = false;
+        setSubmitting(submitButton, true, 'Conectando...');
 
         try {
-            const response = await fetch(authCard.dataset.loginUrl, {
+            const response = await fetch(authShell.dataset.loginUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, senha: password, lembrar: rememberUser })
@@ -449,6 +641,7 @@ if (authCard) {
 
             if (!response.ok) {
                 showAuthFeedback(loginForm, result.error || 'E-mail ou senha incorretos.', 'error');
+                reactMascot('triste', 'Hmm... esses dados não bateram.', 4200);
                 return;
             }
 
@@ -467,17 +660,21 @@ if (authCard) {
             storage.setItem('robooteam-active-user', activeUser);
             storage.setItem('robooteam-token', result.token);
 
+            redirecting = true;
             showAuthFeedback(loginForm, 'Login realizado! Redirecionando...');
+            reactMascot('joinha', 'Tudo certo! Preparando a decolagem...');
 
             setTimeout(() => {
                 window.location.href = profile === 'aluno'
-                    ? authCard.dataset.studentUrl
-                    : authCard.dataset.teacherUrl;
-            }, 500);
+                    ? authShell.dataset.studentUrl
+                    : authShell.dataset.teacherUrl;
+            }, 700);
         } catch {
             showAuthFeedback(loginForm, 'Não foi possível conectar ao servidor.', 'error');
+            reactMascot('triste', 'Perdi o sinal com o servidor...', 4200);
         } finally {
-            submitButton.disabled = false;
+            // No sucesso o botão continua "carregando" até a página trocar
+            if (!redirecting) setSubmitting(submitButton, false);
         }
     });
 
