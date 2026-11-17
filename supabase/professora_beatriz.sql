@@ -24,3 +24,10 @@ values (
     'Turma da Beatriz'
 )
 on conflict (email) do nothing;
+
+-- primeira turma da professora (as outras ela cria pelo painel)
+insert into public.turmas (professor_id, nome)
+select p.id, 'Turma da Beatriz'
+  from public.usuarios p
+ where p.perfil = 'PROFESSOR'
+   and not exists (select 1 from public.turmas t where t.professor_id = p.id);

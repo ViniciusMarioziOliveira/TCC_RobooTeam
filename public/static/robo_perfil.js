@@ -17,7 +17,7 @@
     { id: "floresta", label: "Floresta", hue: 240, sat: 1.05, swatch: "#33D17A", glow: "rgba(51,209,122,0.5)" },
     { id: "oceano", label: "Oceano", hue: 310, sat: 1.05, swatch: "#22C3E6", glow: "rgba(34,195,230,0.55)" },
   ];
-  // icon: desenho do sprite (templates/_icones.html) usado nos botões da Oficina.
+  // icon: ícone de traço do sprite (templates/_icones.html) usado na Oficina e no destaque do robô.
   // file: o robô já vestindo o acessório, em img/<pose>_variantes/<pose>_<file>.webp.
   // layer: tem também <pose>_<file>_cor.webp, só com as partes douradas/rosa, que vão
   // por cima sem o filtro de cor (assim a coroa continua dourada num robô verde).
@@ -64,7 +64,7 @@
   }
 
   function accessoryHtml(acc) {
-    return acc.icon ? `<svg aria-hidden="true" focusable="false"><use href="#i-${acc.icon}"></use></svg>` : "";
+    return acc.icon ? `<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-${acc.icon}"></use></svg>` : "";
   }
 
   function replayClass(element, className, duration) {

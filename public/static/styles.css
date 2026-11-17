@@ -1790,6 +1790,68 @@ h2 {
     letter-spacing: 0.02em;
 }
 
+/* Etapas da trilha atual: uma bolinha por etapa, na cor do card da etapa */
+.teacher-trail {
+    grid-column: 1 / -1;
+    padding: 12px 16px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed rgba(141, 182, 255, 0.3);
+    border-radius: 16px;
+}
+
+.teacher-trail > small {
+    display: block;
+    margin-bottom: 9px;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.teacher-trail-steps {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    gap: 7px;
+    list-style: none;
+}
+
+.teacher-trail-steps li {
+    --tone: #8db6ff;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    color: #0b1033;
+    background: var(--tone);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08), 0 0 14px rgba(141, 182, 255, 0.35);
+    font-family: var(--title-font);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.teacher-trail-steps .tone-mint { --tone: #5eead4; }
+.teacher-trail-steps .tone-blue { --tone: #8db6ff; }
+.teacher-trail-steps .tone-coral { --tone: #ff9aa2; }
+.teacher-trail-steps .tone-yellow { --tone: #fcd34d; }
+.teacher-trail-steps .tone-purple { --tone: #c4b5fd; }
+
+.sr-only {
+    position: absolute;
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
 .teacher-panel-robot {
     position: relative;
     z-index: 2;

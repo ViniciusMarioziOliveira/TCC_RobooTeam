@@ -83,7 +83,28 @@ function resetCodeFeedback(form) {
   setCodeFeedback(form, form.dataset.idleMessage, form.dataset.idleType);
 }
 
+// selo da turma no cartão da conta: sem turma, vira um atalho para os campos de código
+function renderClassChip(room) {
+  const chip = document.querySelector("#student-class-chip");
+  if (!chip) return;
+  chip.classList.toggle("is-empty", !room);
+  document.querySelector("#student-class-name").textContent = room ? room.turma : "Sem turma · entrar";
+  chip.title = room ? `Sua turma: ${room.turma}` : "Entrar em uma turma";
+  if (room) chip.removeAttribute("href");
+  else chip.setAttribute("href", "#sala");
+}
+
+// título do cartão da conta: muda conforme o aluno avança na trilha
+function rankTitle(progress) {
+  if (progress.total && progress.completed >= progress.total) return "Mestre da Trilha";
+  if (progress.level >= 4) return "Engenheiro Mirim";
+  if (progress.level >= 3) return "Inventor Curioso";
+  if (progress.level >= 2) return "Explorador Aprendiz";
+  return "Explorador Iniciante";
+}
+
 function renderRoomState(room) {
+  renderClassChip(room);
   // a Arena só fica liberada para quem já está na turma do professor
   arenaJoinForm.dataset.idleMessage = room ? arenaJoinForm.dataset.defaultMessage : ARENA_LOCKED_MESSAGE;
   resetCodeFeedback(arenaJoinForm);
@@ -132,8 +153,12 @@ function renderDashboard(data) {
   animateNumber(document.querySelector("#student-points"), progress.points);
   animateNumber(document.querySelector("#sidebar-points"), progress.points);
   animateNumber(document.querySelector("#header-points"), progress.points);
+  const rank = rankTitle(progress);
   document.querySelector("#student-level").textContent = `Nível ${progress.level}`;
+  document.querySelector("#student-level-label").textContent = rank;
+  document.querySelector("#student-rank").textContent = rank;
   document.querySelector("#sidebar-level").textContent = String(progress.level).padStart(2, "0");
+  document.querySelector("#sidebar-steps").textContent = `${progress.completed}/${progress.total}`;
   document.querySelector("#student-missions").textContent = `${progress.completed} / ${progress.total}`;
   document.querySelector("#sidebar-progress-text").textContent = `${progress.percent}%`;
   document.querySelector("#sidebar-progress-fill").style.width = `${progress.percent}%`;
@@ -354,7 +379,7 @@ document.querySelector("#sidebar-overlay")?.addEventListener("click", () => setS
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") setSidebarOpen(false);
 });
-document.querySelectorAll(".sidebar .nav-item, .sidebar .avatar-wrap").forEach((item) => {
+document.querySelectorAll(".sidebar .nav-item, .sidebar .avatar-wrap, #student-class-chip").forEach((item) => {
   item.addEventListener("click", () => setSidebarOpen(false));
 });
 

@@ -166,12 +166,12 @@ Os botões **Como aprender** e **Ajuda** abrem um passo a passo e uma central co
   <img src="docs/readme/aluno-entrar-turma.gif" alt="Aluna digitando o código da turma, recebendo o aviso de caracteres faltando e entrando na turma" width="760">
 </p>
 
-A professora gera um código **`RBT-XXXX`** no painel dela (válido por **24 horas**) e passa para a turma. No painel do aluno:
+Cada turma da professora tem o seu código **`RBT-XXXX`** (válido por **24 horas**). Ela gera o código no card da turma e passa para os alunos. No painel do aluno:
 
 1. O começo do código (`RBT-`) e o tracinho **já vêm preenchidos**: o aluno digita só os **4 últimos caracteres**, que aparecem em quadradinhos.
 2. Se faltar algum caractere, o campo treme e avisa quantos faltam (como no GIF: *"Faltam 2 caracteres do código."*).
 3. Também dá para colar o código inteiro (`rbt-7a3f`, `RBT7A3F`...): o campo entende. Se o aluno digitar um código de Arena no campo da turma (ou o contrário), o site avisa qual campo usar.
-4. Com o código certo, aparece **"Entrada na sala realizada com sucesso!"** e o selo com o nome da turma.
+4. Com o código certo, aparece **"Você entrou na turma ...!"** e o selo com o nome da turma (também no cartão da conta, na barra lateral). Digitar o código de outra turma troca o aluno de turma.
 
 **O que muda depois de entrar na turma:**
 
@@ -193,7 +193,7 @@ Na **Oficina do Robô** (botão **Personalizar**, card **Seu robô** ou item **M
 | **Nome** | Até 16 letras (o padrão é `Robo-01`) |
 | **Pose e humor** | Oi!, Feliz, Aventura, Zen, Pensativo e Focado |
 | **Cor** | Galáxia, Chiclete, Foguete, Sol, Floresta e Oceano |
-| **Acessório** | Nenhum, Coroa, Cartola, Laço, Capelo e Boné |
+| **Acessório** | Nenhum, Coroa, Cartola, Laço, Capelo e Boné (cada um com um ícone de traço e o nome) |
 
 <table>
   <tr>
@@ -415,22 +415,23 @@ Todas as telas são responsivas: no celular, o menu do aluno vira uma gaveta, os
 
 | Recurso | O que a professora faz |
 | --- | --- |
-| **Indicadores** | Total de alunos, turmas ativas, alunos ativos (que já começaram a trilha), quantidade de atividades e média geral de progresso. |
+| **Conta** | O cartão da barra lateral mostra só o nome da professora e os números das turmas: alunos, turmas, alunos ativos e a média de conclusão. |
+| **Indicadores** | Total de alunos, turmas, alunos ativos (que já começaram a trilha), quantidade de atividades e média geral de progresso. |
 | **Desempenho** | Barra de progresso de cada aluno na trilha, com a próxima etapa dele. |
 | **Alunos ativos e atividades recentes** | Uma prévia dos alunos da turma, com situação e progresso, e a tabela com as últimas atualizações de progresso de cada aluno. |
-| **Código de sala** | Gera o código `RBT-XXXX` (válido por 24 horas) e copia com um clique. |
-| **Buscar alunos** | Filtra por nome, e-mail, turma e situação (*Não iniciado*, *Em andamento*, *Concluído*). **Ver detalhes** mostra as etapas concluídas e a próxima etapa do aluno. |
+| **Minhas turmas** | Cria, renomeia e exclui turmas. Cada turma tem o seu código `RBT-XXXX` (válido por 24 horas), a quantidade de alunos e a média de conclusão. |
+| **Buscar e gerenciar alunos** | Filtra por nome, e-mail, turma e situação (*Não iniciado*, *Em andamento*, *Concluído*). Cada aluno abre um painel com o progresso, a próxima etapa e as ações: **mover para outra turma**, **tirar da turma** (a conta continua) ou **excluir a conta**. |
 | **Editar trilha** | Cria, edita, reordena e remove etapas, escolhe o minijogo e restaura a trilha original. |
 | **Arena** | Cria partidas, desenha ou sorteia o mapa, acompanha tudo ao vivo e atende os pedidos de ajuda. |
 
-### Turma e código de sala
+### Turmas e códigos
 
 <table>
   <tr>
     <td width="36%" align="center"><img src="docs/readme/professor-codigo.gif" alt="Professora gera um novo código de sala e copia" width="100%"></td>
     <td width="64%">
       <img src="docs/readme/professor-turma.png" alt="Card do código de sala e lista de turmas" width="100%">
-      <p>O botão <b>Gerar novo código</b> cria um código novo (o anterior deixa de valer) com validade de 24 horas. O código também aparece na barra lateral do painel.</p>
+      <p>Em <b>Minhas turmas</b>, o botão <b>Nova turma</b> cria uma turma (ex.: "5º ano A — manhã"). Em cada card, <b>Gerar código</b> cria o código da turma com validade de 24 horas (gerar de novo invalida o anterior), o ícone de cópia copia o código e <b>Ver alunos</b> filtra a lista de alunos por aquela turma. Excluir uma turma tira os alunos dela (o progresso continua salvo). A barra lateral mostra quantas turmas têm código válido.</p>
     </td>
   </tr>
 </table>
@@ -459,7 +460,7 @@ Quando a professora altera qualquer etapa, a trilha da turma vira uma **trilha p
 | --- | --- |
 | **Card da trilha** | Título, período, descrição curta e cor do card |
 | **Página da aula** | Chamada do topo, título e introdução |
-| **Blocos de leitura** | De 1 a 8 blocos, cada um com título, texto e imagem opcional (PNG, JPG, WEBP ou GIF de até 4 MB) |
+| **Blocos de leitura** | De 1 a 8 blocos, cada um com título, texto e um anexo opcional (clique ou arraste o arquivo): uma imagem (PNG, JPG, WEBP ou GIF de até 4 MB), várias imagens ou um **PDF de slides** (viram uma apresentação que o aluno passa slide a slide, com tela cheia) ou uma **apresentação do PowerPoint** `.pptx` de até 4 MB (abre no visualizador do Office) |
 | **Quiz** | De 1 a 10 perguntas, com 2 a 5 alternativas, a resposta certa e a explicação |
 | **Minijogo** | Memória ou ligar blocos (3 a 8 pares), caça-palavras (até 5 grupos de 3 a 8 palavras), cobrinha (meta de 5 a 60 bolinhas), labirinto (1 a 3 fases) ou "somente leitura e quiz" |
 
@@ -548,7 +549,7 @@ flowchart LR
 
 - O **navegador** carrega as páginas pelo Flask. Os arquivos fixos (CSS, JavaScript e imagens) vêm direto da CDN.
 - O **Flask** é o único que conversa com o banco. Ele confere o login, valida as respostas e salva o progresso.
-- As **imagens da trilha** são enviadas pelo servidor ao Supabase Storage, e os alunos as abrem pelo link público.
+- Os **anexos da trilha** (imagens, slides e apresentações) são enviados pelo servidor ao Supabase Storage, e os alunos os abrem pelo link público. Um PDF de slides é transformado em imagens no navegador da professora (com o PDF.js) antes do envio.
 - A **Arena** funciona quase em tempo real: a tela de cada aluno e o acompanhamento da partida no painel da professora consultam o servidor a cada 3 segundos (a lista de arenas e a fila de ajuda, a cada 6 segundos).
 
 ---
@@ -645,14 +646,14 @@ Acesse **http://127.0.0.1:5000**. Para desligar o servidor, volte ao terminal e 
 - **E-mail:** `beatriz@robooteam.com`
 - **Senha:** entregue separadamente pela equipe (não fica no repositório).
 
-No painel, clique em **Gerar novo código** para criar o código da sala (`RBT-XXXX`). Ele vale por 24 horas.
+No painel, em **Minhas turmas**, crie a turma (ou use a que já existe) e clique em **Gerar código** para criar o código dela (`RBT-XXXX`). Ele vale por 24 horas.
 
 ### Como aluno
 
 1. Na página inicial, clique em **Cadastre-se**.
 2. Preencha nome (de 3 a 100 caracteres), e-mail (até 254 caracteres) e senha (de 8 a 20 caracteres).
 3. Entre com o e-mail e a senha cadastrados.
-4. No painel, digite no campo **Código da turma** os 4 últimos caracteres do código que a professora gerou.
+4. No painel, digite no campo **Código da turma** os 4 últimos caracteres do código da sua turma.
 
 > Alunos **sem turma** veem a trilha padrão. Alunos **com turma** veem a trilha montada pela professora.
 
@@ -686,7 +687,8 @@ As tabelas são criadas pelo arquivo `supabase/schema.sql`:
 
 | Tabela | O que guarda |
 | --- | --- |
-| `usuarios` | Alunos e a professora (nome, e-mail, senha em hash, turma e código de sala) |
+| `usuarios` | Alunos e a professora (nome, e-mail, senha em hash e a turma de cada aluno) |
+| `turmas` | Turmas da professora, cada uma com nome e código de entrada (`RBT-XXXX`) |
 | `progresso_trilha` | Etapas da trilha concluídas por cada aluno |
 | `progresso_jogo` | Fases da Missão Robô concluídas e a melhor pontuação |
 | `trilha_atividades` | Trilha personalizada pela professora |
@@ -694,7 +696,9 @@ As tabelas são criadas pelo arquivo `supabase/schema.sql`:
 | `arena_equipes` | Equipes de cada partida |
 | `arena_jogadores` | Jogadores, tempos, tentativas, dicas, estrelas e pedidos de ajuda |
 
-Também é criado o bucket público `trilha-imagens`, no Supabase Storage, para as imagens das etapas.
+Também é criado o bucket público `trilha-imagens`, no Supabase Storage, para as imagens, slides e apresentações das etapas.
+
+> **Atualizando um banco antigo:** rode o `supabase/schema.sql` de novo (ele não apaga dados). A sala única de antes vira a primeira turma, com o mesmo código, e os alunos dela entram nessa turma. Rode o SQL **antes** de publicar a versão nova do site.
 
 > O robô personalizado da Oficina fica salvo no navegador do aluno (`localStorage`), não no banco.
 
@@ -708,7 +712,8 @@ Também é criado o bucket público `trilha-imagens`, no Supabase Storage, para 
 - **RLS (Row Level Security)** ligado em todas as tabelas: só o servidor acessa os dados, e as chaves públicas do Supabase não leem nada.
 - **Respostas conferidas no servidor**: quizzes, fases da Missão Robô e partidas da Arena são validados (e simulados de novo) pelo Flask, não pelo navegador.
 - **Arena só para a turma**: apenas alunos da turma da professora que criou a partida conseguem entrar, jogar e pedir ajuda.
-- **Imagens verificadas** pelo conteúdo do arquivo (PNG, JPG, WEBP ou GIF, até 4 MB), não apenas pela extensão.
+- **Anexos verificados** pelo conteúdo do arquivo (PNG, JPG, WEBP, GIF ou PowerPoint `.pptx`, até 4 MB), não apenas pela extensão.
+- **Turmas e alunos protegidos**: a professora só consegue mover, tirar da turma ou excluir alunos das turmas dela.
 - **Chaves e senhas** ficam no `.env` (fora do GitHub) ou nas variáveis de ambiente da hospedagem.
 
 ---
@@ -721,8 +726,9 @@ TCC_RobooTeam/
 ├── db.py                   # Conexão com o banco do Supabase
 ├── usuarios_store.py       # Usuários, login e progresso dos alunos
 ├── trilha_store.py         # Trilha personalizada da professora
+├── turmas_store.py         # Turmas, códigos de entrada e gestão dos alunos
 ├── arena_store.py          # Partidas da Arena RobooTeam
-├── armazenamento.py        # Imagens da trilha no Supabase Storage
+├── armazenamento.py        # Anexos da trilha (imagens e .pptx) no Supabase Storage
 ├── trilha_conteudo.py      # Conteúdo padrão da trilha e dos minijogos
 ├── jogo_conteudo.py        # Fases e regras do jogo de blocos
 │
@@ -743,7 +749,7 @@ TCC_RobooTeam/
 │                           # 1_coroa_cor.webp guarda só o dourado/rosa, que não muda com a cor do robô
 │
 ├── supabase/
-│   ├── schema.sql              # Tabelas, segurança e bucket de imagens
+│   ├── schema.sql              # Tabelas, turmas, segurança e bucket de anexos
 │   └── professora_beatriz.sql  # Login da professora
 │
 ├── docs/readme/            # Capturas de tela e GIFs deste README

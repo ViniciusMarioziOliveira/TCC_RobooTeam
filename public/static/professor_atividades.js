@@ -35,16 +35,26 @@
 
   const LIMITES = { secoes: 8, perguntas: 10, opcoes: 5, pares: 8, palavras: 8, variacoes: 5 };
 
-  // Imagens: o servidor aceita até 4 MB; fotos grandes são reduzidas antes do envio.
+  // Anexo de cada bloco de leitura: uma imagem, várias imagens ou os slides da aula.
+  // O servidor aceita até 4 MB por arquivo: fotos grandes são reduzidas antes do
+  // envio e cada página de um PDF vira uma imagem aqui mesmo no navegador (assim
+  // o PDF pode ter qualquer tamanho). Apresentações .pptx vão como estão (até 4 MB)
+  // e o aluno vê no visualizador do Office.
   const IMAGEM_TIPOS = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-  const IMAGEM_MAX_BYTES = 4 * 1024 * 1024;
+  const TIPO_PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  const ARQUIVOS_ACEITOS = [...IMAGEM_TIPOS, "application/pdf", ".pdf", TIPO_PPTX, ".pptx", ".ppsx"].join(",");
+  const ARQUIVO_MAX_BYTES = 4 * 1024 * 1024;
   const IMAGEM_LADO_MAX = 1600;
+  const SLIDES_MAX = 40;
+  const ENVIOS_SIMULTANEOS = 3;
+  const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
 
   let estado = { atividades: [], opcoes: { cores: [], minijogos: [] }, personalizada: false };
   let editandoId = null;
   let contadorRadio = 0;
   let ocupado = false;
   let enviosDeImagem = 0;
+  const anexos = new WeakMap(); // card do bloco -> anexo atual ({ tipo, url | slides, ... })
 
   // ---------------------------------------------------------------- helpers
   function criarElemento(html) {
@@ -77,8 +87,21 @@
   }
 
   // ------------------------------------------------------ lista de atividades
+  function contarAnexos(secoes) {
+    return (secoes || []).reduce((total, secao) => {
+      if (secao.image) total.imagens += 1;
+      if (secao.slides?.length) total.slides += secao.slides.length;
+      if (secao.presentation) total.apresentacoes += 1;
+      return total;
+    }, { imagens: 0, slides: 0, apresentacoes: 0 });
+  }
+
+  function chipComIcone(icone, texto) {
+    return `<span class="activity-chip inline-flex items-center gap-1"><i data-lucide="${icone}" class="w-3 h-3"></i>${texto}</span>`;
+  }
+
   function cardDaAtividade(atividade, indice, total) {
-    const imagens = (atividade.sections || []).filter((secao) => secao.image).length;
+    const { imagens, slides, apresentacoes } = contarAnexos(atividade.sections);
     return `
       <article class="activity-card" data-activity-id="${atividade.id}">
         <div class="activity-order">${atividade.posicao}</div>
@@ -91,7 +114,9 @@
           <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${escapeHtml(atividade.description)}</p>
           <div class="flex flex-wrap items-center gap-1.5 mt-2">
             <span class="activity-chip">${atividade.total_secoes} blocos de leitura</span>
-            ${imagens ? `<span class="activity-chip inline-flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i>${imagens} ${imagens === 1 ? "imagem" : "imagens"}</span>` : ""}
+            ${imagens ? chipComIcone("image", `${imagens} ${imagens === 1 ? "imagem" : "imagens"}`) : ""}
+            ${slides ? chipComIcone("gallery-horizontal", `${slides} slides`) : ""}
+            ${apresentacoes ? chipComIcone("presentation", `${apresentacoes} ${apresentacoes === 1 ? "apresentação" : "apresentações"}`) : ""}
             <span class="activity-chip">${atividade.total_perguntas} perguntas</span>
             <span class="activity-chip inline-flex items-center gap-1"><i data-lucide="gamepad-2" class="w-3 h-3"></i>${escapeHtml(atividade.minijogo_label)}</span>
             <span class="activity-chip">${atividade.conclusoes} aluno(s) concluíram</span>
@@ -145,7 +170,18 @@
     }
   }
 
-  // ----------------------------------------------------- imagens dos blocos
+  // ------------------------------------------------------ anexos dos blocos
+  const ehPdf = (arquivo) => arquivo.type === "application/pdf" || /\.pdf$/i.test(arquivo.name);
+  const ehPptx = (arquivo) => arquivo.type === TIPO_PPTX || /\.(pptx|ppsx)$/i.test(arquivo.name);
+  const ehOutraApresentacao = (arquivo) => /\.(ppt|pps|key|odp)$/i.test(arquivo.name);
+  const ehImagem = (arquivo) => IMAGEM_TIPOS.includes(arquivo.type);
+
+  function tamanhoLegivel(bytes) {
+    return bytes >= 1024 * 1024
+      ? `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`
+      : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
   function carregarImagem(arquivo) {
     return new Promise((resolver, rejeitar) => {
       const endereco = URL.createObjectURL(arquivo);
@@ -180,18 +216,9 @@
     return reduzida && reduzida.size < arquivo.size ? reduzida : arquivo;
   }
 
-  async function enviarImagem(arquivo) {
-    if (!IMAGEM_TIPOS.includes(arquivo.type)) {
-      throw new Error("Use uma imagem PNG, JPG, WEBP ou GIF.");
-    }
-
-    const preparada = await prepararImagem(arquivo);
-    if (preparada.size > IMAGEM_MAX_BYTES) {
-      throw new Error("A imagem passou de 4 MB. Escolha uma imagem menor.");
-    }
-
+  async function enviarArquivo(arquivo, nome = arquivo.name) {
     const corpo = new FormData();
-    corpo.append("imagem", preparada, arquivo.name);
+    corpo.append("arquivo", arquivo, nome);
     const resposta = await fetch(pagina.dataset.imagesUrl, {
       method: "POST",
       headers: authHeaders(false),
@@ -204,54 +231,311 @@
     }
 
     const dados = await resposta.json().catch(() => ({}));
-    if (!resposta.ok) throw new Error(dados.error || "Não foi possível enviar a imagem.");
-    return dados.url;
+    if (!resposta.ok) throw new Error(dados.error || "Não foi possível enviar o arquivo.");
+    return dados;
   }
 
-  function mostrarImagemDoBloco(card, url) {
-    const previa = card.querySelector("[data-image-preview]");
-    card.dataset.image = url || "";
-    card.querySelector("[data-image-tag]").src = url || "";
-    previa.classList.toggle("hidden", !url);
-    card.querySelector("[data-image-pick]").classList.toggle("hidden", Boolean(url));
-    if (!url) card.querySelector('[data-field="image_alt"]').value = "";
+  async function enviarImagem(arquivo) {
+    const preparada = await prepararImagem(arquivo);
+    if (preparada.size > ARQUIVO_MAX_BYTES) {
+      throw new Error(`A imagem "${arquivo.name}" passou de 4 MB. Escolha uma imagem menor.`);
+    }
+    return (await enviarArquivo(preparada, arquivo.name)).url;
   }
 
-  function configurarImagemDoBloco(card, dados) {
+  // envia vários arquivos (alguns de cada vez) e devolve os links na mesma ordem
+  async function enviarVarios(itens, enviar, aoProgredir) {
+    const links = new Array(itens.length);
+    let proximo = 0;
+    let prontos = 0;
+    async function enviarProximos() {
+      while (proximo < itens.length) {
+        const indice = proximo;
+        proximo += 1;
+        links[indice] = await enviar(itens[indice], indice);
+        prontos += 1;
+        aoProgredir(prontos, itens.length);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(ENVIOS_SIMULTANEOS, itens.length) }, enviarProximos));
+    return links;
+  }
+
+  // O leitor de PDF (PDF.js) só é baixado quando a professora escolhe um PDF.
+  let leitorDePdf = null;
+  function carregarLeitorDePdf() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    leitorDePdf ||= new Promise((resolver, rejeitar) => {
+      const script = document.createElement("script");
+      script.src = `${PDFJS}pdf.min.js`;
+      script.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS}pdf.worker.min.js`;
+        resolver(window.pdfjsLib);
+      };
+      script.onerror = () => {
+        leitorDePdf = null;
+        script.remove();
+        rejeitar(new Error("Não foi possível abrir o leitor de PDF. Confira a internet e tente de novo."));
+      };
+      document.head.append(script);
+    });
+    return leitorDePdf;
+  }
+
+  function canvasParaImagem(canvas) {
+    return new Promise((resolver) => {
+      canvas.toBlob((imagem) => {
+        if (imagem && imagem.type === "image/webp") return resolver(imagem);
+        canvas.toBlob(resolver, "image/jpeg", 0.88); // navegador que não gera WebP
+      }, "image/webp", 0.86);
+    });
+  }
+
+  // cada página do PDF vira uma imagem de até 1600 px no maior lado
+  async function paginasDoPdf(arquivo, aoProgredir) {
+    const pdfjs = await carregarLeitorDePdf();
+    let documento;
+    try {
+      documento = await pdfjs.getDocument({ data: await arquivo.arrayBuffer() }).promise;
+    } catch {
+      throw new Error("Não foi possível ler este PDF. Ele pode estar protegido por senha ou danificado.");
+    }
+
+    try {
+      if (documento.numPages > SLIDES_MAX) {
+        throw new Error(`Este PDF tem ${documento.numPages} páginas. Cada bloco aceita até ${SLIDES_MAX} slides.`);
+      }
+      const paginas = [];
+      for (let numero = 1; numero <= documento.numPages; numero += 1) {
+        aoProgredir(numero, documento.numPages);
+        const pagina = await documento.getPage(numero);
+        const original = pagina.getViewport({ scale: 1 });
+        const viewport = pagina.getViewport({
+          scale: Math.min(IMAGEM_LADO_MAX / Math.max(original.width, original.height), 4),
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        const contexto = canvas.getContext("2d");
+        contexto.fillStyle = "#ffffff"; // páginas com fundo transparente ficam brancas
+        contexto.fillRect(0, 0, canvas.width, canvas.height);
+        await pagina.render({ canvasContext: contexto, viewport }).promise;
+        const imagem = await canvasParaImagem(canvas);
+        if (!imagem) throw new Error(`Não foi possível converter a página ${numero} do PDF.`);
+        paginas.push(imagem);
+        pagina.cleanup();
+      }
+      return paginas;
+    } finally {
+      documento.destroy();
+    }
+  }
+
+  // Decide o que fazer com o que a professora escolheu ou arrastou para o bloco.
+  async function prepararAnexo(arquivos, mostrar) {
+    const pdfs = arquivos.filter(ehPdf);
+    const apresentacoes = arquivos.filter(ehPptx);
+
+    if (arquivos.some(ehOutraApresentacao)) {
+      throw new Error("Esse formato de apresentação não abre aqui. No programa de slides, use Arquivo › Salvar como (ou Exportar) › PDF e envie o PDF.");
+    }
+    if (pdfs.length + apresentacoes.length > 0 && arquivos.length > 1) {
+      throw new Error("Envie um PDF ou uma apresentação por vez, sem misturar com outros arquivos.");
+    }
+
+    if (pdfs.length) {
+      const [pdf] = pdfs;
+      mostrar("Abrindo o PDF...", 0);
+      const paginas = await paginasDoPdf(pdf, (atual, total) => {
+        mostrar(`Preparando o slide ${atual} de ${total}...`, ((atual - 1) / total) * 0.5);
+      });
+      const links = await enviarVarios(
+        paginas,
+        async (imagem, indice) => (await enviarArquivo(imagem, `slide-${indice + 1}.${imagem.type === "image/webp" ? "webp" : "jpg"}`)).url,
+        (prontos, total) => mostrar(`Enviando o slide ${prontos} de ${total}...`, 0.5 + (prontos / total) * 0.5),
+      );
+      return links.length === 1 ? { tipo: "imagem", url: links[0] } : { tipo: "slides", slides: links };
+    }
+
+    if (apresentacoes.length) {
+      const [arquivo] = apresentacoes;
+      if (arquivo.size > ARQUIVO_MAX_BYTES) {
+        throw new Error(
+          `Esta apresentação tem ${tamanhoLegivel(arquivo.size)} e o limite do PowerPoint é 4 MB. `
+          + "Salve como PDF (Arquivo › Salvar como › PDF) e envie o PDF: ele vira slides aqui mesmo, sem esse limite.",
+        );
+      }
+      mostrar("Enviando a apresentação...", null);
+      const resultado = await enviarArquivo(arquivo);
+      if (resultado.tipo !== "apresentacao") throw new Error("Este arquivo não parece ser uma apresentação do PowerPoint.");
+      return {
+        tipo: "apresentacao",
+        url: resultado.url,
+        nome: arquivo.name.replace(/\.(pptx|ppsx)$/i, ""),
+        total: resultado.slides || 0,
+      };
+    }
+
+    const imagens = arquivos.filter(ehImagem);
+    if (imagens.length !== arquivos.length) {
+      throw new Error("Use imagens (PNG, JPG, WEBP ou GIF), um PDF ou uma apresentação do PowerPoint (.pptx).");
+    }
+    if (imagens.length > SLIDES_MAX) throw new Error(`Escolha até ${SLIDES_MAX} imagens por bloco.`);
+    if (imagens.length === 1) {
+      mostrar("Enviando a imagem...", null);
+      return { tipo: "imagem", url: await enviarImagem(imagens[0]) };
+    }
+
+    // várias imagens viram slides, na ordem do nome do arquivo (slide 1, slide 2, ..., slide 10)
+    imagens.sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { numeric: true }));
+    const links = await enviarVarios(imagens, enviarImagem, (prontos, total) => {
+      mostrar(`Enviando a imagem ${prontos} de ${total}...`, prontos / total);
+    });
+    return { tipo: "slides", slides: links };
+  }
+
+  function anexoDosDados(dados) {
+    if (dados.slides?.length) return { tipo: "slides", slides: [...dados.slides] };
+    if (dados.presentation) {
+      return {
+        tipo: "apresentacao",
+        url: dados.presentation,
+        nome: dados.presentation_name || "Apresentação",
+        total: dados.presentation_slides || 0,
+      };
+    }
+    if (dados.image) return { tipo: "imagem", url: dados.image };
+    return null;
+  }
+
+  function previaDoAnexo(anexo) {
+    if (anexo.tipo === "imagem") {
+      return `<img src="${escapeHtml(anexo.url)}" alt="Prévia da imagem do bloco">`;
+    }
+    if (anexo.tipo === "slides") {
+      // o primeiro slide grande e os seguintes em miniatura (+N quando passam de 5)
+      const resto = anexo.slides.length - 5;
+      const miniaturas = anexo.slides.slice(1, resto > 0 ? 4 : 5);
+      return `
+        <div class="section-slides-strip">
+          <img src="${escapeHtml(anexo.slides[0])}" alt="Primeiro slide">
+          ${miniaturas.map((url, i) => `<img src="${escapeHtml(url)}" alt="Slide ${i + 2}" loading="lazy">`).join("")}
+          ${resto > 0 ? `<span>+${resto + 1}</span>` : ""}
+        </div>`;
+    }
+    const visualizador = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(anexo.url)}`;
+    return `
+      <div class="section-file-card">
+        <span class="section-file-icon" aria-hidden="true"><i data-lucide="presentation" class="w-5 h-5"></i></span>
+        <span class="min-w-0">
+          <strong>${escapeHtml(anexo.nome)}</strong>
+          <a href="${visualizador}" target="_blank" rel="noopener">Ver como o aluno vai ver</a>
+        </span>
+      </div>`;
+  }
+
+  function rotuloDoAnexo(anexo) {
+    if (anexo.tipo === "imagem") return '<i data-lucide="image" class="w-3 h-3"></i> Imagem';
+    if (anexo.tipo === "slides") return `<i data-lucide="gallery-horizontal" class="w-3 h-3"></i> ${anexo.slides.length} slides`;
+    const slides = anexo.total ? ` · ${anexo.total} ${anexo.total === 1 ? "slide" : "slides"}` : "";
+    return `<i data-lucide="presentation" class="w-3 h-3"></i> PowerPoint${slides}`;
+  }
+
+  function definirAnexo(card, anexo) {
+    const temAnexo = Boolean(anexo);
+    if (temAnexo) anexos.set(card, anexo);
+    else anexos.delete(card);
+
+    card.querySelector("[data-image-pick]").classList.toggle("hidden", temAnexo);
+    card.querySelector("[data-image-preview]").classList.toggle("hidden", !temAnexo);
+    if (!temAnexo) {
+      card.querySelector('[data-field="image_alt"]').value = "";
+      return;
+    }
+    card.querySelector("[data-attachment-media]").innerHTML = previaDoAnexo(anexo);
+    card.querySelector("[data-attachment-kind]").innerHTML = rotuloDoAnexo(anexo);
+    renderizarIcones();
+  }
+
+  async function anexarArquivos(card, arquivos) {
+    const lista = [...arquivos];
+    if (!lista.length || card.classList.contains("enviando-imagem")) return;
+
+    const status = card.querySelector("[data-image-status]");
+    const progresso = card.querySelector("[data-attachment-progress]");
+    const mostrar = (texto, fracao) => {
+      status.className = "section-image-status";
+      status.textContent = texto;
+      progresso.classList.toggle("hidden", fracao === null);
+      if (fracao !== null) progresso.firstElementChild.style.width = `${Math.round(fracao * 100)}%`;
+    };
+
+    enviosDeImagem += 1;
+    card.classList.add("enviando-imagem");
+    try {
+      definirAnexo(card, await prepararAnexo(lista, mostrar));
+      status.textContent = "";
+    } catch (erro) {
+      status.className = "section-image-status erro";
+      status.textContent = erro.message;
+    } finally {
+      progresso.classList.add("hidden");
+      enviosDeImagem -= 1;
+      card.classList.remove("enviando-imagem");
+    }
+  }
+
+  const temArquivos = (evento) => [...(evento.dataTransfer?.types || [])].includes("Files");
+
+  function configurarAnexoDoBloco(card, dados) {
     const seletor = card.querySelector("[data-image-file]");
     const status = card.querySelector("[data-image-status]");
+    const zona = card.querySelector("[data-attachment]");
 
     card.querySelector('[data-field="image_alt"]').value = dados.image_alt || "";
-    mostrarImagemDoBloco(card, dados.image);
+    definirAnexo(card, anexoDosDados(dados));
 
     const escolher = () => seletor.click();
     card.querySelector("[data-image-pick]").addEventListener("click", escolher);
     card.querySelector("[data-image-change]").addEventListener("click", escolher);
     card.querySelector("[data-image-remove]").addEventListener("click", () => {
-      mostrarImagemDoBloco(card, "");
+      definirAnexo(card, null);
       status.textContent = "";
     });
-
-    seletor.addEventListener("change", async () => {
-      const arquivo = seletor.files[0];
+    seletor.addEventListener("change", () => {
+      const escolhidos = [...seletor.files];
       seletor.value = "";
-      if (!arquivo) return;
+      anexarArquivos(card, escolhidos);
+    });
 
-      enviosDeImagem += 1;
-      card.classList.add("enviando-imagem");
-      status.className = "section-image-status";
-      status.textContent = "Enviando imagem...";
-
-      try {
-        mostrarImagemDoBloco(card, await enviarImagem(arquivo));
-        status.textContent = "";
-      } catch (erro) {
-        status.classList.add("erro");
-        status.textContent = erro.message;
-      } finally {
-        enviosDeImagem -= 1;
-        card.classList.remove("enviando-imagem");
-      }
+    // arrastar e soltar os arquivos em cima do anexo do bloco
+    let camadas = 0;
+    const destacar = (ligado) => {
+      zona.querySelectorAll("[data-image-pick], [data-image-preview]").forEach((alvo) => {
+        alvo.classList.toggle("is-dragover", ligado);
+      });
+    };
+    zona.addEventListener("dragenter", (evento) => {
+      if (!temArquivos(evento)) return;
+      evento.preventDefault();
+      camadas += 1;
+      destacar(true);
+    });
+    zona.addEventListener("dragover", (evento) => {
+      if (!temArquivos(evento)) return;
+      evento.preventDefault();
+      evento.dataTransfer.dropEffect = "copy";
+    });
+    zona.addEventListener("dragleave", () => {
+      camadas = Math.max(0, camadas - 1);
+      if (!camadas) destacar(false);
+    });
+    zona.addEventListener("drop", (evento) => {
+      if (!temArquivos(evento)) return;
+      evento.preventDefault();
+      camadas = 0;
+      destacar(false);
+      anexarArquivos(card, evento.dataTransfer.files);
     });
   }
 
@@ -269,33 +553,37 @@
         </div>
         <input class="form-input mb-2" data-field="title" maxlength="120" placeholder="Título do bloco de leitura">
         <textarea class="form-input" rows="3" data-field="text" maxlength="1200" placeholder="Explique o assunto com palavras simples para as crianças."></textarea>
-        <div class="section-image">
-          <input type="file" class="hidden" data-image-file accept="${IMAGEM_TIPOS.join(",")}">
+        <div class="section-image" data-attachment>
+          <input type="file" class="hidden" data-image-file multiple accept="${ARQUIVOS_ACEITOS}">
           <button type="button" class="section-image-add" data-image-pick>
-            <i data-lucide="image-plus" class="w-4 h-4"></i>
-            <span>Anexar imagem <small>PNG, JPG, WEBP ou GIF · até 4 MB</small></span>
+            <i data-lucide="paperclip" class="w-4 h-4"></i>
+            <span>Anexar imagem ou slides
+              <small>Clique ou arraste aqui · imagem, várias imagens, PDF dos slides ou PowerPoint (.pptx até 4 MB)</small>
+            </span>
           </button>
           <div class="section-image-preview hidden" data-image-preview>
-            <img alt="Prévia da imagem do bloco" data-image-tag>
+            <div class="section-attachment-media" data-attachment-media></div>
             <div class="section-image-actions">
-              <input class="form-input" data-field="image_alt" maxlength="160" placeholder="Legenda da imagem (opcional)">
+              <span class="section-attachment-kind" data-attachment-kind></span>
+              <input class="form-input" data-field="image_alt" maxlength="160" placeholder="Legenda (opcional)">
               <div class="flex flex-wrap gap-2">
                 <button type="button" class="repeater-add" data-image-change>
                   <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Trocar
                 </button>
                 <button type="button" class="repeater-remove" data-image-remove>
-                  <i data-lucide="image-off" class="w-3.5 h-3.5"></i> Tirar imagem
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i> Tirar anexo
                 </button>
               </div>
             </div>
           </div>
+          <div class="section-image-progress hidden" data-attachment-progress aria-hidden="true"><div></div></div>
           <p class="section-image-status" data-image-status role="status"></p>
         </div>
       </div>`);
 
     card.querySelector('[data-field="title"]').value = dados.title || "";
     card.querySelector('[data-field="text"]').value = dados.text || "";
-    configurarImagemDoBloco(card, dados);
+    configurarAnexoDoBloco(card, dados);
     card.querySelector("[data-remove]").addEventListener("click", () => {
       card.remove();
       numerarCards(containerSecoes, "data-section", "Bloco");
@@ -569,12 +857,24 @@
       eyebrow: form.elements.eyebrow.value,
       lesson_title: form.elements.lesson_title.value,
       intro: form.elements.intro.value,
-      sections: [...containerSecoes.querySelectorAll("[data-section]")].map((card) => ({
-        title: card.querySelector('[data-field="title"]').value,
-        text: card.querySelector('[data-field="text"]').value,
-        image: card.dataset.image || "",
-        image_alt: card.querySelector('[data-field="image_alt"]').value,
-      })),
+      sections: [...containerSecoes.querySelectorAll("[data-section]")].map((card) => {
+        const secao = {
+          title: card.querySelector('[data-field="title"]').value,
+          text: card.querySelector('[data-field="text"]').value,
+          image_alt: card.querySelector('[data-field="image_alt"]').value,
+        };
+        const anexo = anexos.get(card);
+        if (anexo?.tipo === "imagem") secao.image = anexo.url;
+        else if (anexo?.tipo === "slides") secao.slides = anexo.slides;
+        else if (anexo?.tipo === "apresentacao") {
+          Object.assign(secao, {
+            presentation: anexo.url,
+            presentation_name: anexo.nome,
+            presentation_slides: anexo.total,
+          });
+        }
+        return secao;
+      }),
       quiz: [...containerPerguntas.querySelectorAll("[data-question]")].map((card) => {
         const linhas = [...card.querySelectorAll("[data-option]")];
         return {
@@ -628,7 +928,7 @@
     evento.preventDefault();
     if (ocupado) return;
     if (enviosDeImagem > 0) {
-      erroForm.textContent = "Aguarde o envio das imagens terminar para salvar.";
+      erroForm.textContent = "Aguarde o envio dos anexos terminar para salvar.";
       return;
     }
 
@@ -742,6 +1042,15 @@
 
   modal?.addEventListener("click", (evento) => {
     if (evento.target === modal) fecharModal();
+  });
+
+  // um arquivo solto fora do anexo não pode abrir no navegador (perderia o que foi digitado)
+  ["dragover", "drop"].forEach((tipo) => {
+    modal?.addEventListener(tipo, (evento) => {
+      if (!temArquivos(evento) || evento.defaultPrevented) return;
+      evento.preventDefault();
+      if (tipo === "dragover") evento.dataTransfer.dropEffect = "none";
+    });
   });
 
   document.addEventListener("keydown", (evento) => {

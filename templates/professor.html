@@ -28,8 +28,8 @@
             }
         }
     </script>
-    <script src="{{ url_for('static', filename='professor.js', v='4') }}" defer></script>
-    <script src="{{ url_for('static', filename='professor_atividades.js', v='3') }}" defer></script>
+    <script src="{{ url_for('static', filename='professor.js', v='5') }}" defer></script>
+    <script src="{{ url_for('static', filename='professor_atividades.js', v='4') }}" defer></script>
     <script src="{{ url_for('static', filename='professor_arena.js', v='2') }}" defer></script>
     <style>
         /* Custom scrollbar for clean UI */
@@ -129,27 +129,42 @@
             padding: 0.3rem 0.75rem;
             text-transform: uppercase;
         }
+        /* ---- CONTA DO PROFESSOR (cartão da barra lateral) ---- */
         .prof-profile {
-            background: linear-gradient(135deg, rgba(28, 37, 65, 0.95), rgba(28, 37, 65, 0.45));
-            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: linear-gradient(150deg, rgba(28, 37, 65, 0.98), rgba(28, 37, 65, 0.5));
+            border: 1px solid rgba(144, 224, 239, 0.16);
             border-radius: 1.1rem;
             margin: 1rem 1rem 0.25rem;
+            overflow: hidden;
             padding: 0.95rem;
+            position: relative;
         }
+        .prof-profile::before {
+            background: radial-gradient(circle, rgba(0, 180, 216, 0.24), transparent 70%);
+            content: "";
+            height: 130px;
+            pointer-events: none;
+            position: absolute;
+            right: -46px;
+            top: -52px;
+            width: 130px;
+        }
+        .prof-profile > * { position: relative; }
+        .prof-profile-top { align-items: center; display: flex; gap: 0.75rem; }
         .prof-avatar {
             align-items: center;
             background: linear-gradient(135deg, #00B4D8, #6C5CE7);
             border-radius: 0.9rem;
-            box-shadow: 0 8px 18px rgba(0, 180, 216, 0.25);
+            box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.18), 0 8px 18px rgba(0, 180, 216, 0.25);
             display: flex;
             flex-shrink: 0;
             font-size: 15px;
             font-weight: 800;
-            height: 44px;
+            height: 46px;
             justify-content: center;
             letter-spacing: 0.02em;
             position: relative;
-            width: 44px;
+            width: 46px;
         }
         .prof-avatar::after {
             background: #34D399;
@@ -162,29 +177,108 @@
             right: -3px;
             width: 12px;
         }
-        .prof-profile-stats {
-            border-top: 1px dashed rgba(148, 163, 184, 0.2);
-            display: grid;
-            gap: 0.35rem;
-            grid-template-columns: repeat(3, 1fr);
-            margin-top: 0.85rem;
-            padding-top: 0.75rem;
+        .prof-profile-name {
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            color: #fff;
+            display: -webkit-box;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.25;
+            overflow: hidden;
+            overflow-wrap: anywhere;
         }
-        .prof-profile-stat { text-align: center; }
+        .prof-profile-stats {
+            display: grid;
+            gap: 0.4rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-top: 0.85rem;
+        }
+        .prof-profile-stat {
+            --tone: #90E0EF;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            padding: 0.5rem 0.25rem 0.45rem;
+            text-align: center;
+        }
+        .prof-profile-stat.is-violet { --tone: #B3A8FF; }
+        .prof-profile-stat.is-green { --tone: #6EE7B7; }
+        .prof-profile-stat-icon {
+            align-items: center;
+            background: rgba(144, 224, 239, 0.12);
+            background: color-mix(in srgb, var(--tone) 16%, transparent);
+            border-radius: 0.5rem;
+            color: var(--tone);
+            display: flex;
+            height: 22px;
+            justify-content: center;
+            margin-bottom: 3px;
+            width: 22px;
+        }
         .prof-profile-stat strong {
             color: #fff;
-            display: block;
-            font-size: 15px;
+            font-size: 16px;
+            font-variant-numeric: tabular-nums;
             font-weight: 800;
             line-height: 1.1;
         }
-        .prof-profile-stat strong.is-cyan { color: #90E0EF; }
-        .prof-profile-stat span {
+        .prof-profile-stat span:last-child {
             color: #7C8BA8;
-            font-size: 9.5px;
-            font-weight: 600;
+            font-size: 9px;
+            font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
+        }
+        .prof-profile-progress { margin-top: 0.8rem; }
+        .prof-profile-progress-head {
+            align-items: baseline;
+            color: #94A3B8;
+            display: flex;
+            font-size: 10.5px;
+            justify-content: space-between;
+            margin-bottom: 0.35rem;
+        }
+        .prof-profile-progress-head strong { color: #90E0EF; font-size: 12px; font-weight: 800; }
+        .prof-profile-track {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            height: 7px;
+            overflow: hidden;
+        }
+        .prof-profile-fill {
+            background: linear-gradient(90deg, #6C5CE7, #00B4D8);
+            border-radius: inherit;
+            height: 100%;
+            transition: width 0.8s ease;
+            width: 0;
+        }
+        /* conta no cabeçalho */
+        .prof-account-chip {
+            align-items: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.85rem;
+            display: flex;
+            gap: 0.5rem;
+            max-width: 200px;
+            padding: 0.3rem 0.8rem 0.3rem 0.3rem;
+        }
+        .prof-account-avatar {
+            align-items: center;
+            background: linear-gradient(135deg, #00B4D8, #6C5CE7);
+            border-radius: 0.6rem;
+            color: #fff;
+            display: flex;
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 800;
+            height: 32px;
+            justify-content: center;
+            width: 32px;
         }
         .prof-nav {
             flex: 1;
@@ -435,27 +529,100 @@
             transition: background 0.15s ease, border-color 0.15s ease;
             width: 100%;
         }
-        .section-image-add:hover { background: #ecfeff; border-color: #00B4D8; }
+        .section-image-add:hover,
+        .section-image-add.is-dragover { background: #ecfeff; border-color: #00B4D8; }
+        .section-image-add.is-dragover { box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.16); }
         .section-image-add small { color: #64748b; display: block; font-size: 10px; font-weight: 600; }
         .section-image-preview { align-items: flex-start; display: flex; gap: 0.75rem; }
-        .section-image-preview img {
+        .section-image-preview.is-dragover { border-radius: 0.75rem; outline: 2px dashed #00B4D8; outline-offset: 4px; }
+        .section-attachment-media { flex-shrink: 0; width: 160px; }
+        .section-attachment-media > img {
             background: #fff;
             border: 1px solid #e2e8f0;
             border-radius: 0.6rem;
-            flex-shrink: 0;
-            height: 88px;
+            display: block;
+            height: 96px;
             object-fit: cover;
-            width: 128px;
+            width: 100%;
+        }
+        /* slides: o primeiro grande e os seguintes em miniatura */
+        .section-slides-strip { display: grid; gap: 4px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .section-slides-strip img,
+        .section-slides-strip span {
+            aspect-ratio: 16 / 10;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.35rem;
+            display: block;
+            object-fit: cover;
+            width: 100%;
+        }
+        .section-slides-strip img:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; border-radius: 0.55rem; }
+        .section-slides-strip span {
+            align-items: center;
+            background: #0B132B;
+            color: #90E0EF;
+            display: flex;
+            font-size: 10px;
+            font-weight: 800;
+            justify-content: center;
+        }
+        .section-file-card {
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            display: flex;
+            gap: 0.6rem;
+            padding: 0.7rem;
+        }
+        .section-file-icon {
+            align-items: center;
+            background: #FFEDD5;
+            border-radius: 0.6rem;
+            color: #C2410C;
+            display: flex;
+            flex-shrink: 0;
+            height: 40px;
+            justify-content: center;
+            width: 40px;
+        }
+        .section-file-card strong { color: #0f172a; display: block; font-size: 11.5px; overflow-wrap: anywhere; }
+        .section-file-card a { color: #0e7490; font-size: 10.5px; font-weight: 700; }
+        .section-file-card a:hover { text-decoration: underline; }
+        .section-attachment-kind {
+            align-items: center;
+            align-self: flex-start;
+            background: #ecfeff;
+            border: 1px solid #a5f3fc;
+            border-radius: 999px;
+            color: #0e7490;
+            display: inline-flex;
+            font-size: 10px;
+            font-weight: 800;
+            gap: 4px;
+            padding: 2px 9px;
         }
         .section-image-actions { display: flex; flex: 1; flex-direction: column; gap: 0.5rem; min-width: 0; }
         .section-image-add.hidden, .section-image-preview.hidden { display: none; }
+        .section-image-progress { background: #e2e8f0; border-radius: 999px; height: 5px; margin-top: 0.5rem; overflow: hidden; }
+        .section-image-progress.hidden { display: none; }
+        .section-image-progress div {
+            background: linear-gradient(90deg, #6C5CE7, #00B4D8);
+            border-radius: inherit;
+            height: 100%;
+            transition: width 0.25s ease;
+            width: 0;
+        }
         .section-image-status { color: #64748b; font-size: 11px; font-weight: 600; margin-top: 0.4rem; }
         .section-image-status:empty { display: none; }
         .section-image-status.erro { color: #dc2626; }
-        .enviando-imagem .section-image-add { opacity: 0.6; pointer-events: none; }
+        .enviando-imagem .section-image-add,
+        .enviando-imagem .section-image-actions button { opacity: 0.6; pointer-events: none; }
         @media (max-width: 480px) {
             .section-image-preview { flex-direction: column; }
-            .section-image-preview img { height: 150px; width: 100%; }
+            .section-attachment-media { width: 100%; }
+            .section-attachment-media > img { height: 160px; }
         }
         .option-row { align-items: center; display: flex; gap: 0.5rem; }
         .option-row input[type="radio"] { accent-color: #00B4D8; flex-shrink: 0; height: 15px; width: 15px; }
@@ -518,6 +685,206 @@
         .icon-button:disabled { cursor: not-allowed; opacity: 0.35; }
         .icon-button.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
         #activity-modal.aberto { display: flex; }
+        .prof-modal.aberto { display: flex; }
+
+        /* ---- TURMAS ---- */
+        .class-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            padding: 1rem;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .class-card:hover { border-color: #a5f3fc; box-shadow: 0 8px 22px rgba(0, 180, 216, 0.12); }
+        .class-card.is-new { animation: class-new 1.6s ease; border-color: #00B4D8; }
+        .class-card-head { align-items: flex-start; display: flex; gap: 0.75rem; }
+        .class-card-icon {
+            align-items: center;
+            background: linear-gradient(135deg, #00B4D8, #6C5CE7);
+            border-radius: 0.8rem;
+            box-shadow: 0 6px 14px rgba(0, 180, 216, 0.25);
+            color: #fff;
+            display: flex;
+            flex-shrink: 0;
+            height: 40px;
+            justify-content: center;
+            width: 40px;
+        }
+        .class-card-name { color: #0f172a; font-size: 14px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
+        .class-card-meta { color: #64748b; display: flex; flex-wrap: wrap; font-size: 11px; gap: 2px 10px; margin-top: 3px; }
+        .class-card-meta span { align-items: center; display: inline-flex; gap: 4px; }
+        .class-card-tools { display: flex; flex-shrink: 0; gap: 0.3rem; margin-left: auto; }
+        .class-rename { align-items: center; display: flex; flex: 1; gap: 0.35rem; min-width: 0; }
+        .class-card.is-renaming [data-class-title],
+        .class-card.is-renaming .class-card-tools { display: none; }
+        .class-rename .form-input { font-size: 13px; font-weight: 700; padding: 0.45rem 0.6rem; }
+        .class-progress { background: #e2e8f0; border-radius: 999px; height: 6px; overflow: hidden; }
+        .class-progress div { background: linear-gradient(90deg, #6C5CE7, #00B4D8); border-radius: inherit; height: 100%; }
+        .class-code-box {
+            align-items: center;
+            background: linear-gradient(135deg, #0B132B, #1C2541);
+            border-radius: 0.9rem;
+            color: #fff;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            padding: 0.7rem 0.75rem 0.7rem 0.9rem;
+        }
+        .class-code-label {
+            color: #94A3B8;
+            display: block;
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .class-code-value {
+            color: #90E0EF;
+            display: block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+        .class-code-box.is-expired .class-code-value { color: #64748B; text-decoration: line-through; }
+        .class-code-box.is-empty .class-code-value { color: #94A3B8; font-family: inherit; font-size: 13px; letter-spacing: 0; }
+        .class-code-status { align-items: center; color: #CBD5E1; display: flex; font-size: 10.5px; gap: 4px; }
+        .class-code-box.is-live .class-code-status { color: #6EE7B7; }
+        .class-code-box.is-expired .class-code-status { color: #FCA5A5; }
+        .class-code-copy {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 0.6rem;
+            color: #CBD5E1;
+            display: inline-flex;
+            flex-shrink: 0;
+            justify-content: center;
+            padding: 0.5rem;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .class-code-copy:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); color: #fff; }
+        .class-code-copy:disabled { cursor: not-allowed; opacity: 0.35; }
+        .class-card-actions { display: grid; gap: 0.5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .class-action {
+            align-items: center;
+            border-radius: 0.75rem;
+            display: inline-flex;
+            font-size: 11.5px;
+            font-weight: 700;
+            gap: 0.4rem;
+            justify-content: center;
+            padding: 0.55rem 0.6rem;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .class-action.primary { background: #00B4D8; box-shadow: 0 4px 12px rgba(0, 180, 216, 0.22); color: #0B132B; }
+        .class-action.primary:hover { background: #22d3ee; }
+        .class-action.ghost { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+        .class-action.ghost:hover { background: #ecfeff; border-color: #a5f3fc; color: #0e7490; }
+        .class-action:disabled { cursor: wait; opacity: 0.6; }
+        .new-class-form {
+            background: #ecfeff;
+            border: 1px dashed #67e8f9;
+            border-radius: 1rem;
+            padding: 0.9rem 1rem;
+        }
+        .new-class-form.hidden { display: none; }
+        .classes-empty {
+            align-items: center;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 1.6rem 1rem;
+            text-align: center;
+        }
+
+        /* ---- ALUNOS (lista e modal de gerenciamento) ---- */
+        .student-avatar {
+            align-items: center;
+            background: linear-gradient(135deg, #E0F7FB, #EDE9FE);
+            border: 1px solid #CFFAFE;
+            border-radius: 999px;
+            color: #0e7490;
+            display: flex;
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 800;
+            height: 36px;
+            justify-content: center;
+            width: 36px;
+        }
+        .student-avatar.lg { border-radius: 1rem; font-size: 15px; height: 48px; width: 48px; }
+        .student-row {
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.75rem 0.9rem;
+            transition: background 0.15s ease;
+        }
+        .student-row:hover { background: #f8fafc; }
+        .student-row:last-child { border-bottom: none; }
+        .student-row-progress { flex-shrink: 0; text-align: right; width: 132px; }
+        .student-row-bar { background: #e2e8f0; border-radius: 999px; height: 5px; margin-top: 5px; overflow: hidden; }
+        .student-row-bar div { background: linear-gradient(90deg, #6C5CE7, #00B4D8); border-radius: inherit; height: 100%; }
+        .student-row-actions { display: flex; flex-shrink: 0; gap: 0.35rem; }
+        @media (max-width: 640px) {
+            .student-row { flex-wrap: wrap; }
+            .student-row-progress { order: 3; text-align: left; width: 100%; padding-left: 48px; }
+        }
+        .student-danger { border: 1px solid #FECACA; border-radius: 1rem; overflow: hidden; }
+        .student-danger-title {
+            align-items: center;
+            background: #FEF2F2;
+            color: #B91C1C;
+            display: flex;
+            font-size: 11px;
+            font-weight: 800;
+            gap: 0.4rem;
+            letter-spacing: 0.06em;
+            padding: 0.55rem 0.9rem;
+            text-transform: uppercase;
+        }
+        .student-danger-option {
+            align-items: center;
+            border-top: 1px solid #FEE2E2;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            padding: 0.75rem 0.9rem;
+        }
+        .student-danger-option p { color: #64748b; font-size: 11px; line-height: 1.45; margin-top: 2px; }
+        .danger-button {
+            align-items: center;
+            border-radius: 0.7rem;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 11.5px;
+            font-weight: 800;
+            gap: 0.35rem;
+            padding: 0.5rem 0.75rem;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            white-space: nowrap;
+        }
+        .danger-button.soft { background: #fff; border: 1px solid #FCA5A5; color: #B91C1C; }
+        .danger-button.soft:hover { background: #FEF2F2; }
+        .danger-button.solid { background: #DC2626; color: #fff; }
+        .danger-button.solid:hover { background: #B91C1C; }
+        .danger-button:disabled, #student-move-button:disabled { cursor: wait; opacity: 0.6; }
+        .danger-button:focus-visible { outline: 3px solid rgba(220, 38, 38, 0.35); outline-offset: 2px; }
+        @media (max-width: 480px) {
+            .student-danger-option { align-items: stretch; flex-direction: column; }
+            .class-card-actions { grid-template-columns: 1fr; }
+        }
+        @keyframes class-new { 0% { box-shadow: 0 0 0 0 rgba(0, 180, 216, 0.55); } 100% { box-shadow: 0 0 0 14px rgba(0, 180, 216, 0); } }
+
         /* ---- ARENA ROBOOTEAM ---- */
         .arena-modal.aberto { display: flex; }
         .prof-nav-badge.is-alert {
@@ -883,7 +1250,7 @@
         }
     </style>
 </head>
-<body class="bg-brand-bg font-sans antialiased text-slate-800 flex h-screen overflow-hidden" data-dashboard-url="{{ url_for('obter_resumo_professor') }}" data-code-url="{{ url_for('gerar_codigo_sala') }}" data-logout-url="{{ url_for('logout') }}" data-login-url="{{ url_for('pagina_login') }}" data-empty-robot-url="{{ url_for('static', filename='img/2.png') }}" data-error-robot-url="{{ url_for('static', filename='img/6.png') }}" data-activities-url="{{ url_for('listar_atividades_trilha') }}" data-activities-reorder-url="{{ url_for('reordenar_atividades_trilha') }}" data-activities-restore-url="{{ url_for('restaurar_atividades_trilha') }}" data-images-url="{{ url_for('enviar_imagem_trilha') }}" data-arenas-url="{{ url_for('listar_arenas_professor') }}" data-arena-random-url="{{ url_for('sortear_mapa_arena') }}" data-calm-robot-url="{{ url_for('static', filename='img/5.png') }}">
+<body class="bg-brand-bg font-sans antialiased text-slate-800 flex h-screen overflow-hidden" data-dashboard-url="{{ url_for('obter_resumo_professor') }}" data-classes-url="{{ url_for('criar_turma') }}" data-students-url="{{ url_for('excluir_conta_aluno', aluno_id=0).rsplit('/', 1)[0] }}" data-logout-url="{{ url_for('logout') }}" data-login-url="{{ url_for('pagina_login') }}" data-empty-robot-url="{{ url_for('static', filename='img/2.png') }}" data-error-robot-url="{{ url_for('static', filename='img/6.png') }}" data-activities-url="{{ url_for('listar_atividades_trilha') }}" data-activities-reorder-url="{{ url_for('reordenar_atividades_trilha') }}" data-activities-restore-url="{{ url_for('restaurar_atividades_trilha') }}" data-images-url="{{ url_for('enviar_imagem_trilha') }}" data-arenas-url="{{ url_for('listar_arenas_professor') }}" data-arena-random-url="{{ url_for('sortear_mapa_arena') }}" data-calm-robot-url="{{ url_for('static', filename='img/5.png') }}">
 
     <!-- ==========================================
          1. SIDEBAR FIXA
@@ -908,30 +1275,40 @@
             </span>
         </div>
 
-        <!-- 2. PERFIL DO PROFESSOR -->
-        <div class="prof-profile">
-            <div class="flex items-center gap-3">
-                <div class="prof-avatar" id="professor-avatar" aria-hidden="true">{{ (partes_nome[0][0] ~ (partes_nome[-1][0] if partes_nome|length > 1 else ''))|upper }}</div>
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold text-white truncate" id="professor-sidebar-name">{{ usuario.nome }}</p>
-                    <p class="text-[11px] text-slate-400 truncate" id="professor-discipline">{{ usuario.disciplina or 'Inteligência Artificial e Robótica' }}</p>
-                </div>
+        <!-- 2. CONTA DO PROFESSOR: só o nome e os números das turmas -->
+        {% set iniciais = (partes_nome[0][0] ~ (partes_nome[-1][0] if partes_nome|length > 1 else ''))|upper %}
+        <section class="prof-profile" aria-label="Sua conta">
+            <div class="prof-profile-top">
+                <div class="prof-avatar" id="professor-avatar" aria-hidden="true">{{ iniciais }}</div>
+                <p class="prof-profile-name min-w-0" id="professor-sidebar-name">{{ usuario.nome }}</p>
             </div>
             <div class="prof-profile-stats">
                 <div class="prof-profile-stat">
+                    <span class="prof-profile-stat-icon" aria-hidden="true"><i data-lucide="users" class="w-3.5 h-3.5"></i></span>
                     <strong id="sidebar-total-students">0</strong>
                     <span>Alunos</span>
                 </div>
-                <div class="prof-profile-stat">
+                <div class="prof-profile-stat is-violet">
+                    <span class="prof-profile-stat-icon" aria-hidden="true"><i data-lucide="school" class="w-3.5 h-3.5"></i></span>
                     <strong id="sidebar-active-classes">0</strong>
                     <span>Turmas</span>
                 </div>
-                <div class="prof-profile-stat">
-                    <strong class="is-cyan" id="sidebar-average">0%</strong>
-                    <span>Média</span>
+                <div class="prof-profile-stat is-green">
+                    <span class="prof-profile-stat-icon" aria-hidden="true"><i data-lucide="user-check" class="w-3.5 h-3.5"></i></span>
+                    <strong id="sidebar-active-students">0</strong>
+                    <span>Ativos</span>
                 </div>
             </div>
-        </div>
+            <div class="prof-profile-progress">
+                <div class="prof-profile-progress-head">
+                    <span>Média de conclusão</span>
+                    <strong id="sidebar-average">0%</strong>
+                </div>
+                <div class="prof-profile-track" role="progressbar" aria-label="Média de conclusão da trilha" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sidebar-average-bar">
+                    <div class="prof-profile-fill" id="sidebar-average-fill"></div>
+                </div>
+            </div>
+        </section>
 
         <!-- 3. MENU LATERAL -->
         <nav class="prof-nav">
@@ -977,8 +1354,8 @@
             <div class="space-y-1">
                 <a href="#turmas" class="prof-nav-link">
                     <span class="prof-nav-icon"><i data-lucide="key-round" class="w-[18px] h-[18px]"></i></span>
-                    <span>Código de sala</span>
-                    <span class="prof-nav-badge is-code" id="sidebar-room-code">—</span>
+                    <span>Códigos ativos</span>
+                    <span class="prof-nav-badge is-code" id="sidebar-room-code" title="Turmas com código válido agora">—</span>
                 </a>
                 <a href="#atividades-trilha" class="prof-nav-link">
                     <span class="prof-nav-icon"><i data-lucide="library" class="w-[18px] h-[18px]"></i></span>
@@ -1031,11 +1408,9 @@
                     <i data-lucide="calendar" class="w-5 h-5"></i>
                 </button>
                 <div class="h-8 w-px bg-slate-200 mx-1"></div>
-                <div class="flex items-center gap-2 border border-slate-200 rounded-xl p-1.5 pr-3 hover:bg-slate-50 cursor-pointer transition-all">
-                    <div class="w-8 h-8 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400">
-                        <i data-lucide="user" class="w-4 h-4"></i>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-700">Professor</span>
+                <div class="prof-account-chip" title="Sua conta">
+                    <span class="prof-account-avatar" id="header-avatar" aria-hidden="true">{{ iniciais }}</span>
+                    <span class="text-xs font-semibold text-slate-700 truncate" id="header-professor-name">{{ usuario.nome }}</span>
                 </div>
             </div>
         </header>
@@ -1062,7 +1437,7 @@
                 <!-- Card 2: Turmas Ativas -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
                     <div class="flex items-center justify-between text-slate-500">
-                        <span class="text-xs font-bold uppercase tracking-wider">Turmas Ativas</span>
+                        <span class="text-xs font-bold uppercase tracking-wider">Turmas</span>
                         <div class="p-2 bg-indigo-50 text-brand-accent rounded-xl">
                             <i data-lucide="school" class="w-5 h-5"></i>
                         </div>
@@ -1223,99 +1598,48 @@
                 </div>
             </div>
 
-            <!-- SEÇÃO GRID: CÓDIGO DE SALA + TURMAS -->
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
-                
-                <!-- 9. CÓDIGO DE SALA -->
-                <div class="bg-gradient-to-br from-brand-navy to-brand-dark text-white p-4 sm:p-6 rounded-2xl shadow-lg border border-slate-800 flex flex-col justify-between" id="turmas">
-                    <div>
-                        <div class="flex items-center gap-2.5 text-brand-cyan mb-2">
-                            <i data-lucide="key-round" class="w-5 h-5"></i>
-                            <h3 class="font-bold text-lg text-white">Código de Sala</h3>
+            <!-- ==========================================
+                 MINHAS TURMAS (cada uma com o seu código)
+            =========================================== -->
+            <section class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5" id="turmas">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <img class="trail-manager-robot" src="{{ url_for('static', filename='img/2.png') }}" alt="" aria-hidden="true">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                Minhas turmas
+                                <span id="classes-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap bg-cyan-100 text-cyan-800">0 turmas</span>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1 max-w-xl">
+                                Crie uma turma para cada sala. Cada turma tem o seu código <strong>RBT-XXXX</strong> (válido por 24 horas):
+                                o aluno digita o código no painel dele e entra direto na turma certa.
+                            </p>
                         </div>
-                        <p class="text-xs text-slate-300 leading-relaxed">
-                            Crie um código para que seus alunos entrem na sua turma.
-                        </p>
-
-                        <!-- Área de exibição do Código -->
-                        <div class="my-6 p-4 bg-slate-900/80 rounded-xl border border-slate-700/80 flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] text-slate-400 uppercase tracking-widest block font-medium">Código Atual</span>
-                                <span class="text-xl font-bold font-mono text-brand-cyan tracking-wider whitespace-nowrap" id="room-code">Nenhum</span>
-                            </div>
-                            <button type="button" id="copy-room-code" title="Copiar código" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all">
-                                <i data-lucide="copy" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-
-                        <p class="text-[11px] text-slate-400 mb-6 flex items-center gap-1.5">
-                            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
-                            Validade: <span class="text-slate-300 font-medium" id="room-code-expiration">gere um código</span>
-                        </p>
                     </div>
-
-                    <button type="button" id="generate-room-code" class="w-full py-3 bg-brand-cyan hover:bg-cyan-400 text-brand-navy font-bold text-sm rounded-xl transition-all shadow-md shadow-brand-cyan/20 flex items-center justify-center gap-2">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        <span>Gerar novo código</span>
+                    <button type="button" id="new-class-button" aria-controls="new-class-form" aria-expanded="false"
+                        class="px-4 py-2.5 bg-brand-cyan hover:bg-cyan-400 text-brand-navy font-bold text-xs rounded-xl transition-all shadow-md shadow-brand-cyan/20 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Nova turma
                     </button>
                 </div>
 
-                <!-- 10. MINHAS TURMAS -->
-                <div class="xl:col-span-2 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-bold text-slate-800">Minhas Turmas</h3>
-                            <button type="button" data-scroll-target="#alunos" class="text-xs font-semibold text-brand-cyan hover:underline flex items-center gap-1">
-                                Ver turma
-                                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                <form id="new-class-form" class="new-class-form hidden" novalidate>
+                    <label for="new-class-name" class="form-label">Nome da nova turma</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input id="new-class-name" type="text" maxlength="60" autocomplete="off" class="form-input sm:flex-1" placeholder="Ex.: 5º ano A — manhã">
+                        <div class="flex gap-2 shrink-0">
+                            <button type="submit" id="create-class-button" class="px-4 py-2.5 bg-brand-navy hover:bg-brand-dark text-white font-bold text-xs rounded-xl transition-all flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4"></i> Criar turma
                             </button>
-                        </div>
-
-                        <!-- Grid de Turmas Placeholders -->
-                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4" id="classes-list">
-                            
-                            <!-- Card Turma Placeholder 1 -->
-                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-brand-cyan/50 transition-all flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-3 bg-white rounded-lg border border-slate-200 text-brand-blue">
-                                        <i data-lucide="folder-git2" class="w-5 h-5"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-sm font-bold text-slate-700">[Nome da turma]</h4>
-                                        <p class="text-xs text-slate-500">[Quantidade de alunos]</p>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-2">
-                                    <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">[Status]</span>
-                                    <button class="text-xs text-brand-cyan hover:underline font-semibold flex items-center gap-1">
-                                        Acessar <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Card Turma Placeholder 2 -->
-                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-brand-cyan/50 transition-all flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-3 bg-white rounded-lg border border-slate-200 text-brand-blue">
-                                        <i data-lucide="folder-git2" class="w-5 h-5"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-sm font-bold text-slate-700">[Nome da turma]</h4>
-                                        <p class="text-xs text-slate-500">[Quantidade de alunos]</p>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-2">
-                                    <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">[Status]</span>
-                                    <button class="text-xs text-brand-cyan hover:underline font-semibold flex items-center gap-1">
-                                        Acessar <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                                    </button>
-                                </div>
-                            </div>
-
+                            <button type="button" id="cancel-new-class" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold text-xs rounded-xl hover:bg-slate-100 transition-all">Cancelar</button>
                         </div>
                     </div>
+                    <p id="new-class-error" class="text-[11px] font-semibold text-red-600 mt-1.5 min-h-4" role="alert"></p>
+                </form>
+
+                <div id="classes-list" class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4" aria-live="polite">
+                    <p class="text-xs text-slate-400 py-8 text-center lg:col-span-2">Carregando turmas...</p>
                 </div>
-            </div>
+            </section>
 
             <!-- ==========================================
                  ARENA ROBOOTEAM (JOGO EM SALA)
@@ -1449,7 +1773,7 @@
             <section class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6" id="alunos">
                 <div>
                     <h3 class="text-lg font-bold text-slate-800">Buscar e Gerenciar Alunos</h3>
-                    <p class="text-xs text-slate-500">Localize estudantes específicos e filtre por parâmetros de sala</p>
+                    <p class="text-xs text-slate-500">Encontre um aluno para ver o progresso, trocar de turma, tirar da turma ou excluir a conta.</p>
                 </div>
 
                 <!-- Formulário de Filtros / Busca -->
@@ -1485,29 +1809,15 @@
                     </div>
                 </div>
 
-                <!-- Tabela/Resultado da Busca de Alunos com opção de Acesso Individual -->
+                <!-- Resultado da busca: cada aluno abre o painel de gerenciamento (turma, remover) -->
                 <div class="border border-slate-200 rounded-xl overflow-hidden mt-4">
-                    <div class="bg-slate-50 p-3 border-b border-slate-200 text-xs font-bold text-slate-500 flex justify-between">
-                        <span>Resultados da Consulta</span>
+                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 text-xs font-bold text-slate-500 flex justify-between gap-3">
+                        <span id="student-results-count">Resultados da consulta</span>
                         <span>Ações</span>
                     </div>
-                    <div id="student-search-results"><div class="p-4 bg-white flex items-center justify-between border-b border-slate-100 text-xs">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-400">
-                                <i data-lucide="user" class="w-4 h-4"></i>
-                            </div>
-                            <div>
-                                <span class="font-bold text-slate-700 block">[Nome do aluno]</span>
-                                <span class="text-[10px] text-slate-400">[Turma]</span>
-                            </div>
-                        </div>
-
-                        <!-- 12. ACESSO INDIVIDUAL DO ALUNO -->
-                        <button class="px-3 py-1.5 bg-brand-cyan/10 text-brand-navy hover:bg-brand-cyan/20 border border-brand-cyan/20 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5">
-                            <span>Visualizar aluno</span>
-                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div></div>
+                    <div id="student-search-results">
+                        <p class="p-8 text-center text-xs text-slate-400">Carregando alunos...</p>
+                    </div>
                 </div>
             </section>
 
@@ -1586,7 +1896,7 @@
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar bloco
                         </button>
                     </div>
-                    <p class="text-[11px] text-slate-500">Cada bloco pode ter uma imagem para ilustrar a leitura (foto, desenho ou esquema).</p>
+                    <p class="text-[11px] text-slate-500">Cada bloco pode ter um anexo: uma imagem, várias imagens ou os slides da aula (PDF ou PowerPoint). Slides aparecem para o aluno como uma apresentação para passar, slide a slide.</p>
                     <div id="sections-container" class="space-y-3"></div>
                 </fieldset>
 
@@ -1684,6 +1994,82 @@
                     </button>
                 </div>
             </footer>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL: GERENCIAR ALUNO (progresso, turma, remover)
+    =========================================== -->
+    <div id="student-modal" class="prof-modal fixed inset-0 z-50 hidden items-center justify-center p-4 bg-brand-navy/60 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg max-h-[92vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="student-modal-name">
+            <header class="flex items-center gap-3 px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <div class="student-avatar lg" id="student-modal-avatar" aria-hidden="true">AL</div>
+                <div class="min-w-0 flex-1">
+                    <h3 class="text-base font-bold text-slate-800 truncate" id="student-modal-name">Aluno</h3>
+                    <p class="text-[11px] text-slate-500 truncate" id="student-modal-email"></p>
+                </div>
+                <button type="button" data-student-close class="p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all" aria-label="Fechar">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </header>
+
+            <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-xs">
+                <section aria-labelledby="student-modal-progress-title">
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                        <h4 class="form-label !mb-0" id="student-modal-progress-title">Progresso na trilha</h4>
+                        <span id="student-modal-status" class="px-2 py-0.5 rounded-full text-[10px] font-semibold"></span>
+                    </div>
+                    <div class="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div id="student-modal-bar" class="h-full bg-gradient-to-r from-brand-accent to-brand-cyan rounded-full transition-all" style="width:0%"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1.5" id="student-modal-progress-text"></p>
+                    <dl class="grid grid-cols-2 gap-3 mt-3">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Próxima etapa</dt>
+                            <dd class="font-semibold text-slate-700 mt-0.5" id="student-modal-next"></dd>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Última atividade</dt>
+                            <dd class="font-semibold text-slate-700 mt-0.5" id="student-modal-updated"></dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="pt-4 border-t border-slate-100">
+                    <label class="form-label" for="student-modal-class">Turma do aluno</label>
+                    <div class="flex gap-2">
+                        <select id="student-modal-class" class="form-input"></select>
+                        <button type="button" id="student-move-button" class="px-4 py-2 bg-brand-navy hover:bg-brand-dark text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shrink-0">
+                            <i data-lucide="arrow-right-left" class="w-3.5 h-3.5"></i> Mover
+                        </button>
+                    </div>
+                    <p class="text-[10.5px] text-slate-400 mt-1.5">Na nova turma o aluno continua com o mesmo progresso.</p>
+                </section>
+
+                <section class="student-danger" id="student-danger" aria-labelledby="student-danger-title">
+                    <h4 class="student-danger-title" id="student-danger-title"><i data-lucide="user-x" class="w-3.5 h-3.5"></i> Remover aluno</h4>
+                    <div class="student-danger-option">
+                        <div>
+                            <strong class="text-slate-800">Tirar da turma</strong>
+                            <p>A conta e o progresso continuam. Para voltar, o aluno usa um novo código de turma.</p>
+                        </div>
+                        <button type="button" id="student-unlink-button" class="danger-button soft">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Tirar da turma
+                        </button>
+                    </div>
+                    <div class="student-danger-option">
+                        <div>
+                            <strong class="text-slate-800">Excluir conta</strong>
+                            <p>Apaga a conta e todo o progresso do aluno. Não dá para desfazer.</p>
+                        </div>
+                        <button type="button" id="student-delete-button" class="danger-button solid">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Excluir conta
+                        </button>
+                    </div>
+                </section>
+
+                <p id="student-modal-error" class="text-[11px] font-semibold text-red-600 min-h-4" role="alert"></p>
+            </div>
         </div>
     </div>
 

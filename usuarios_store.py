@@ -21,10 +21,11 @@ class EmailJaCadastrado(ValueError):
     """Ja existe uma conta com o e-mail informado."""
 
 
+# ``turma`` sai do nome atual da turma (``turmas``), entao renomear a turma ja
+# aparece para todos os alunos dela.
 _SELECT_USUARIO = """
     select u.id, u.nome, u.email, u.senha_hash, u.perfil, u.disciplina,
-           u.turma_nome, u.codigo_sala, u.codigo_validade,
-           u.professor_id, u.turma, u.sala_entrada_em,
+           u.professor_id, u.turma_id, coalesce(tu.nome, u.turma) as turma, u.sala_entrada_em,
            coalesce(t.etapas, '{}') as etapas_concluidas,
            coalesce(t.pontuacoes, '{}'::jsonb) as pontuacoes,
            t.atualizado_em as progresso_atualizado_em,
@@ -32,6 +33,7 @@ _SELECT_USUARIO = """
            coalesce(j.pontuacoes, '{}'::jsonb) as pontuacoes_jogo,
            j.atualizado_em as jogo_atualizado_em
       from public.usuarios u
+      left join public.turmas tu on tu.id = u.turma_id
       left join lateral (
             select array_agg(p.etapa_id order by p.etapa_id) as etapas,
                    jsonb_object_agg(p.etapa_id::text, p.acertos) as pontuacoes,
@@ -92,12 +94,15 @@ def buscar_professor(professor_id):
     return encontrados[0] if encontrados else None
 
 
-def buscar_professor_por_codigo(codigo):
-    encontrados = _buscar(
-        "upper(u.codigo_sala) = %s and u.perfil = %s",
-        (str(codigo or "").strip().upper(), PERFIL_PROFESSOR),
-    )
-    return encontrados[0] if encontrados else None
+def id_do_professor():
+    """Id da (unica) conta de professor, usada na pagina inicial; None se ainda nao existe."""
+    with db.transacao() as cursor:
+        cursor.execute(
+            "select id from public.usuarios where perfil = %s order by id limit 1",
+            (PERFIL_PROFESSOR,),
+        )
+        linha = cursor.fetchone()
+        return linha["id"] if linha else None
 
 
 def alunos_do_professor(professor_id):
@@ -170,36 +175,3 @@ def salvar_fase_jogo(aluno_id, fase_id, melhor_pontuacao):
             """,
             (int(aluno_id), int(fase_id), int(melhor_pontuacao)),
         )
-
-
-def vincular_aluno_a_sala(aluno_id, professor_id, nome_turma):
-    with db.transacao() as cursor:
-        cursor.execute(
-            "update public.usuarios set turma_nome = %s where id = %s and turma_nome is null",
-            (nome_turma, int(professor_id)),
-        )
-        cursor.execute(
-            """
-            update public.usuarios
-               set professor_id = %s, turma = %s, sala_entrada_em = now()
-             where id = %s and perfil = %s
-            """,
-            (int(professor_id), nome_turma, int(aluno_id), PERFIL_ALUNO),
-        )
-
-
-def salvar_codigo_sala(professor_id, codigo, validade, nome_turma):
-    with db.transacao() as cursor:
-        cursor.execute(
-            """
-            update public.usuarios
-               set codigo_sala = %s,
-                   codigo_validade = %s,
-                   turma_nome = coalesce(turma_nome, %s)
-             where id = %s and perfil = %s
-            returning turma_nome
-            """,
-            (codigo, validade, nome_turma, int(professor_id), PERFIL_PROFESSOR),
-        )
-        linha = cursor.fetchone()
-        return linha["turma_nome"] if linha else nome_turma

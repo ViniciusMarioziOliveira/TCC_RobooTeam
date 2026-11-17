@@ -7,8 +7,10 @@ professor edita a trilha, uma copia personalizada dela e gravada na tabela
 sala desse professor passam a ver a trilha personalizada; quem ainda nao entrou
 em nenhuma sala continua vendo a trilha padrao.
 
-Os blocos de leitura podem ter uma imagem (``image``) enviada pelo painel e
-guardada no Supabase Storage (veja ``armazenamento.py``).
+Cada bloco de leitura pode ter um anexo enviado pelo painel e guardado no
+Supabase Storage (veja ``armazenamento.py``): uma imagem (``image``), slides
+(``slides``: lista de imagens, que pode vir de um PDF ou de varias imagens) ou
+uma apresentacao do PowerPoint (``presentation``). A legenda fica em ``image_alt``.
 """
 
 import copy
@@ -32,6 +34,7 @@ LIMITES = {
     "pares": (3, 8),
     "palavras": (3, 8),
     "variacoes": (1, 5),
+    "slides": (2, 40),
 }
 
 
@@ -82,13 +85,17 @@ def _gravar(cursor, professor_id, atividades):
     )
 
 
-def _imagens(atividades):
-    return {
-        secao["image"]
-        for atividade in atividades
-        for secao in atividade.get("sections", [])
-        if secao.get("image")
-    }
+def _arquivos(atividades):
+    """Links de todos os anexos (imagens, slides e apresentacoes) das atividades."""
+    enderecos = set()
+    for atividade in atividades:
+        for secao in atividade.get("sections", []):
+            enderecos.update(
+                endereco
+                for endereco in (secao.get("image"), secao.get("presentation"), *(secao.get("slides") or []))
+                if endereco
+            )
+    return enderecos
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +203,53 @@ def _lista(valor, campo, limites):
     return valor
 
 
+def _normalizar_anexo(secao, indice):
+    """Anexo do bloco: uma imagem, slides ou uma apresentacao (no maximo um deles)."""
+    imagem = str(secao.get("image") or "").strip()
+    slides = secao.get("slides") or []
+    apresentacao = str(secao.get("presentation") or "").strip()
+
+    if sum(bool(item) for item in (imagem, slides, apresentacao)) > 1:
+        raise ErroDeValidacao(
+            f"O bloco de leitura {indice} pode ter so um anexo: uma imagem, slides ou uma apresentacao."
+        )
+
+    legenda = _texto(secao.get("image_alt"), f"legenda do anexo do bloco {indice}", 0, 160, obrigatorio=False)
+    aviso_origem = f"O anexo do bloco de leitura {indice} precisa ser enviado pelo botao Anexar."
+
+    if imagem:
+        if not armazenamento.eh_imagem_da_trilha(imagem):
+            raise ErroDeValidacao(aviso_origem)
+        return {"image": imagem, "image_alt": legenda}
+
+    if slides:
+        minimo, maximo = LIMITES["slides"]
+        if not isinstance(slides, list) or not minimo <= len(slides) <= maximo:
+            raise ErroDeValidacao(f"Os slides do bloco de leitura {indice} precisam ter de {minimo} a {maximo} paginas.")
+        slides = [str(endereco or "").strip() for endereco in slides]
+        if not all(armazenamento.eh_imagem_da_trilha(endereco) for endereco in slides):
+            raise ErroDeValidacao(aviso_origem)
+        return {"slides": slides, "image_alt": legenda}
+
+    if apresentacao:
+        if not armazenamento.eh_apresentacao_da_trilha(apresentacao):
+            raise ErroDeValidacao(aviso_origem)
+        try:
+            total_slides = int(secao.get("presentation_slides") or 0)
+        except (TypeError, ValueError):
+            total_slides = 0
+        return {
+            "presentation": apresentacao,
+            "presentation_name": _texto(
+                secao.get("presentation_name"), f"nome da apresentacao do bloco {indice}", 0, 120, obrigatorio=False
+            ) or "Apresentação",
+            "presentation_slides": max(0, min(total_slides, 999)),
+            "image_alt": legenda,
+        }
+
+    return {}
+
+
 def _normalizar_secoes(valor):
     secoes = _lista(valor, "conteudo teorico", LIMITES["secoes"])
     resultado = []
@@ -207,18 +261,7 @@ def _normalizar_secoes(valor):
             "title": _texto(secao.get("title"), f"titulo do bloco de leitura {indice}", 3, 120),
             "text": _texto(secao.get("text"), f"texto do bloco de leitura {indice}", 10, 1200),
         }
-
-        imagem = str(secao.get("image") or "").strip()
-        if imagem:
-            if not armazenamento.eh_imagem_da_trilha(imagem):
-                raise ErroDeValidacao(
-                    f"A imagem do bloco de leitura {indice} precisa ser enviada pelo botao Anexar imagem."
-                )
-            item["image"] = imagem
-            item["image_alt"] = _texto(
-                secao.get("image_alt"), f"legenda da imagem do bloco {indice}", 0, 160, obrigatorio=False
-            )
-
+        item.update(_normalizar_anexo(secao, indice))
         resultado.append(item)
 
     return resultado
@@ -434,7 +477,7 @@ def atualizar_atividade(professor_id, atividade_id, payload):
         atividades[indice] = normalizar_atividade(payload, antiga["id"])
         _gravar(cursor, professor_id, atividades)
 
-    armazenamento.remover_imagens(_imagens([antiga]) - _imagens([atividades[indice]]))
+    armazenamento.remover_arquivos(_arquivos([antiga]) - _arquivos([atividades[indice]]))
     return copy.deepcopy(atividades[indice])
 
 
@@ -449,7 +492,7 @@ def remover_atividade(professor_id, atividade_id):
         removida = atividades.pop(indice)
         _gravar(cursor, professor_id, atividades)
 
-    armazenamento.remover_imagens(_imagens([removida]))
+    armazenamento.remover_arquivos(_arquivos([removida]))
     return copy.deepcopy(removida)
 
 
@@ -480,5 +523,5 @@ def restaurar_padrao(professor_id):
         personalizada = _carregar(cursor, professor_id)
         cursor.execute("delete from public.trilha_atividades where professor_id = %s", (int(professor_id),))
 
-    armazenamento.remover_imagens(_imagens(personalizada))
+    armazenamento.remover_arquivos(_arquivos(personalizada))
     return atividades_padrao()

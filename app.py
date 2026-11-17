@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import re
-import secrets
+from urllib.parse import quote
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -12,6 +12,7 @@ import arena_store
 import armazenamento
 import db
 import trilha_store
+import turmas_store
 import usuarios_store
 from trilha_conteudo import CORES_DISPONIVEIS, ROTULOS_MINIJOGO, TIPOS_MINIJOGO
 from jogo_conteudo import (
@@ -39,7 +40,7 @@ if not chave_secreta and os.getenv("VERCEL"):
     raise RuntimeError("Defina SECRET_KEY nas Environment Variables do projeto na Vercel.")
 app.config["SECRET_KEY"] = chave_secreta or "robooteam-chave-local-de-testes"
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
-# imagens das trilhas chegam com no máximo 4 MB (limite da Vercel: 4,5 MB)
+# anexos das trilhas chegam com no máximo 4 MB (limite da Vercel: 4,5 MB)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 token_serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="robooteam-login")
@@ -65,7 +66,7 @@ for tipo_de_erro in db.ERROS_DE_BANCO:
 
 @app.errorhandler(413)
 def arquivo_grande_demais(_erro):
-    return jsonify({"error": "O arquivo enviado é grande demais. Use uma imagem de até 4 MB."}), 413
+    return jsonify({"error": "O arquivo enviado é grande demais. Use um arquivo de até 4 MB."}), 413
 
 
 def gerar_token_json(usuario):
@@ -107,13 +108,28 @@ def trilha_do_aluno(usuario):
     return trilha_store.trilha_para_aluno(usuario)
 
 
+# Apresentações do PowerPoint abrem no visualizador gratuito do Office (o arquivo é público no Storage).
+VISUALIZADOR_DO_OFFICE = "https://view.officeapps.live.com/op/embed.aspx?src="
+
+
+def secoes_da_aula(secoes):
+    """Blocos de leitura prontos para a página da aula."""
+    prontas = []
+    for secao in secoes or []:
+        secao = dict(secao)
+        if secao.get("presentation"):
+            secao["presentation_viewer"] = VISUALIZADOR_DO_OFFICE + quote(secao["presentation"], safe="")
+        prontas.append(secao)
+    return prontas
+
+
 def aula_da_atividade(atividade):
     """Recorte da atividade usado pela pagina da aula."""
     return {
         "eyebrow": atividade.get("eyebrow") or atividade["period"],
         "title": atividade.get("lesson_title") or atividade["title"],
         "intro": atividade.get("intro") or atividade["description"],
-        "sections": atividade.get("sections", []),
+        "sections": secoes_da_aula(atividade.get("sections", [])),
         "quiz": atividade.get("quiz", []),
         "minigame": atividade.get("minigame") or {"type": "nenhum"},
     }
@@ -267,9 +283,39 @@ def desativar_cache_de_desenvolvimento(response):
 # PÁGINAS JINJA
 # ============================================
 
+def resumo_da_trilha_publica():
+    """Números da trilha da professora mostrados na página inicial.
+
+    Acompanham o painel: criar ou remover etapas e perguntas muda a página
+    inicial também. Sem banco (ou com erro), mostra a trilha padrão.
+    """
+    try:
+        atividades = trilha_store.trilha_do_professor(usuarios_store.id_do_professor())
+    except db.ERROS_DE_BANCO:
+        app.logger.warning("Página inicial sem acesso ao banco: mostrando a trilha padrão")
+        atividades = trilha_store.atividades_padrao()
+
+    return {
+        "etapas": [
+            {
+                "titulo": atividade["title"],
+                "cor": atividade.get("color", "blue"),
+                "perguntas": len(atividade.get("quiz", [])),
+            }
+            for atividade in atividades
+        ],
+        "total_etapas": len(atividades),
+        "total_perguntas": sum(len(atividade.get("quiz", [])) for atividade in atividades),
+        "total_minijogos": sum(
+            (atividade.get("minigame") or {}).get("type", "nenhum") != "nenhum" for atividade in atividades
+        ),
+        "tipos_de_minijogo": len([tipo for tipo in TIPOS_MINIJOGO if tipo != "nenhum"]),
+    }
+
+
 @app.get("/")
 def pagina_inicial():
-    return render_template("index.html")
+    return render_template("index.html", trilha=resumo_da_trilha_publica())
 
 
 @app.get("/login")
@@ -492,7 +538,7 @@ def obter_trilha_aluno():
     sala = None
     if professor:
         sala = {
-            "turma": usuario.get("turma") or professor.get("turma_nome") or f"Turma de {professor['nome']}",
+            "turma": usuario.get("turma") or f"Turma de {professor['nome']}",
             "professor": professor["nome"],
         }
 
@@ -788,34 +834,26 @@ def entrar_sala_aluno():
             "arena": {"codigo": arena["codigo"], "nome": arena["nome"]},
         }), 200
 
-    professor = usuarios_store.buscar_professor_por_codigo(codigo)
-    if not professor:
+    turma = turmas_store.buscar_por_codigo(codigo)
+    if not turma:
         return jsonify({"error": "Código da turma não encontrado. Confira com o professor"}), 404
 
-    try:
-        validade = datetime.fromisoformat(str(professor.get("codigo_validade", "")).replace("Z", "+00:00"))
-        if validade.tzinfo is None:
-            validade = validade.replace(tzinfo=timezone.utc)
-    except ValueError:
-        return jsonify({"error": "Este código de sala não está mais disponível"}), 410
+    if not turmas_store.codigo_valido(turma):
+        return jsonify({"error": "Este código de turma expirou. Peça um novo ao professor"}), 410
 
-    if validade.astimezone(timezone.utc) <= datetime.now(timezone.utc):
-        return jsonify({"error": "Este código de sala expirou. Peça um novo ao professor"}), 410
-
-    ja_participa = str(aluno.get("professor_id")) == str(professor["id"])
-    nome_turma = professor.get("turma_nome") or f"Turma de {professor['nome']}"
+    ja_participa = str(aluno.get("turma_id")) == str(turma["id"])
 
     try:
-        usuarios_store.vincular_aluno_a_sala(aluno["id"], professor["id"], nome_turma)
+        turmas_store.entrar(aluno["id"], turma)
     except db.ERROS_DE_BANCO:
-        return falha_no_banco("Não foi possível entrar na sala agora")
+        return falha_no_banco("Não foi possível entrar na turma agora")
 
     # entrar na turma so vincula o aluno; os minijogos ficam na Arena (codigos ARN-XXXX)
     return jsonify({
-        "message": "Você já faz parte desta sala" if ja_participa else "Entrada na sala realizada com sucesso!",
+        "message": "Você já faz parte desta turma" if ja_participa else f"Você entrou na turma {turma['nome']}!",
         "sala": {
-            "turma": nome_turma,
-            "professor": professor["nome"],
+            "turma": turma["nome"],
+            "professor": turma["professor_nome"],
         },
     }), 200
 
@@ -831,6 +869,7 @@ def obter_resumo_professor():
         return erro
 
     alunos = usuarios_store.alunos_do_professor(professor["id"])
+    turmas = turmas_store.listar(professor["id"])
     atividades = trilha_store.trilha_do_professor(professor["id"])
     total_etapas = len(atividades)
     alunos_formatados = []
@@ -844,7 +883,8 @@ def obter_resumo_professor():
             "id": aluno["id"],
             "nome": aluno["nome"],
             "email": aluno["email"],
-            "turma": aluno.get("turma") or professor.get("turma_nome") or f"Turma de {professor['nome']}",
+            "turma_id": aluno.get("turma_id"),
+            "turma": aluno.get("turma") if aluno.get("turma_id") else "Sem turma",
             "concluidas": len(concluidas),
             "total": total_etapas,
             "percentual": percentual,
@@ -855,6 +895,20 @@ def obter_resumo_professor():
 
     media = round(sum(aluno["percentual"] for aluno in alunos_formatados) / len(alunos_formatados)) if alunos_formatados else 0
     iniciaram = sum(aluno["percentual"] > 0 for aluno in alunos_formatados)
+
+    agora = datetime.now(timezone.utc)
+    turmas_formatadas = []
+    for turma in turmas:
+        da_turma = [aluno for aluno in alunos_formatados if aluno["turma_id"] == turma["id"]]
+        turmas_formatadas.append({
+            "id": turma["id"],
+            "nome": turma["nome"],
+            "quantidade": len(da_turma),
+            "media": round(sum(aluno["percentual"] for aluno in da_turma) / len(da_turma)) if da_turma else 0,
+            "codigo": turma.get("codigo"),
+            "codigo_validade": turma.get("codigo_validade"),
+            "codigo_ativo": turmas_store.codigo_valido(turma, agora),
+        })
     etapas_resumo = [
         {
             "id": int(item["id"]),
@@ -870,49 +924,129 @@ def obter_resumo_professor():
             "id": professor["id"],
             "nome": professor["nome"],
             "email": professor["email"],
-            "disciplina": professor.get("disciplina") or "Inteligência Artificial e Robótica",
         },
         "metrics": {
             "total_alunos": len(alunos_formatados),
-            "turmas_ativas": 1 if alunos_formatados else 0,
+            "turmas": len(turmas_formatadas),
+            "codigos_ativos": sum(turma["codigo_ativo"] for turma in turmas_formatadas),
             "alunos_iniciaram": iniciaram,
             "total_atividades": total_etapas,
             "media_geral": media,
         },
         "alunos": alunos_formatados,
         "etapas": etapas_resumo,
-        "turmas": [{
-            "nome": professor.get("turma_nome") or f"Turma de {professor['nome']}",
-            "quantidade": len(alunos_formatados),
-            "status": "Ativa",
-        }],
-        "codigo_sala": professor.get("codigo_sala"),
-        "codigo_validade": professor.get("codigo_validade"),
+        "turmas": turmas_formatadas,
         "trilha_personalizada": trilha_store.usa_trilha_personalizada(professor["id"]),
     })
 
 
-@app.post("/api/professor/codigo-sala")
-def gerar_codigo_sala():
+# ============================================
+# TURMAS E ALUNOS (PAINEL DO PROFESSOR)
+# ============================================
+
+def erro_de_turma(falha):
+    return jsonify({"error": str(falha)}), getattr(falha, "status", 400)
+
+
+@app.post("/api/professor/turmas")
+def criar_turma():
     professor, erro = obter_usuario_autenticado("PROFESSOR")
     if erro:
         return erro
 
-    codigo = f"RBT-{secrets.token_hex(2).upper()}"
-    validade = datetime.now(timezone.utc) + timedelta(hours=24)
+    dados = request.get_json(silent=True) or {}
+    try:
+        turma = turmas_store.criar(professor["id"], dados.get("nome"))
+    except turmas_store.ErroTurma as falha:
+        return erro_de_turma(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível criar a turma")
+
+    return jsonify({
+        "message": f"Turma \"{turma['nome']}\" criada! Gere o código para os alunos entrarem.",
+        "turma": turma,
+    }), 201
+
+
+@app.route("/api/professor/turmas/<int:turma_id>", methods=["PUT", "DELETE"])
+def gerenciar_turma(turma_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
 
     try:
-        nome_turma = usuarios_store.salvar_codigo_sala(
-            professor["id"], codigo, validade, f"Turma de {professor['nome']}"
-        )
+        if request.method == "DELETE":
+            removida = turmas_store.remover(professor["id"], turma_id)
+            mensagem = f"Turma \"{removida['nome']}\" excluída."
+            if removida["alunos"] == 1:
+                mensagem += " 1 aluno saiu da turma."
+            elif removida["alunos"] > 1:
+                mensagem += f" {removida['alunos']} alunos saíram da turma."
+        else:
+            dados = request.get_json(silent=True) or {}
+            nome = turmas_store.renomear(professor["id"], turma_id, dados.get("nome"))
+            mensagem = f"Turma renomeada para \"{nome}\"."
+    except turmas_store.ErroTurma as falha:
+        return erro_de_turma(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível salvar a turma")
+
+    return jsonify({"message": mensagem})
+
+
+@app.post("/api/professor/turmas/<int:turma_id>/codigo")
+def gerar_codigo_turma(turma_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    try:
+        resultado = turmas_store.gerar_codigo(professor["id"], turma_id)
+    except turmas_store.ErroTurma as falha:
+        return erro_de_turma(falha)
     except db.ERROS_DE_BANCO:
         return falha_no_banco("Não foi possível gerar o código")
 
-    return jsonify({
-        "codigo": codigo,
-        "validade": validade.isoformat(),
-        "turma": nome_turma,
-    }), 201
+    return jsonify(resultado), 201
+
+
+@app.route("/api/professor/alunos/<int:aluno_id>/turma", methods=["PUT", "DELETE"])
+def turma_do_aluno(aluno_id):
+    """PUT move o aluno para outra turma; DELETE tira o aluno da turma (a conta continua)."""
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    try:
+        if request.method == "DELETE":
+            nome = turmas_store.tirar_da_turma(professor["id"], aluno_id)
+            mensagem = f"{nome} saiu da turma. Para voltar, é só usar um novo código de turma."
+        else:
+            dados = request.get_json(silent=True) or {}
+            movido = turmas_store.mover_aluno(professor["id"], aluno_id, dados.get("turma_id"))
+            mensagem = f"{movido['aluno']} agora está na turma \"{movido['turma']}\"."
+    except turmas_store.ErroTurma as falha:
+        return erro_de_turma(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível alterar a turma do aluno")
+
+    return jsonify({"message": mensagem})
+
+
+@app.delete("/api/professor/alunos/<int:aluno_id>")
+def excluir_conta_aluno(aluno_id):
+    professor, erro = obter_usuario_autenticado("PROFESSOR")
+    if erro:
+        return erro
+
+    try:
+        nome = turmas_store.excluir_aluno(professor["id"], aluno_id)
+    except turmas_store.ErroTurma as falha:
+        return erro_de_turma(falha)
+    except db.ERROS_DE_BANCO:
+        return falha_no_banco("Não foi possível excluir a conta do aluno")
+
+    return jsonify({"message": f"A conta de {nome} foi excluída."})
 
 
 # ============================================
@@ -1069,18 +1203,19 @@ def enviar_imagem_trilha():
     if erro:
         return erro
 
-    arquivo = request.files.get("imagem")
+    # imagens (também os slides de um PDF, já convertidos no navegador) e apresentações .pptx
+    arquivo = request.files.get("arquivo") or request.files.get("imagem")
     if not arquivo:
-        return jsonify({"error": "Escolha uma imagem para enviar."}), 400
+        return jsonify({"error": "Escolha um arquivo para enviar."}), 400
 
     try:
-        url = armazenamento.enviar_imagem(professor["id"], arquivo.read(armazenamento.TAMANHO_MAXIMO + 1))
+        resultado = armazenamento.enviar_arquivo(professor["id"], arquivo.read(armazenamento.TAMANHO_MAXIMO + 1))
     except armazenamento.ErroImagem as problema:
         if problema.status >= 500:
-            app.logger.warning("Envio de imagem falhou: %s", problema)
+            app.logger.warning("Envio de arquivo falhou: %s", problema)
         return jsonify({"error": str(problema)}), problema.status
 
-    return jsonify({"url": url}), 201
+    return jsonify(resultado), 201
 
 
 # ============================================

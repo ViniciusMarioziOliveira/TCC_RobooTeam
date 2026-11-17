@@ -141,8 +141,11 @@
     </button>`).join("");
   colorOptions.innerHTML = COLORS.map((color) => `
     <button type="button" class="swatch" data-color="${color.id}" style="--swatch:${color.swatch}" title="${color.label}" aria-label="Cor ${color.label}" aria-pressed="false"></button>`).join("");
+  const noAccessoryIcon = '<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ban"></use></svg>';
   accOptions.innerHTML = ACCESSORIES.map((acc) => `
-    <button type="button" class="option-tile" data-acc="${acc.id}" title="${acc.label}" aria-label="${acc.label}" aria-pressed="false">${accessoryHtml(acc) || '<span class="acc-none">Nada</span>'}</button>`).join("");
+    <button type="button" class="option-tile" data-acc="${acc.id}" aria-pressed="false">
+      ${accessoryHtml(acc) || noAccessoryIcon}<span class="acc-label">${acc.label}</span>
+    </button>`).join("");
 
   function renderDraft(options) {
     paintFigure(draftFigure, draft, options);

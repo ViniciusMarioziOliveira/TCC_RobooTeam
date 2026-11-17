@@ -11,7 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='trilha_aula.css', v='6') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='trilha_aula.css', v='7') }}">
 </head>
 
 <body class="lesson-page">
@@ -67,7 +67,39 @@
         <div>
           <h2>{{ section.title }}</h2>
           <p>{{ section.text }}</p>
-          {% if section.image %}
+          {% if section.slides %}
+          {% set total_slides = section.slides|length %}
+          <figure class="reading-slides" data-slides aria-label="Slides: {{ section.title }}">
+            <div class="slides-stage">
+              {% for slide in section.slides %}
+              <img class="slide{% if loop.first %} is-active{% endif %}" {% if loop.first %}src{% else %}data-src{% endif %}="{{ slide }}"
+                alt="Slide {{ loop.index }} de {{ total_slides }}{% if section.image_alt %}: {{ section.image_alt }}{% endif %}" data-slide>
+              {% endfor %}
+              <button class="slides-nav prev" type="button" data-slides-prev aria-label="Slide anterior"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button class="slides-nav next" type="button" data-slides-next aria-label="Próximo slide"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+            <div class="slides-bar">
+              <span class="slides-counter" data-slides-counter aria-live="polite">1 / {{ total_slides }}</span>
+              {% if total_slides <= 15 %}
+              <div class="slides-dots">
+                {% for slide in section.slides %}<button class="slides-dot{% if loop.first %} is-active{% endif %}" type="button" data-slide-dot aria-label="Ir para o slide {{ loop.index }}"></button>{% endfor %}
+              </div>
+              {% endif %}
+              <button class="slides-full" type="button" data-slides-full aria-label="Ver os slides em tela cheia"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+            </div>
+            {% if section.image_alt %}<figcaption>{{ section.image_alt }}</figcaption>{% endif %}
+          </figure>
+          {% elif section.presentation %}
+          <figure class="reading-presentation">
+            <div class="presentation-frame">
+              <iframe src="{{ section.presentation_viewer }}" title="Apresentação: {{ section.presentation_name }}" loading="lazy" allowfullscreen></iframe>
+            </div>
+            <figcaption>
+              <span>{{ section.image_alt or section.presentation_name }}{% if section.presentation_slides %} · {{ section.presentation_slides }} slides{% endif %}</span>
+              <a href="{{ section.presentation }}" download>Baixar a apresentação</a>
+            </figcaption>
+          </figure>
+          {% elif section.image %}
           <figure class="reading-figure">
             <img src="{{ section.image }}" alt="{{ section.image_alt or section.title }}" loading="lazy">
             {% if section.image_alt %}<figcaption>{{ section.image_alt }}</figcaption>{% endif %}
@@ -293,6 +325,7 @@
 
   <canvas class="confetti-layer" id="confetti-layer" aria-hidden="true"></canvas>
 
+  <script src="{{ url_for('static', filename='slides.js', v='1') }}"></script>
   <script src="{{ url_for('static', filename='trilha_aula.js', v='4') }}"></script>
 </body>
 

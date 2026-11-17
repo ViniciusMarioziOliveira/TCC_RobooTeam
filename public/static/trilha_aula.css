@@ -296,6 +296,171 @@ button { font-family: inherit; cursor: pointer; }
   margin-top: 7px;
 }
 
+/* ---- slides do bloco (PDF ou várias imagens) ---- */
+.reading-slides { margin: 14px 0 0; }
+
+.slides-stage {
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(160deg, #0e1a3c, #23205f);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y;
+}
+
+.slides-stage .slide {
+  height: 100%;
+  inset: 0;
+  object-fit: contain;
+  opacity: 0;
+  position: absolute;
+  transition: opacity 0.3s ease;
+  width: 100%;
+}
+
+.slides-stage .slide.is-active { opacity: 1; }
+
+.slides-nav {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 6px 16px rgba(14, 26, 60, 0.3);
+  color: var(--navy);
+  display: flex;
+  height: 44px;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  width: 44px;
+  z-index: 1;
+}
+
+.slides-nav svg { height: 22px; width: 22px; }
+.slides-nav.prev { left: 10px; }
+.slides-nav.next { right: 10px; }
+.slides-nav:hover:not(:disabled) { transform: translateY(-50%) scale(1.08); }
+.slides-nav:disabled { cursor: default; opacity: 0; pointer-events: none; }
+.slides-nav:focus-visible,
+.slides-dot:focus-visible,
+.slides-full:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+
+.slides-bar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-top: 9px;
+}
+
+.slides-counter {
+  background: #eaf0ff;
+  border-radius: 999px;
+  color: var(--primary);
+  flex-shrink: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  padding: 3px 11px;
+}
+
+.slides-dots {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.slides-dot {
+  background: #d0d7ea;
+  border: none;
+  border-radius: 999px;
+  height: 10px;
+  padding: 0;
+  transition: background 0.2s ease, width 0.2s ease;
+  width: 10px;
+}
+
+.slides-dot.is-active { background: var(--primary); width: 26px; }
+
+.slides-full {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--navy);
+  display: flex;
+  flex-shrink: 0;
+  height: 36px;
+  justify-content: center;
+  margin-left: auto;
+  width: 36px;
+}
+
+.slides-full svg { height: 18px; width: 18px; }
+.slides-full:hover { border-color: var(--primary); color: var(--primary); }
+
+.reading-slides figcaption {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 7px;
+}
+
+.reading-slides:fullscreen {
+  background: #0b1430;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  padding: 18px;
+}
+
+.reading-slides:fullscreen .slides-stage { aspect-ratio: auto; flex: 1; }
+.reading-slides:fullscreen .slides-full { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.25); color: #fff; }
+.reading-slides:fullscreen figcaption { color: #c6d1f2; }
+
+/* ---- apresentação do PowerPoint (visualizador do Office) ---- */
+.reading-presentation { margin: 14px 0 0; }
+
+.presentation-frame {
+  aspect-ratio: 16 / 10;
+  background: #f5f7fd;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.presentation-frame iframe { border: 0; display: block; height: 100%; width: 100%; }
+
+.reading-presentation figcaption {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 4px 14px;
+  justify-content: space-between;
+  margin-top: 7px;
+}
+
+.reading-presentation figcaption a { color: var(--primary); }
+
+@media (max-width: 560px) {
+  .slides-nav { height: 36px; width: 36px; }
+  .slides-nav.prev { left: 6px; }
+  .slides-nav.next { right: 6px; }
+  .slides-dots { display: none; }
+  .presentation-frame { aspect-ratio: 4 / 3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slides-stage .slide, .slides-dot, .slides-nav { transition: none; }
+}
+
 /* -------------------------------------------------------------- PAINÉIS */
 .quiz-panel,
 .minigame-panel,

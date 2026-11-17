@@ -1,23 +1,41 @@
 # -*- coding: utf-8 -*-
-"""Imagens das trilhas guardadas no Supabase Storage.
+"""Imagens e apresentacoes das trilhas guardadas no Supabase Storage.
 
-A professora envia a imagem pelo painel, o servidor confere se e mesmo uma
-imagem e a grava no bucket publico ``trilha-imagens`` usando a chave secreta
-do projeto (``SUPABASE_SECRET_KEY``). Os alunos abrem a imagem pelo link
-publico, sem precisar de login no Supabase.
+A professora envia o arquivo pelo painel, o servidor confere o que ele e de
+verdade (pelos primeiros bytes, nao pela extensao) e o grava no bucket publico
+``trilha-imagens`` usando a chave secreta do projeto (``SUPABASE_SECRET_KEY``).
+Os alunos abrem o arquivo pelo link publico, sem precisar de login no Supabase.
+
+Tipos aceitos:
+- imagens PNG, JPG, WEBP e GIF (tambem os slides de um PDF, que o navegador da
+  professora transforma em imagens antes de enviar);
+- apresentacoes do PowerPoint (.pptx), mostradas no visualizador do Office.
 """
 
+import io
 import json
 import os
 import re
 import urllib.error
 import urllib.request
 import uuid
+import zipfile
 
 BUCKET = os.getenv("SUPABASE_BUCKET", "trilha-imagens")
 TAMANHO_MAXIMO = 4 * 1024 * 1024
-EXTENSOES = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
-_CAMINHO_VALIDO = re.compile(r"^trilhas/\d+/[0-9a-f]{32}\.(png|jpg|webp|gif)$")
+
+TIPO_PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+EXTENSOES = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    TIPO_PPTX: "pptx",
+}
+EXTENSOES_DE_IMAGEM = ("png", "jpg", "webp", "gif")
+
+_CAMINHO_VALIDO = re.compile(r"^trilhas/\d+/[0-9a-f]{32}\.(png|jpg|webp|gif|pptx)$")
+_SLIDE_DO_PPTX = re.compile(r"^ppt/slides/slide\d+\.xml$")
 
 
 class ErroImagem(ValueError):
@@ -59,10 +77,33 @@ def _caminho_da_url(endereco):
 
 def eh_imagem_da_trilha(endereco):
     """Aceita apenas links de imagens enviadas pelo proprio painel."""
-    return _caminho_da_url(endereco) is not None
+    caminho = _caminho_da_url(endereco)
+    return bool(caminho) and caminho.endswith(EXTENSOES_DE_IMAGEM)
 
 
-def tipo_da_imagem(conteudo):
+def eh_apresentacao_da_trilha(endereco):
+    """Aceita apenas links de apresentacoes (.pptx) enviadas pelo proprio painel."""
+    caminho = _caminho_da_url(endereco)
+    return bool(caminho) and caminho.endswith(".pptx")
+
+
+def _slides_do_pptx(conteudo):
+    """Quantidade de slides se o arquivo for um .pptx de verdade (senao, None).
+
+    So le a lista de arquivos do zip (nada e descompactado), entao um zip
+    malicioso nao consegue ocupar a memoria do servidor.
+    """
+    try:
+        with zipfile.ZipFile(io.BytesIO(conteudo)) as pacote:
+            nomes = pacote.namelist()
+    except (zipfile.BadZipFile, ValueError):
+        return None
+    if "ppt/presentation.xml" not in nomes:
+        return None
+    return sum(1 for nome in nomes if _SLIDE_DO_PPTX.match(nome))
+
+
+def tipo_do_arquivo(conteudo):
     """Descobre o formato pelos primeiros bytes (nao confia na extensao)."""
     if conteudo.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
@@ -72,22 +113,31 @@ def tipo_da_imagem(conteudo):
         return "image/gif"
     if conteudo[:4] == b"RIFF" and conteudo[8:12] == b"WEBP":
         return "image/webp"
+    if conteudo.startswith(b"PK\x03\x04") and _slides_do_pptx(conteudo) is not None:
+        return TIPO_PPTX
     return None
 
 
-def enviar_imagem(professor_id, conteudo):
-    """Grava a imagem no bucket e devolve o link publico."""
+def enviar_arquivo(professor_id, conteudo):
+    """Grava a imagem ou a apresentacao no bucket e devolve o link publico.
+
+    Devolve ``{"url", "tipo"}`` com tipo "imagem" ou "apresentacao"; nas
+    apresentacoes vem tambem ``slides`` (quantos slides o arquivo tem).
+    """
     url, chave = _configuracao()
     if not (url and chave):
-        raise ErroImagem("O envio de imagens ainda não foi configurado no servidor.", 503)
+        raise ErroImagem("O envio de arquivos ainda não foi configurado no servidor.", 503)
     if not conteudo:
-        raise ErroImagem("Escolha uma imagem para enviar.")
+        raise ErroImagem("Escolha um arquivo para enviar.")
     if len(conteudo) > TAMANHO_MAXIMO:
-        raise ErroImagem("A imagem pode ter no máximo 4 MB.", 413)
+        raise ErroImagem(
+            "O arquivo pode ter no máximo 4 MB. Apresentações grandes: salve como PDF e envie o PDF.",
+            413,
+        )
 
-    tipo = tipo_da_imagem(conteudo)
+    tipo = tipo_do_arquivo(conteudo)
     if not tipo:
-        raise ErroImagem("Envie uma imagem PNG, JPG, WEBP ou GIF.")
+        raise ErroImagem("Envie uma imagem (PNG, JPG, WEBP ou GIF), um PDF ou uma apresentação .pptx.")
 
     caminho = f"trilhas/{int(professor_id)}/{uuid.uuid4().hex}.{EXTENSOES[tipo]}"
     requisicao = urllib.request.Request(
@@ -99,14 +149,26 @@ def enviar_imagem(professor_id, conteudo):
     try:
         with urllib.request.urlopen(requisicao, timeout=20):
             pass
+    except urllib.error.HTTPError as erro:
+        if tipo == TIPO_PPTX and erro.code in (400, 415, 422):
+            # o bucket ainda nao libera .pptx (falta rodar o supabase/schema.sql atualizado)
+            raise ErroImagem(
+                "O armazenamento ainda não aceita apresentações .pptx. "
+                "Rode o arquivo supabase/schema.sql atualizado no Supabase.",
+                502,
+            )
+        raise ErroImagem("Não foi possível guardar o arquivo agora. Tente de novo.", 502)
     except (urllib.error.URLError, TimeoutError):
-        raise ErroImagem("Não foi possível guardar a imagem agora. Tente de novo.", 502)
+        raise ErroImagem("Não foi possível guardar o arquivo agora. Tente de novo.", 502)
 
-    return _prefixo_publico() + caminho
+    resultado = {"url": _prefixo_publico() + caminho, "tipo": "imagem"}
+    if tipo == TIPO_PPTX:
+        resultado.update(tipo="apresentacao", slides=_slides_do_pptx(conteudo))
+    return resultado
 
 
-def remover_imagens(enderecos):
-    """Apaga do bucket as imagens que sairam da trilha (sem travar a resposta se falhar)."""
+def remover_arquivos(enderecos):
+    """Apaga do bucket os arquivos que sairam da trilha (sem travar a resposta se falhar)."""
     url, chave = _configuracao()
     caminhos = sorted({c for c in map(_caminho_da_url, enderecos or []) if c})
     if not (url and chave and caminhos):

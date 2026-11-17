@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='7') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='8') }}">
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
@@ -313,7 +313,7 @@
                         <h3>Um minijogo por etapa</h3>
                         <p>Jogo da memória, labirinto do robô, caça-palavras, cobrinha e ligar blocos. Aprender virou recreio.</p>
                         <div class="trail-card-accent" aria-hidden="true"><i></i></div>
-                        <small>5 jogos disponíveis</small>
+                        <small>{{ trilha.tipos_de_minijogo }} jogos disponíveis</small>
                     </li>
                     <li class="trail-card reveal" data-reveal-delay="110">
                         <h3>Um mascote que ensina</h3>
@@ -341,25 +341,40 @@
                         <h3>Você monta a trilha e torna o aprendizado mais divertido.</h3>
                         <ul class="teacher-checklist">
                             <li>Criar, editar, reordenar e remover etapas da trilha</li>
-                            <li>Escolher o minijogo e as perguntas de cada etapa</li>
-                            <li>Acompanhar o progresso de cada aluno da sala</li>
+                            <li>Escolher o minijogo, as perguntas e os slides de cada etapa</li>
+                            <li>Organizar os alunos em turmas e acompanhar o progresso de cada um</li>
                         </ul>
                         <a class="button button-accent" href="{{ url_for('pagina_login') }}#entrar">Entrar no painel</a>
                     </div>
 
+                    {# Os números vêm da trilha que a professora montou no painel: criar ou remover
+                       etapas e perguntas já muda esta parte da página. #}
                     <div class="teacher-panel-stats">
                         <div class="teacher-stat">
-                            <strong><span data-counter="5">0</span></strong>
-                            <small>etapas na trilha</small>
+                            <strong><span data-counter="{{ trilha.total_etapas }}">0</span></strong>
+                            <small>{{ 'etapa na trilha' if trilha.total_etapas == 1 else 'etapas na trilha' }}</small>
                         </div>
                         <div class="teacher-stat">
-                            <strong><span data-counter="5">0</span></strong>
-                            <small>tipos de minijogo</small>
+                            <strong><span data-counter="{{ trilha.total_minijogos }}">0</span></strong>
+                            <small>{{ 'minijogo na trilha' if trilha.total_minijogos == 1 else 'minijogos na trilha' }}</small>
                         </div>
                         <div class="teacher-stat">
-                            <strong><span data-counter="20">0</span></strong>
-                            <small>questões com explicação</small>
+                            <strong><span data-counter="{{ trilha.total_perguntas }}">0</span></strong>
+                            <small>{{ 'questão com explicação' if trilha.total_perguntas == 1 else 'questões com explicação' }}</small>
                         </div>
+                        {% if trilha.etapas %}
+                        <div class="teacher-trail">
+                            <small>A trilha agora</small>
+                            <ol class="teacher-trail-steps" aria-label="Etapas da trilha">
+                                {% for etapa in trilha.etapas %}
+                                <li class="tone-{{ etapa.cor }}" title="{{ loop.index }}. {{ etapa.titulo }} · {{ etapa.perguntas }} {{ 'questão' if etapa.perguntas == 1 else 'questões' }}">
+                                    <span aria-hidden="true">{{ loop.index }}</span>
+                                    <span class="sr-only">Etapa {{ loop.index }}: {{ etapa.titulo }}, {{ etapa.perguntas }} {{ 'questão' if etapa.perguntas == 1 else 'questões' }}</span>
+                                </li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <img class="teacher-panel-robot" src="{{ url_for('static', filename='img/4.png') }}" alt="Mascote RobooTeam apontando para o painel do professor" width="1080" height="1350" loading="lazy">
