@@ -47,19 +47,17 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94A3B8;
         }
+        /* LogoReta-web.png já vem recortada (720×186); para mudar o tamanho, mude só o width */
         .professor-logo {
             border-radius: 0.75rem;
             display: block;
-            overflow: hidden;
-            width: 176px;
+            min-width: 0;
+            width: 210px;
         }
         .professor-logo img {
-            aspect-ratio: 3.05;
             display: block;
             filter: drop-shadow(0 5px 10px rgba(0, 180, 216, 0.35));
-            height: 100%;
-            object-fit: cover;
-            object-position: center top;
+            height: auto;
             width: 100%;
         }
         .professor-header-robot {
@@ -897,7 +895,7 @@
         <!-- Logo & Badge -->
         <div class="prof-sidebar-head">
             <a href="#dashboard" class="professor-logo" aria-label="RobooTeam — painel do professor">
-                <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="RobooTeam">
+                <img src="{{ url_for('static', filename='img/LogoReta-web.png') }}" width="720" height="186" alt="RobooTeam">
             </a>
             <button type="button" class="prof-sidebar-close" id="sidebar-close" aria-label="Fechar menu">
                 <i data-lucide="x" class="w-5 h-5"></i>

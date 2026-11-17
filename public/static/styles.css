@@ -218,15 +218,15 @@ h2 {
     filter: drop-shadow(0 5px 8px rgba(25, 24, 128, 0.16));
 }
 
-/* A logo2.png é um quadrado de 500×500 com o letreiro só na faixa de cima
-   (x 22–483, y 30–205). No header recortamos essa faixa (480×196 a partir de x 12, y 20),
-   para a logo aparecer inteira e centralizada. Para mudar o tamanho, mude só o --logo-w. */
+/* No header (landing page e login) usamos a LogoReta-web.png: o letreiro da LogoReta.png
+   já recortado e reduzido para 720×186. Ela vem pronta no tamanho certo para o navegador
+   não precisar encolher a imagem grande (era isso que deixava a logo serrilhada).
+   Para mudar o tamanho, mude só o --logo-w. */
 .site-header .brand-image {
-    --logo-w: 176px;
+    --logo-w: 230px;
     width: var(--logo-w);
-    height: calc(var(--logo-w) * 196 / 480);
-    background-size: calc(var(--logo-w) * 500 / 480) auto;
-    background-position: calc(var(--logo-w) * -12 / 480) calc(var(--logo-w) * -20 / 480);
+    aspect-ratio: 720 / 186;
+    background: url("img/LogoReta-web.png") center / contain no-repeat;
     filter: drop-shadow(0 0 12px rgba(100, 149, 237, 0.3));
 }
 
@@ -2033,7 +2033,7 @@ h2 {
 @media (max-width: 900px) {
     .section { padding: 90px 0; }
     .header-inner { min-height: 74px; }
-    .site-header .brand-image { --logo-w: 166px; }
+    .site-header .brand-image { --logo-w: 200px; }
     .menu-toggle { display: block; margin-left: auto; }
     .header-actions { display: none; }
     .main-navigation {
@@ -2120,7 +2120,7 @@ h2 {
 }
 
 @media (max-width: 430px) {
-    .site-header .brand-image { --logo-w: 150px; }
+    .site-header .brand-image { --logo-w: 170px; }
     .hero-grid { padding-top: 48px; }
     .hero-visual { min-height: 350px; }
     .floating-card { padding: 9px 11px; }
@@ -2183,7 +2183,7 @@ h2 {
     justify-content: space-between;
 }
 
-.auth-header .brand-image { --logo-w: clamp(136px, calc(var(--vh) * 18.6), 176px); }
+.auth-header .brand-image { --logo-w: clamp(180px, calc(var(--vh) * 30), 230px); }
 
 /* Botão "Voltar ao início": pílula no estilo do card de login */
 .auth-back-link {
@@ -3365,6 +3365,8 @@ h2 {
 }
 
 @media (max-width: 560px) {
+    /* A logo divide a linha com o botão "Voltar ao início" (~162px): ela encolhe junto com a tela */
+    .auth-header .brand-image { --logo-w: clamp(150px, calc(100vw - 230px), 190px); }
     .auth-section { padding: 10px 0; }
     .auth-card { padding: 16px 16px 10px; }
     .auth-visual-hud { display: none; }
@@ -3395,6 +3397,8 @@ h2 {
 }
 
 @media (max-width: 390px) {
+    /* Aqui o botão "Voltar" vira só o ícone, então sobra espaço para a logo */
+    .auth-header .brand-image { --logo-w: 180px; }
     .auth-back-link { padding: 5px; }
 
     /* Só o ícone aparece; o texto continua disponível para leitores de tela */
@@ -3418,7 +3422,7 @@ h2 {
 @media (max-width: 560px) and (max-height: 700px) {
     .auth-page { --auth-gap: 8px; }
     .auth-header .header-inner { min-height: 56px; }
-    .auth-header .brand-image { --logo-w: 128px; }
+    .auth-header .brand-image { --logo-w: 160px; }
     .auth-section { padding: 6px 0; }
     .auth-card { padding: 12px 14px 8px; }
     .auth-tabs { margin-bottom: 10px; }
